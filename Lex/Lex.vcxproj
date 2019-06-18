@@ -163,6 +163,7 @@
     <ClInclude Include="Source\framework.h" />
     <ClInclude Include="Source\HighResolutionTimer.h" />
     <ClInclude Include="Source\Keyboard.h" />
+    <ClInclude Include="Source\Loader.h" />
     <ClInclude Include="Source\Mouse.h" />
     <ClInclude Include="Source\Resource.h" />
     <ClInclude Include="Source\Useful.h" />
@@ -180,6 +181,7 @@
     <ClCompile Include="Source\Donya.cpp" />
     <ClCompile Include="Source\framework.cpp" />
     <ClCompile Include="Source\Keyboard.cpp" />
+    <ClCompile Include="Source\Loader.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Mouse.cpp" />
     <ClCompile Include="Source\Resource.cpp" />
