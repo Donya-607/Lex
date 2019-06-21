@@ -3,81 +3,105 @@
 #include <fbxsdk.h>
 #include <functional>
 #include <crtdbg.h>
+#include <memory>
 
-using namespace fbxsdk;
+#include "Useful.h"
 
-Loader::Loader( const char *fileName )
+namespace FBX = fbxsdk;
+
+namespace Donya
 {
-	// Create the FBX SDK manager
-	FbxManager* manager = FbxManager::Create();
 
-	// Create an IOSettings object. IOSROOT is defined in Fbxiosettingspath.h.
-	manager->SetIOSettings( FbxIOSettings::Create( manager, IOSROOT ) );
+	Loader::Loader() :
+		fileName(),
+		indices(),
+		normals(),
+		positions()
+	{
 
-	// Create an importer.
-	FbxImporter* importer = FbxImporter::Create( manager, "" );
-
-	// Initialize the importer.
-	bool import_status = false;
-	import_status = importer->Initialize( fileName, -1, manager->GetIOSettings() );
-	_ASSERT_EXPR( import_status, importer->GetStatus().GetErrorString() );
-
-	// Create a new scene so it can be populated by the imported file.
-	FbxScene* scene = FbxScene::Create( manager, "" );
-
-	// Import the contents of the file into the scene.
-	import_status = importer->Import( scene );
-	_ASSERT_EXPR( import_status, importer->GetStatus().GetErrorString() );
-
-	// Convert mesh, NURBS and patch into triangle mesh
-	fbxsdk::FbxGeometryConverter geometry_converter( manager );
-	geometry_converter.Triangulate( scene, /*replace*/true );
-
-	// Fetch node attributes and materials under this node recursively. Currently only mesh.
-	std::vector<FbxNode*> fetched_meshes;
-	std::function<void( FbxNode* )> traverse = [&]( FbxNode* node ) {
-		if ( node ) {
-			FbxNodeAttribute *fbx_node_attribute = node->GetNodeAttribute();
-			if ( fbx_node_attribute ) {
-				switch ( fbx_node_attribute->GetAttributeType() ) {
-				case FbxNodeAttribute::eMesh:
-					fetched_meshes.push_back( node );
-					break;
-				}
-			}
-			for ( int i = 0; i < node->GetChildCount(); i++ )
-				traverse( node->GetChild( i ) );
-		}
-	};
-	traverse( scene->GetRootNode() );
-	FbxMesh *fbx_mesh = fetched_meshes.at( 0 )->GetMesh(); // Currently only one mesh.
-
-	// Fetch mesh data
-	std::vector<vertex> vertices; // Vertex buffer
-	std::vector<u_int> indices; // Index buffer
-	u_int vertex_count = 0;
-	const FbxVector4 *array_of_control_points = fbx_mesh->GetControlPoints();
-	const int number_of_polygons = fbx_mesh->GetPolygonCount();
-	for ( int index_of_polygon = 0; index_of_polygon < number_of_polygons; index_of_polygon++ ) {
-		for ( int index_of_vertex = 0; index_of_vertex < 3; index_of_vertex++ ) {
-			vertex vertex;
-			const int index_of_control_point = fbx_mesh->GetPolygonVertex( index_of_polygon, index_of_vertex );
-			vertex.position.x = static_cast<float>( array_of_control_points[index_of_control_point][0] );
-			vertex.position.y = static_cast<float>( array_of_control_points[index_of_control_point][1] );
-			vertex.position.z = static_cast<float>( array_of_control_points[index_of_control_point][2] );
-			FbxVector4 normal;
-			fbx_mesh->GetPolygonVertexNormal( index_of_polygon, index_of_vertex, normal );
-			vertex.normal.x = static_cast<float>( normal[0] );
-			vertex.normal.y = static_cast<float>( normal[1] );
-			vertex.normal.z = static_cast<float>( normal[2] );
-			vertices.push_back( vertex );
-			indices.push_back( vertex_count );
-			vertex_count += 1;
-		}
 	}
-	manager->Destroy();
-}
-Loader::~Loader()
-{
+	Loader::~Loader()
+	{
+		std::vector<size_t>().swap( indices );
+		std::vector<Donya::Vector3>().swap( positions );
+		std::vector<Donya::Vector3>().swap( normals );
+	}
 
+	bool Loader::Load( const std::string &filePath, std::string *outputErrorString )
+	{
+		bool isSuccess = true;
+
+		MakeFileName( filePath );
+
+		FBX::FbxManager		*pManager		= FBX::FbxManager::Create();
+		FBX::FbxIOSettings	*pIOSettings	= FBX::FbxIOSettings::Create( pManager, IOSROOT );
+		pManager->SetIOSettings( pIOSettings );
+
+		FBX::FbxScene		*pScene			= FBX::FbxScene::Create( pManager, "" );
+		#pragma region Import
+		{
+			FBX::FbxImporter *pImporter		= FBX::FbxImporter::Create( pManager, "" );
+			if ( !pImporter->Initialize( fileName.c_str(), -1, pManager->GetIOSettings() ) )
+			{
+				isSuccess = false;
+
+				if ( outputErrorString != nullptr )
+				{
+					*outputErrorString =  "Failed : FbxImporter::Initialize().\n";
+					*outputErrorString += "Error message is : ";
+					*outputErrorString += pImporter->GetStatus().GetErrorString();
+				}
+
+				goto UNINITIALIZE;
+			}
+
+			if ( !pImporter->Import( pScene ) )
+			{
+				isSuccess = false;
+
+				if ( outputErrorString != nullptr )
+				{
+					*outputErrorString =  "Failed : FbxImporter::Import().\n";
+					*outputErrorString += "Error message is :";
+					*outputErrorString += pImporter->GetStatus().GetErrorString();
+				}
+
+				goto UNINITIALIZE;
+			}
+
+			pImporter->Destroy();
+		}
+		#pragma endregion
+
+		
+
+		UNINITIALIZE:
+
+		pManager->Destroy();
+
+		return isSuccess;
+	}
+
+	std::string GetUTF8FullPath( const std::string &inputFilePath, size_t filePathLength = 512U )
+	{
+		// reference to http://blog.livedoor.jp/tek_nishi/archives/9446152.html
+
+		std::unique_ptr<char[]> fullPath = std::make_unique<char[]>( filePathLength );
+		_fullpath( fullPath.get(), inputFilePath.c_str(), filePathLength );
+
+		char *convertedPath = nullptr;
+		FBX::FbxAnsiToUTF8( fullPath.get(), convertedPath );
+
+		std::string convertedStr( convertedPath );
+
+		FBX::FbxFree( convertedPath );
+
+		return convertedStr;
+	}
+	void Loader::MakeFileName( const std::string &filePath )
+	{
+		constexpr size_t FILE_PATH_LENGTH = 512U;
+
+		fileName = GetUTF8FullPath( filePath, FILE_PATH_LENGTH );
+	}
 }

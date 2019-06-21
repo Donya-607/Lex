@@ -1,15 +1,19 @@
 #include "Framework.h"
 
 #include <array>
+#include <memory>
+#include <vector>
 
 #include "Benchmark.h"
 #include "Camera.h"
 #include "Common.h"
 #include "Donya.h"
 #include "Keyboard.h"
+#include "Loader.h"
 #include "Mouse.h"
 #include "Resource.h"
 #include "UseImgui.h"
+#include "Useful.h"
 
 #if USE_IMGUI
 
@@ -29,14 +33,15 @@ Framework::Framework( HWND hwnd ) :
 	angle( 0 ),
 	colour( { 0.0f, 1.0f, 0.6f, 0.8f } ),
 	isFillDraw( true )
-{}
+{
+	DragAcceptFiles( hWnd, TRUE );
+}
 Framework::~Framework() = default;
 
-LRESULT CALLBACK Framework::HandleMessage( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
+LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
 {
 #ifdef USE_IMGUI
-
-	if ( ImGui_ImplWin32_WndProcHandler( hwnd, msg, wParam, lParam ) )
+	if ( ImGui_ImplWin32_WndProcHandler( hWnd, msg, wParam, lParam ) )
 	{
 		return 1;
 	}
@@ -45,34 +50,33 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hwnd, UINT msg, WPARAM wParam, L
 
 	switch ( msg )
 	{
-	case WM_PAINT:
-		{
-			PAINTSTRUCT ps;
-			HDC hdc;
-			hdc = BeginPaint( hwnd, &ps );
-			EndPaint( hwnd, &ps );
-			break;
-		}
+	case WM_CREATE:
+		break;
 	case WM_DESTROY:
 		PostQuitMessage( 0 );
 		break;
-	case WM_CREATE:
-		break;
-	case WM_MOUSEMOVE:
-		Donya::Mouse::UpdateMouseCoordinate( lParam );
-		break;
-	case WM_MOUSEWHEEL:
-		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
-		break;
-	case WM_MOUSEHWHEEL:
-		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ true, wParam, lParam );
-		break;
-	case WM_KEYDOWN:
+	case WM_DROPFILES:
 		{
-			if ( wParam == VK_ESCAPE )
+			constexpr size_t FILE_PATH_LENGTH = 512U;
+
+			HDROP	hDrop		= ( HDROP )wParam;
+			size_t	fileCount	= DragQueryFile( hDrop, -1, NULL, NULL );
+
+			std::string errorMessage{};
+			std::unique_ptr<char[]> filename = std::make_unique<char[]>( FILE_PATH_LENGTH );
+			std::vector<Donya::Loader> loaders{ fileCount };
+
+			for ( size_t i = 0; i < fileCount; ++i )
 			{
-				PostMessage( hwnd, WM_CLOSE, 0, 0 );
+				DragQueryFileA( hDrop, i, filename.get(), FILE_PATH_LENGTH );
+				bool result = loaders[i].Load( filename.get(), &errorMessage );
+				if ( !result )
+				{
+					MessageBoxA( hWnd, errorMessage.c_str(), "File Load Failed", MB_OK );
+				}
 			}
+
+			DragFinish( hDrop );
 		}
 		break;
 	case WM_ENTERSIZEMOVE:
@@ -88,8 +92,33 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hwnd, UINT msg, WPARAM wParam, L
 			highResoTimer.Start();
 		}
 		break;
+	case WM_KEYDOWN:
+		{
+			if ( wParam == VK_ESCAPE )
+			{
+				PostMessage( hWnd, WM_CLOSE, 0, 0 );
+			}
+		}
+		break;
+	case WM_MOUSEMOVE:
+		Donya::Mouse::UpdateMouseCoordinate( lParam );
+		break;
+	case WM_MOUSEWHEEL:
+		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
+		break;
+	case WM_MOUSEHWHEEL:
+		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ true, wParam, lParam );
+		break;
+	case WM_PAINT:
+		{
+			PAINTSTRUCT ps;
+			HDC hdc;
+			hdc = BeginPaint( hWnd, &ps );
+			EndPaint( hWnd, &ps );
+			break;
+		}
 	default:
-		return DefWindowProc( hwnd, msg, wParam, lParam );
+		return DefWindowProc( hWnd, msg, wParam, lParam );
 	}
 	return 0;
 }
@@ -369,6 +398,15 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 #pragma endregion
 
+	if ( ImGui::BeginIfAllowed( "File" ) )
+	{
+		if ( ImGui::Button( "Open FBX File" ) )
+		{
+
+		}
+
+		ImGui::End();
+	}
 }
 
 void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
