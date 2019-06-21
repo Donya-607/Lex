@@ -4,6 +4,8 @@
 #include <functional>
 #include <crtdbg.h>
 
+using namespace fbxsdk;
+
 Loader::Loader( const char *fileName )
 {
 	// Create the FBX SDK manager
@@ -74,7 +76,6 @@ Loader::Loader( const char *fileName )
 		}
 	}
 	manager->Destroy();
-	// Initialize Direct3D COM objects
 }
 Loader::~Loader()
 {

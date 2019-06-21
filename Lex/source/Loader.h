@@ -5,7 +5,7 @@
 
 class Loader
 {
-
+	std::vector<
 public:
 	Loader( const char *fileName );
 	~Loader();

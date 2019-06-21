@@ -168,6 +168,7 @@
     <ClInclude Include="Source\Resource.h" />
     <ClInclude Include="Source\Useful.h" />
     <ClInclude Include="Source\UseImgui.h" />
+    <ClInclude Include="Source\Vector.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\ImGui\imgui.cpp" />
@@ -187,6 +188,7 @@
     <ClCompile Include="Source\Resource.cpp" />
     <ClCompile Include="Source\Useful.cpp" />
     <ClCompile Include="Source\UseImGui.cpp" />
+    <ClCompile Include="Source\Vector.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
