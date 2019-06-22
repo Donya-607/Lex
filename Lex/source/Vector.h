@@ -16,11 +16,11 @@ namespace Donya
 		Vector2( const XMFLOAT2 &ref ) : XMFLOAT2( ref ) {}
 		Vector2( const XMFLOAT2&&ref ) : XMFLOAT2( ref ) {}
 		Vector2( const Vector2  &ref ) : XMFLOAT2( ref ) {}
-		Vector2( const Vector2 &&ref ) : XMFLOAT2( ref ) {}
+		Vector2( const Vector2 &&ref ) noexcept : XMFLOAT2( ref ) {}
 		Vector2 & operator = ( const XMFLOAT2 &ref ) { *this = ref; return *this; }
 		Vector2 & operator = ( const XMFLOAT2&&ref ) { *this = ref; return *this; }
 		Vector2 & operator = ( const Vector2  &ref ) { *this = ref; return *this; }
-		Vector2 & operator = ( const Vector2 &&ref ) { *this = ref; return *this; }
+		Vector2 & operator = ( const Vector2 &&ref ) noexcept { *this = ref; return *this; }
 		~Vector2() = default;
 	public:
 		inline Vector2 operator - () const { return Vector2{ -x, -y }; }
@@ -124,11 +124,11 @@ namespace Donya
 		Vector3( const XMFLOAT3 &ref ) : XMFLOAT3( ref ) {}
 		Vector3( const XMFLOAT3&&ref ) : XMFLOAT3( ref ) {}
 		Vector3( const Vector3  &ref ) : XMFLOAT3( ref ) {}
-		Vector3( const Vector3 &&ref ) : XMFLOAT3( ref ) {}
+		Vector3( const Vector3 &&ref ) noexcept : XMFLOAT3( ref ) {}
 		Vector3 & operator = ( const XMFLOAT3 &ref ) { *this = ref; return *this; }
 		Vector3 & operator = ( const XMFLOAT3&&ref ) { *this = ref; return *this; }
 		Vector3 & operator = ( const Vector3  &ref ) { *this = ref; return *this; }
-		Vector3 & operator = ( const Vector3 &&ref ) { *this = ref; return *this; }
+		Vector3 & operator = ( const Vector3 &&ref ) noexcept { *this = ref; return *this; }
 		~Vector3() = default;
 	public:
 		inline Vector3 operator - () const { return Vector3{ -x, -y, -z }; }
@@ -250,11 +250,11 @@ namespace Donya
 		Vector4( const XMFLOAT4 &ref ) : XMFLOAT4( ref ) {}
 		Vector4( const XMFLOAT4&&ref ) : XMFLOAT4( ref ) {}
 		Vector4( const Vector4  &ref ) : XMFLOAT4( ref ) {}
-		Vector4( const Vector4 &&ref ) : XMFLOAT4( ref ) {}
+		Vector4( const Vector4 &&ref ) noexcept : XMFLOAT4( ref ) {}
 		Vector4 & operator = ( const XMFLOAT4 &ref ) { *this = ref; return *this; }
 		Vector4 & operator = ( const XMFLOAT4&&ref ) { *this = ref; return *this; }
 		Vector4 & operator = ( const Vector4  &ref ) { *this = ref; return *this; }
-		Vector4 & operator = ( const Vector4 &&ref ) { *this = ref; return *this; }
+		Vector4 & operator = ( const Vector4 &&ref ) noexcept { *this = ref; return *this; }
 		~Vector4() = default;
 	public:
 		inline Vector4 operator - () const { return Vector4{ -x, -y, -z }; }

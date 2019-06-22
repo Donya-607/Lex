@@ -381,8 +381,9 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	timer += elapsedTime;
 
 	constexpr float ROT_ANGLE = 5.0f;
-	angle = ROT_ANGLE * sinf( ToRadian( animTimer * 2 ) ) * timer;
+	angle = ROT_ANGLE * sinf( ToRadian( scast<float>( animTimer * 2 ) ) ) * timer;
 
+	
 	for ( size_t i = 0; i < colour.size() - 1; ++i )
 	{
 		colour[i] += 0.01f;
@@ -484,7 +485,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 			XMMATRIX matProjPerspective{};
 			XMMATRIX matProjOrthographic{};
 			{
-				float FOV		= ToRadian( 30.0f );
+				constexpr float FOV = ToRadian( 30.0f );
 				float width		= Common::ScreenWidthF();
 				float height	= Common::ScreenHeightF();
 				float aspect	= width / height;

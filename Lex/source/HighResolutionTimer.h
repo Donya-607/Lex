@@ -5,8 +5,23 @@
 
 class HighResolutionTimer
 {
+private:
+	double secondsPerCount;
+	double deltaTime;
+
+	LONGLONG baseTime;
+	LONGLONG pausedTime;
+	LONGLONG stopTime;
+	LONGLONG lastTime;
+	LONGLONG thisTime;
+
+	bool stopped;
 public:
-	HighResolutionTimer() : deltaTime( -1.0 ), pausedTime( 0 ), stopped( false )
+	HighResolutionTimer() :
+		secondsPerCount( 0.0 ), deltaTime( -1.0 ),
+		baseTime(), pausedTime( 0 ), stopTime(),
+		lastTime(), thisTime(),
+		stopped( false )
 	{
 		LONGLONG counts_per_sec;
 		QueryPerformanceFrequency( reinterpret_cast<LARGE_INTEGER*>( &counts_per_sec ) );
@@ -116,18 +131,6 @@ public:
 			deltaTime = 0.0;
 		}
 	}
-
-private:
-	double secondsPerCount;
-	double deltaTime;
-
-	LONGLONG baseTime;
-	LONGLONG pausedTime;
-	LONGLONG stopTime;
-	LONGLONG lastTime;
-	LONGLONG thisTime;
-
-	bool stopped;
 };
 
 #endif // _INCLUDED_HIGH_RESOLUTION_TIMER_H_

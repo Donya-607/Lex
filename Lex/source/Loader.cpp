@@ -3,6 +3,7 @@
 #include <fbxsdk.h>
 #include <functional>
 #include <crtdbg.h>
+#include <Windows.h>
 #include <memory>
 
 #include "Useful.h"
@@ -87,7 +88,7 @@ namespace Donya
 		// reference to http://blog.livedoor.jp/tek_nishi/archives/9446152.html
 
 		std::unique_ptr<char[]> fullPath = std::make_unique<char[]>( filePathLength );
-		_fullpath( fullPath.get(), inputFilePath.c_str(), filePathLength );
+		auto writeLength = GetFullPathNameA( inputFilePath.c_str(), filePathLength, fullPath.get(), nullptr );
 
 		char *convertedPath = nullptr;
 		FBX::FbxAnsiToUTF8( fullPath.get(), convertedPath );

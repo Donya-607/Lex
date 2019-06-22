@@ -1,46 +1,46 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="ソース ファイル">
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{ab20b420-4e7a-4cfe-9d75-2c2243e76a17}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="ヘッダー ファイル">
+    <Filter Include="Header">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
-    <Filter Include="リソース ファイル">
+    <Filter Include="Resource">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="ImGui">
-      <UniqueIdentifier>{ab20b420-4e7a-4cfe-9d75-2c2243e76a17}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Benchmark.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\Camera.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\Common.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\framework.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\Keyboard.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\Mouse.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\Resource.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\UseImgui.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="..\External\ImGui\imgui_impl_dx11.h">
       <Filter>ImGui</Filter>
@@ -67,45 +67,45 @@
       <Filter>ImGui</Filter>
     </ClInclude>
     <ClInclude Include="Source\HighResolutionTimer.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\Donya.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\Useful.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\Loader.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\Vector.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Common.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\framework.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Keyboard.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\main.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Mouse.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Resource.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\UseImGui.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\External\ImGui\imgui_impl_win32.cpp">
       <Filter>ImGui</Filter>
@@ -126,16 +126,16 @@
       <Filter>ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Source\Donya.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Useful.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Loader.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Vector.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
