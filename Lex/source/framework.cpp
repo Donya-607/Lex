@@ -1,9 +1,5 @@
 #include "Framework.h"
 
-#include <array>
-#include <memory>
-#include <vector>
-
 #include "Benchmark.h"
 #include "Camera.h"
 #include "Common.h"
@@ -27,11 +23,7 @@ namespace Do = Donya;
 
 Framework::Framework( HWND hwnd ) :
 	hWnd( hwnd ),
-	
-	animTimer( 0 ), animIndex( 0 ),
-	timer( 0 ),
-	angle( 0 ),
-	colour( { 0.0f, 1.0f, 0.6f, 0.8f } ),
+	pCamera( nullptr ), loaders(),
 	isFillDraw( true )
 {
 	DragAcceptFiles( hWnd, TRUE );
@@ -64,8 +56,9 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 
 			std::string errorMessage{};
 			std::unique_ptr<char[]> filename = std::make_unique<char[]>( FILE_PATH_LENGTH );
-			std::vector<Donya::Loader> loaders{ fileCount };
-
+			loaders.clear();
+			loaders.resize( fileCount );
+			
 			for ( size_t i = 0; i < fileCount; ++i )
 			{
 				DragQueryFileA( hDrop, i, filename.get(), FILE_PATH_LENGTH );
@@ -324,7 +317,12 @@ bool Framework::Init()
 		_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateDepthStencilView" );
 	}
 
-	Donya::GetImmediateContext()->OMSetRenderTargets( 1, d3dRenderTargetView.GetAddressOf(), d3dDepthStencilView.Get() );
+	Donya::GetImmediateContext()->OMSetRenderTargets
+	(
+		1,
+		d3dRenderTargetView.GetAddressOf(),
+		d3dDepthStencilView.Get()
+	);
 
 	// Viewport
 	{
@@ -341,10 +339,7 @@ bool Framework::Init()
 
 	#pragma endregion
 
-	// Create Instancies
-	{
-		pCamera				= std::make_unique<Do::Camera>();
-	}
+	pCamera = std::make_unique<Do::Camera>();
 
 	return true;
 }
@@ -363,32 +358,10 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	if ( Donya::Keyboard::State( 'C' ) )
 	{
-		char debugstopper = 0;
+		bool breakPoint{};
 	}
 
 #endif // DEBUG_MODE
-
-#pragma region Develop Test Updates
-
-	constexpr int ANIMATION_INTERVAL = 10;
-	constexpr int ANIMATION_NUM = 6;
-	animTimer++;
-	if ( !( animTimer % ANIMATION_INTERVAL ) )
-	{
-		animIndex = ( animIndex < ANIMATION_NUM - 1 ) ? animIndex + 1 : 0;
-	}
-
-	timer += elapsedTime;
-
-	constexpr float ROT_ANGLE = 5.0f;
-	angle = ROT_ANGLE * sinf( ToRadian( scast<float>( animTimer * 2 ) ) ) * timer;
-
-	
-	for ( size_t i = 0; i < colour.size() - 1; ++i )
-	{
-		colour[i] += 0.01f;
-		if ( 1.5f < colour[i] ) { colour[i] = 0.1f; }
-	}
 
 	if ( GetAsyncKeyState( 'F' ) & 1 )
 	{
@@ -397,14 +370,25 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	pCamera->Update();
 
-#pragma endregion
-
-	if ( ImGui::BeginIfAllowed( "File" ) )
+	if ( ImGui::BeginIfAllowed( "File Information" ) )
 	{
 		if ( ImGui::Button( "Open FBX File" ) )
 		{
-
+			OpenCommonDialogAndFile();
 		}
+
+		size_t loadedCount = loaders.size();
+		ImGui::Text( "\nFileNames : %d", loadedCount );
+		ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( ImGui::GetWindowWidth(), ImGui::GetWindowHeight() ) );
+		{
+			std::string fileName{};
+			for ( size_t i = 0; i < loadedCount; ++i )
+			{
+				fileName = loaders[i].GetFileName();
+				ImGui::Text( fileName.c_str() );
+			}
+		}
+		ImGui::EndChild();
 
 		ImGui::End();
 	}
@@ -436,32 +420,31 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		);
 	}
 
+	/*
 	Donya::GetImmediateContext()->OMSetRenderTargets
 	(
 		1,
 		d3dRenderTargetView.GetAddressOf(),
 		d3dDepthStencilView.Get()
 	);
+	*/
 	
 	// Geometric-Cube, StaticMesh Render
 	if ( 1 )
 	{
 		XMMATRIX matWorld{};
 		{
-			static float ampl = 2.0f;
-			if ( GetAsyncKeyState( 'W' ) < 0 ) { ampl += 0.01f; }
-			if ( GetAsyncKeyState( 'S' ) < 0 ) { ampl -= 0.01f; }
-
-			XMFLOAT3 scale{ ampl, ampl, ampl };
-			// scale.x = scale.y = scale.z = AMPL * cosf( ToRadian( animTimer * 2 ) ) * timer;
+			static float scale = 2.0f;
+			if ( GetAsyncKeyState( 'W' ) < 0 ) { scale += 0.01f; }
+			if ( GetAsyncKeyState( 'S' ) < 0 ) { scale -= 0.01f; }
 
 			static float temporaryTimer = 0;
 			temporaryTimer += 0.1f;
 			if ( 360.0f <= temporaryTimer ) { temporaryTimer = 0; }
 
-			static float angleX = 0; // cosf( ToRadian( temporaryTimer * 2 ) );
-			static float angleY = 0; // cosf( ToRadian( temporaryTimer ) );
-			static float angleZ = 0; // cosf( ToRadian( temporaryTimer * 2 ) );
+			static float angleX = 0;
+			static float angleY = 0;
+			static float angleZ = 0;
 			if ( GetAsyncKeyState( VK_UP	) < 0 ) { angleX += 0.12f; }
 			if ( GetAsyncKeyState( VK_DOWN	) < 0 ) { angleX -= 0.12f; }
 			if ( GetAsyncKeyState( VK_LEFT	) < 0 ) { angleY += 0.12f; }
@@ -469,7 +452,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 			if ( GetAsyncKeyState( 'A'		) < 0 ) { angleZ += 0.12f; }
 			if ( GetAsyncKeyState( 'D'		) < 0 ) { angleZ -= 0.12f; }
 
-			XMMATRIX scaling		= XMMatrixScaling( scale.x, scale.y, scale.z );
+			XMMATRIX scaling		= XMMatrixScaling( scale, scale, scale );
 			XMMATRIX rotX			= XMMatrixRotationX( ToRadian( angleX ) );
 			XMMATRIX rotY			= XMMatrixRotationY( ToRadian( angleY ) );
 			XMMATRIX rotZ			= XMMatrixRotationZ( ToRadian( angleZ ) );
@@ -489,7 +472,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 				float width		= Common::ScreenWidthF();
 				float height	= Common::ScreenHeightF();
 				float aspect	= width / height;
-				float zNear		= 0.1f;
+				float zNear		= 0.10f;
 				float zFar		= 1000.0f;
 			#if 1
 				XMFLOAT4X4 projection{};
@@ -558,4 +541,34 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	HRESULT hr = dxgiSwapChain->Present( 0, 0 );
 	_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Present()" );
+}
+
+bool Framework::OpenCommonDialogAndFile()
+{
+	char chosenFilesFullPath[MAX_PATH]	= { 0 };
+	char chosenFileName[MAX_PATH]		= { 0 };
+
+	OPENFILENAMEA ofn{ 0 };
+	ofn.lStructSize		= sizeof( OPENFILENAME );
+	ofn.hwndOwner		= hWnd;
+	ofn.lpstrFilter		= "FBX-file(*.fbx)\0*.fbx\0"
+						  "OBJ-file(*.obj)\0*.obj\0"
+						  "\0";
+	ofn.lpstrFile		= chosenFilesFullPath;
+	ofn.nMaxFile		= MAX_PATH;
+	ofn.lpstrFileTitle	= chosenFileName;
+	ofn.nMaxFileTitle	= MAX_PATH;
+	ofn.Flags			= OFN_FILEMUSTEXIST;
+
+	auto result = GetOpenFileNameA( &ofn );
+	if ( !result ) { return false; }
+	// else
+
+	std::string filePath( chosenFilesFullPath );
+	std::string errorMessage{};
+
+	loaders.push_back( Donya::Loader() );
+	loaders.back().Load( filePath, &errorMessage );
+
+	return true;
 }

@@ -7,9 +7,10 @@
 #include <array>
 #include <d3d11.h>
 #include <memory>
+#include <vector>
 #include <wrl.h>
 
-#include "GeometricPrimitive.h"
+#include "Loader.h"
 #include "HighResolutionTimer.h"
 
 #define scast static_cast
@@ -22,23 +23,16 @@ namespace Donya
 class Framework
 {
 public:
-	static constexpr char *TITLE_BAR_CAPTION = "Lex";
+	static constexpr char *TITLE_BAR_CAPTION = "Lex - I can open a files by D & D.";
 private:
 	CONST HWND hWnd;
 
-	// Microsoft::WRL::ComPtr<ID3D11Device>					d3dDevice;
-	// Microsoft::WRL::ComPtr<ID3D11DeviceContext>				d3dDeviceContext;
-	Microsoft::WRL::ComPtr<IDXGISwapChain>					dxgiSwapChain;
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>			d3dRenderTargetView;
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>			d3dDepthStencilView;
+	Microsoft::WRL::ComPtr<IDXGISwapChain>			dxgiSwapChain;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	d3dRenderTargetView;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	d3dDepthStencilView;
 private:
-	std::unique_ptr<Donya::Camera>							pCamera;
-private:
-	int		animTimer;
-	int		animIndex;	// 0 Žn‚Ü‚è
-	float	timer;
-	float	angle;		// degree
-	std::array<float, 4> colour;	// R, G, B, A
+	std::unique_ptr<Donya::Camera>	pCamera;
+	std::vector<Donya::Loader>		loaders;
 private:
 	bool isFillDraw;
 public:
@@ -58,5 +52,7 @@ private:
 private:
 	HighResolutionTimer highResoTimer;
 	void CalcFrameStats();
+private:
+	bool OpenCommonDialogAndFile();
 };
 
