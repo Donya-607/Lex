@@ -383,6 +383,8 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 			OpenCommonDialogAndFile();
 		}
 
+		ImGui::Text( "" );
+
 		for ( auto &it = loaders.begin(); it != loaders.end(); )
 		{
 			std::string nodeCaption ="[" + it->GetFileName() + "]";

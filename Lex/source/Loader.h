@@ -38,6 +38,10 @@ namespace Donya
 		void MakeFileName( const std::string &filePath );
 	#if USE_IMGUI
 	public:
+		/// <summary>
+		/// This function don't ImGui::Begin() and Begin::End().<para></para>
+		/// please call between ImGui::Begin() to ImGui::End().
+		/// </summary>
 		void EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const;
 	#endif // USE_IMGUI
 

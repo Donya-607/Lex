@@ -200,49 +200,43 @@ namespace Donya
 	#if USE_IMGUI
 	void Loader::EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const
 	{
-		if ( ImGui::BeginIfAllowed( ImGuiWindowIdentifier ) )
+		if ( ImGui::TreeNode( "Positions" ) )
 		{
-			ImGui::Text( "%s", fileName.c_str() );
-			if ( ImGui::TreeNode( "Positions" ) )
+			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( ImGui::GetWindowWidth(), ImGui::GetWindowHeight() ) );
+			size_t end = positions.size();
+			for ( size_t i = 0; i < end; ++i )
 			{
-				ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( ImGui::GetWindowWidth(), ImGui::GetWindowHeight() ) );
-				size_t end = positions.size();
-				for ( size_t i = 0; i < end; ++i )
-				{
-					ImGui::Text ( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, positions[i].x, positions[i].y, positions[i].z );
-				}
-				ImGui::EndChild();
-
-				ImGui::TreePop();
+				ImGui::Text ( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, positions[i].x, positions[i].y, positions[i].z );
 			}
+			ImGui::EndChild();
 
-			if ( ImGui::TreeNode( "Normals" ) )
+			ImGui::TreePop();
+		}
+
+		if ( ImGui::TreeNode( "Normals" ) )
+		{
+			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( ImGui::GetWindowWidth(), ImGui::GetWindowHeight() ) );
+			size_t end = normals.size();
+			for ( size_t i = 0; i < end; ++i )
 			{
-				ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( ImGui::GetWindowWidth(), ImGui::GetWindowHeight() ) );
-				size_t end = normals.size();
-				for ( size_t i = 0; i < end; ++i )
-				{
-					ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, normals[i].x, normals[i].y, normals[i].z );
-				}
-				ImGui::EndChild();
-
-				ImGui::TreePop();
+				ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, normals[i].x, normals[i].y, normals[i].z );
 			}
+			ImGui::EndChild();
 
-			if ( ImGui::TreeNode( "Indices" ) )
+			ImGui::TreePop();
+		}
+
+		if ( ImGui::TreeNode( "Indices" ) )
+		{
+			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( ImGui::GetWindowWidth(), ImGui::GetWindowHeight() ) );
+			size_t end = indices.size();
+			for ( size_t i = 0; i < end; ++i )
 			{
-				ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( ImGui::GetWindowWidth(), ImGui::GetWindowHeight() ) );
-				size_t end = indices.size();
-				for ( size_t i = 0; i < end; ++i )
-				{
-					ImGui::Text( "[No:%d][%d]", i, indices[i] );
-				}
-				ImGui::EndChild();
-
-				ImGui::TreePop();
+				ImGui::Text( "[No:%d][%d]", i, indices[i] );
 			}
+			ImGui::EndChild();
 
-			ImGui::End();
+			ImGui::TreePop();
 		}
 	}
 	#endif // USE_IMGUI
