@@ -39,9 +39,6 @@
     <ClInclude Include="Source\Resource.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UseImgui.h">
-      <Filter>Header</Filter>
-    </ClInclude>
     <ClInclude Include="..\External\ImGui\imgui_impl_dx11.h">
       <Filter>ImGui</Filter>
     </ClInclude>
@@ -79,6 +76,12 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\Vector.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UseImGui.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SkinnedMesh.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>
@@ -135,6 +138,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Vector.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SkinnedMesh.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

@@ -12,7 +12,7 @@ namespace Donya
 	{
 	public:
 		Vector2() : XMFLOAT2() {}
-		Vector2( float x = 0, float y = 0 ) : XMFLOAT2( x, y ) {}
+		Vector2( float x, float y ) : XMFLOAT2( x, y ) {}
 		Vector2( const XMFLOAT2 &ref ) : XMFLOAT2( ref ) {}
 		Vector2( const XMFLOAT2&&ref ) : XMFLOAT2( ref ) {}
 		Vector2( const Vector2  &ref ) : XMFLOAT2( ref ) {}
@@ -120,7 +120,7 @@ namespace Donya
 	{
 	public:
 		Vector3() : XMFLOAT3() {}
-		Vector3( float x = 0, float y = 0, float z = 0 ) : XMFLOAT3( x, y, z ) {}
+		Vector3( float x, float y, float z ) : XMFLOAT3( x, y, z ) {}
 		Vector3( const XMFLOAT3 &ref ) : XMFLOAT3( ref ) {}
 		Vector3( const XMFLOAT3&&ref ) : XMFLOAT3( ref ) {}
 		Vector3( const Vector3  &ref ) : XMFLOAT3( ref ) {}
@@ -246,7 +246,7 @@ namespace Donya
 	{
 	public:
 		Vector4() : XMFLOAT4() {}
-		Vector4( float x = 0, float y = 0, float z = 0, float w = 0 ) : XMFLOAT4( x, y, z, w ) {}
+		Vector4( float x, float y, float z, float w ) : XMFLOAT4( x, y, z, w ) {}
 		Vector4( const XMFLOAT4 &ref ) : XMFLOAT4( ref ) {}
 		Vector4( const XMFLOAT4&&ref ) : XMFLOAT4( ref ) {}
 		Vector4( const Vector4  &ref ) : XMFLOAT4( ref ) {}
@@ -257,7 +257,7 @@ namespace Donya
 		Vector4 & operator = ( const Vector4 &&ref ) noexcept { *this = ref; return *this; }
 		~Vector4() = default;
 	public:
-		inline Vector4 operator - () const { return Vector4{ -x, -y, -z }; }
+		inline Vector4 operator - () const { return Vector4{ -x, -y, -z, -w }; }
 		inline Vector4 operator += ( float scalar )
 		{
 			x += scalar;

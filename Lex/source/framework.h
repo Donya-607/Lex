@@ -23,7 +23,7 @@ namespace Donya
 class Framework
 {
 public:
-	static constexpr char *TITLE_BAR_CAPTION = "Lex - I can open a files by D & D.";
+	static constexpr char *TITLE_BAR_CAPTION = "Lex - I can open a files by D&D.";
 private:
 	CONST HWND hWnd;
 

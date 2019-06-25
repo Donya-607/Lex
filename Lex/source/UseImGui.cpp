@@ -17,6 +17,12 @@ namespace ImGui
 {
 	bool BeginIfAllowed( const char* name, bool* p_open, ImGuiWindowFlags flags )
 	{
+	#if !USE_IMGUI
+
+		return false;
+
+	#endif // !USE_IMGUI
+
 		if ( !Donya::IsAllowShowImGui() ) { return false; }
 		// else
 

@@ -8,7 +8,7 @@
 #include "Loader.h"
 #include "Mouse.h"
 #include "Resource.h"
-#include "UseImgui.h"
+#include "UseImGui.h"
 #include "Useful.h"
 
 #if USE_IMGUI
@@ -28,7 +28,10 @@ Framework::Framework( HWND hwnd ) :
 {
 	DragAcceptFiles( hWnd, TRUE );
 }
-Framework::~Framework() = default;
+Framework::~Framework()
+{
+	std::vector<Donya::Loader>().swap( loaders );
+};
 
 LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
 {
@@ -370,28 +373,41 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	pCamera->Update();
 
-	if ( ImGui::BeginIfAllowed( "File Information" ) )
+#if USE_IMGUI
+
+	const char *LoadFileWindowName = "File Information";
+	if ( ImGui::BeginIfAllowed( LoadFileWindowName ) )
 	{
 		if ( ImGui::Button( "Open FBX File" ) )
 		{
 			OpenCommonDialogAndFile();
 		}
 
-		size_t loadedCount = loaders.size();
-		ImGui::Text( "\nFileNames : %d", loadedCount );
-		ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( ImGui::GetWindowWidth(), ImGui::GetWindowHeight() ) );
+		for ( auto &it = loaders.begin(); it != loaders.end(); )
 		{
-			std::string fileName{};
-			for ( size_t i = 0; i < loadedCount; ++i )
+			std::string nodeCaption ="[" + it->GetFileName() + "]";
+			if( ImGui::TreeNode( nodeCaption.c_str() ) )
 			{
-				fileName = loaders[i].GetFileName();
-				ImGui::Text( fileName.c_str() );
+				if ( ImGui::Button( "Remove" ) )
+				{
+					it = loaders.erase( it );
+
+					ImGui::TreePop();
+					continue;
+				}
+				// else
+
+				it->EnumPreservingDataToImGui( LoadFileWindowName );
+				ImGui::TreePop();
 			}
+
+			++it;
 		}
-		ImGui::EndChild();
 
 		ImGui::End();
 	}
+
+#endif // USE_IMGUI
 }
 
 void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )

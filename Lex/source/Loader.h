@@ -4,25 +4,29 @@
 #include <string>
 #include <vector>
 
+#include "UseImGui.h"
 #include "Vector.h"
 
 namespace Donya
 {
-
+	/// <summary>
+	/// Loader can load a FBX file.<para></para>
+	/// also preserve:<para></para>
+	/// indices count,<para></para>
+	/// normals,<para></para>
+	/// positions.
+	/// </summary>
 	class Loader
 	{
 	private:
-		std::string fileName;
+		size_t						vertexCount;	// 0 based.
+		std::string					fileName;
 		std::vector<size_t>			indices;
 		std::vector<Donya::Vector3>	normals;
 		std::vector<Donya::Vector3>	positions;
 	public:
 		Loader();
 		~Loader();
-		// Loader( const Loader &  ) = delete;
-		// Loader( const Loader && ) = delete;
-		// Loader & operator = ( const Loader &  ) = delete;
-		// Loader & operator = ( const Loader && ) = delete;
 	public:
 		/// <summary>
 		/// outputErrorString can set nullptr.
@@ -32,6 +36,11 @@ namespace Donya
 		std::string GetFileName() const { return fileName; }
 	private:
 		void MakeFileName( const std::string &filePath );
+	#if USE_IMGUI
+	public:
+		void EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const;
+	#endif // USE_IMGUI
+
 	};
 
 }
