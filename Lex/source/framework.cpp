@@ -374,7 +374,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 #endif // DEBUG_MODE
 
-	if ( GetAsyncKeyState( 'F' ) & 1 )
+	if ( Donya::Keyboard::Trigger( 'F' ) )
 	{
 		isFillDraw = !isFillDraw;
 	}
@@ -471,21 +471,20 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 			{
 				constexpr float SCALE_ADD = 0.01f;
 				constexpr float ANGLE_ADD = 0.12f;
-				constexpr float MOVE_ADD  = 0.01f;
-				constexpr Donya::Keyboard::Mode mode = Donya::Keyboard::PRESS;
+				constexpr float MOVE_ADD  = 0.04f;
 
-				if ( Donya::Keyboard::State( 'W',		mode ) ) { scale  += SCALE_ADD; }
-				if ( Donya::Keyboard::State( 'S',		mode ) ) { scale  -= SCALE_ADD; }
-				if ( Donya::Keyboard::State( VK_UP,		mode ) ) { angleX += ANGLE_ADD; }
-				if ( Donya::Keyboard::State( VK_DOWN,	mode ) ) { angleX -= ANGLE_ADD; }
-				if ( Donya::Keyboard::State( VK_LEFT,	mode ) ) { angleY += ANGLE_ADD; }
-				if ( Donya::Keyboard::State( VK_RIGHT,	mode ) ) { angleY -= ANGLE_ADD; }
-				if ( Donya::Keyboard::State( 'A',		mode ) ) { angleZ += ANGLE_ADD; }
-				if ( Donya::Keyboard::State( 'D',		mode ) ) { angleZ -= ANGLE_ADD; }
-				if ( Donya::Keyboard::State( 'I',		mode ) ) { moveY  += MOVE_ADD;  }
-				if ( Donya::Keyboard::State( 'K',		mode ) ) { moveY  -= MOVE_ADD;  }
-				if ( Donya::Keyboard::State( 'L',		mode ) ) { moveX  += MOVE_ADD;  }
-				if ( Donya::Keyboard::State( 'J',		mode ) ) { moveX  -= MOVE_ADD;  }
+				if ( Donya::Keyboard::Press( 'W'		) ) { scale  += SCALE_ADD; }
+				if ( Donya::Keyboard::Press( 'S'		) ) { scale  -= SCALE_ADD; }
+				if ( Donya::Keyboard::Press( VK_UP		) ) { angleX += ANGLE_ADD; }
+				if ( Donya::Keyboard::Press( VK_DOWN	) ) { angleX -= ANGLE_ADD; }
+				if ( Donya::Keyboard::Press( VK_LEFT	) ) { angleY += ANGLE_ADD; }
+				if ( Donya::Keyboard::Press( VK_RIGHT	) ) { angleY -= ANGLE_ADD; }
+				if ( Donya::Keyboard::Press( 'A'		) ) { angleZ += ANGLE_ADD; }
+				if ( Donya::Keyboard::Press( 'D'		) ) { angleZ -= ANGLE_ADD; }
+				if ( Donya::Keyboard::Press( 'I'		) ) { moveY  += MOVE_ADD;  }
+				if ( Donya::Keyboard::Press( 'K'		) ) { moveY  -= MOVE_ADD;  }
+				if ( Donya::Keyboard::Press( 'L'		) ) { moveX  += MOVE_ADD;  }
+				if ( Donya::Keyboard::Press( 'J'		) ) { moveX  -= MOVE_ADD;  }
 			}
 
 			XMMATRIX scaling		= XMMatrixScaling( scale, scale, scale );

@@ -26,6 +26,9 @@ namespace Donya
 		};
 
 		bool State( int virtualKeycode, Mode inputMode = TRIGGER );
+		bool Press( int virtualKeycode );
+		bool Trigger( int virtualKeycode );
+		bool Release( int virtualKeycode );
 
 		/// <summary>
 		/// State() by focus of VK_LSHIFT, VK_RSHIFT.

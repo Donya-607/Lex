@@ -57,6 +57,9 @@ namespace Donya
 			// returns press state.
 			return ( current[vKey] & 0xff ) ? true : false;
 		}
+		bool Press( int vKey )   { return State( vKey, Mode::PRESS );   }
+		bool Trigger( int vKey ) { return State( vKey, Mode::TRIGGER ); }
+		bool Release( int vKey ) { return State( vKey, Mode::RELEASE ); }
 
 		bool Shifts( Mode inputMode )
 		{
