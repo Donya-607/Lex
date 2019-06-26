@@ -460,30 +460,40 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	{
 		XMMATRIX matWorld{};
 		{
-			static float scale = 2.0f;
-			if ( GetAsyncKeyState( 'W' ) < 0 ) { scale += 0.01f; }
-			if ( GetAsyncKeyState( 'S' ) < 0 ) { scale -= 0.01f; }
+			static float scale	= 2.0f;
+			static float angleX	=-0.2f;
+			static float angleY	= 0.5f;
+			static float angleZ	= 0;
+			static float moveX	= 0;
+			static float moveY	= 0;
+			static float moveZ	= 0;
 
-			static float temporaryTimer = 0;
-			temporaryTimer += 0.1f;
-			if ( 360.0f <= temporaryTimer ) { temporaryTimer = 0; }
+			{
+				constexpr float SCALE_ADD = 0.01f;
+				constexpr float ANGLE_ADD = 0.12f;
+				constexpr float MOVE_ADD  = 0.01f;
+				constexpr Donya::Keyboard::Mode mode = Donya::Keyboard::PRESS;
 
-			static float angleX = 0;
-			static float angleY = 0;
-			static float angleZ = 0;
-			if ( GetAsyncKeyState( VK_UP	) < 0 ) { angleX += 0.12f; }
-			if ( GetAsyncKeyState( VK_DOWN	) < 0 ) { angleX -= 0.12f; }
-			if ( GetAsyncKeyState( VK_LEFT	) < 0 ) { angleY += 0.12f; }
-			if ( GetAsyncKeyState( VK_RIGHT	) < 0 ) { angleY -= 0.12f; }
-			if ( GetAsyncKeyState( 'A'		) < 0 ) { angleZ += 0.12f; }
-			if ( GetAsyncKeyState( 'D'		) < 0 ) { angleZ -= 0.12f; }
+				if ( Donya::Keyboard::State( 'W',		mode ) ) { scale  += SCALE_ADD; }
+				if ( Donya::Keyboard::State( 'S',		mode ) ) { scale  -= SCALE_ADD; }
+				if ( Donya::Keyboard::State( VK_UP,		mode ) ) { angleX += ANGLE_ADD; }
+				if ( Donya::Keyboard::State( VK_DOWN,	mode ) ) { angleX -= ANGLE_ADD; }
+				if ( Donya::Keyboard::State( VK_LEFT,	mode ) ) { angleY += ANGLE_ADD; }
+				if ( Donya::Keyboard::State( VK_RIGHT,	mode ) ) { angleY -= ANGLE_ADD; }
+				if ( Donya::Keyboard::State( 'A',		mode ) ) { angleZ += ANGLE_ADD; }
+				if ( Donya::Keyboard::State( 'D',		mode ) ) { angleZ -= ANGLE_ADD; }
+				if ( Donya::Keyboard::State( 'I',		mode ) ) { moveY  += MOVE_ADD;  }
+				if ( Donya::Keyboard::State( 'K',		mode ) ) { moveY  -= MOVE_ADD;  }
+				if ( Donya::Keyboard::State( 'L',		mode ) ) { moveX  += MOVE_ADD;  }
+				if ( Donya::Keyboard::State( 'J',		mode ) ) { moveX  -= MOVE_ADD;  }
+			}
 
 			XMMATRIX scaling		= XMMatrixScaling( scale, scale, scale );
 			XMMATRIX rotX			= XMMatrixRotationX( ToRadian( angleX ) );
 			XMMATRIX rotY			= XMMatrixRotationY( ToRadian( angleY ) );
 			XMMATRIX rotZ			= XMMatrixRotationZ( ToRadian( angleZ ) );
 			XMMATRIX rotation		= ( rotZ * rotY ) * rotX;
-			XMMATRIX translation	= XMMatrixTranslation( 0.0f, 0.0f, -0.5f );
+			XMMATRIX translation	= XMMatrixTranslation( moveX, moveY, moveZ );
 
 			matWorld = scaling * rotation * translation;
 		}
