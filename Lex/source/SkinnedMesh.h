@@ -33,6 +33,15 @@ namespace Donya
 			DirectX::XMFLOAT4	lightDirection;
 			DirectX::XMFLOAT4	materialColor;
 		};
+		struct Material
+		{
+			DirectX::XMFLOAT4	color;
+			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iSRV;
+		};
+		struct Subset
+		{
+
+		};
 	private:
 		size_t vertexCount;
 	#define	COM_PTR Microsoft::WRL::ComPtr

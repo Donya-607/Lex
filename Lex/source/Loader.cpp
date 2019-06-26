@@ -153,7 +153,8 @@ namespace Donya
 				FBX::FbxVector4	fbxNormal;
 				Donya::Vector3	normal;
 				Donya::Vector3	position;
-				for ( size_t v = 0; v < 3; ++v )
+				size_t size	= pMesh->GetPolygonSize( polyIndex );
+				for ( size_t v = 0; v < size; ++v )
 				{
 					pMesh->GetPolygonVertexNormal( polyIndex, v, fbxNormal );
 					normal.x	= scast<float>( fbxNormal[0] );

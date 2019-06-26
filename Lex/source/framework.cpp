@@ -469,7 +469,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 			static float moveZ	= 0;
 
 			{
-				constexpr float SCALE_ADD = 0.01f;
+				constexpr float SCALE_ADD = 0.0005f;
 				constexpr float ANGLE_ADD = 0.12f;
 				constexpr float MOVE_ADD  = 0.04f;
 
@@ -507,25 +507,23 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 				float width		= Common::ScreenWidthF();
 				float height	= Common::ScreenHeightF();
 				float aspect	= width / height;
-				float zNear		= 0.10f;
+				float zNear		= 0.01f;
 				float zFar		= 1000.0f;
-			#if 1
+			
 				XMFLOAT4X4 projection{};
 				projection = pCamera->AssignPerspectiveProjection( FOV, aspect, zNear, zFar );
 				matProjPerspective = XMLoadFloat4x4( &projection );
 
 				projection = pCamera->AssignOrthographicProjection( 16.0f, 9.0f, zNear, zFar );
 				matProjOrthographic = XMLoadFloat4x4( &projection );
-			#else
-				matProjPerspective = XMMatrixPerspectiveFovLH( FOV, aspect, zNear, zFar );
-				matProjOrthographic = XMMatrixOrthographicLH( 16.0f, 9.0f, zNear, zFar );
-			#endif
 			}
+
+			XMMATRIX &useProjection = matProjOrthographic;
 
 			XMStoreFloat4x4
 			(
 				&worldViewProjection,
-				DirectX::XMMatrixMultiply( matWorld, DirectX::XMMatrixMultiply( matView, matProjOrthographic ) )
+				DirectX::XMMatrixMultiply( matWorld, DirectX::XMMatrixMultiply( matView, useProjection ) )
 			);
 		}
 
