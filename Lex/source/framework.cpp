@@ -23,14 +23,15 @@ namespace Do = Donya;
 
 Framework::Framework( HWND hwnd ) :
 	hWnd( hwnd ),
-	pCamera( nullptr ), loaders(),
+	pCamera( nullptr ), meshes(),
 	isFillDraw( true )
 {
 	DragAcceptFiles( hWnd, TRUE );
 }
 Framework::~Framework()
 {
-	std::vector<Donya::Loader>().swap( loaders );
+	meshes.clear();
+	meshes.shrink_to_fit();
 };
 
 LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
@@ -59,17 +60,20 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 
 			std::string errorMessage{};
 			std::unique_ptr<char[]> filename = std::make_unique<char[]>( FILE_PATH_LENGTH );
-			loaders.clear();
-			loaders.resize( fileCount );
 			
 			for ( size_t i = 0; i < fileCount; ++i )
 			{
+				meshes.push_back( {} );
+
 				DragQueryFileA( hDrop, i, filename.get(), FILE_PATH_LENGTH );
-				bool result = loaders[i].Load( filename.get(), &errorMessage );
+				bool result = meshes.back().loader.Load( filename.get(), &errorMessage );
 				if ( !result )
 				{
 					MessageBoxA( hWnd, errorMessage.c_str(), "File Load Failed", MB_OK );
+					continue;
 				}
+				// else
+				Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
 			}
 
 			DragFinish( hDrop );
@@ -342,6 +346,10 @@ bool Framework::Init()
 
 	#pragma endregion
 
+	std::string projectDir = "./";
+	Donya::Resource::RegisterDirectoryOfVertexShader( ( projectDir + "Shader/" ).c_str() );
+	Donya::Resource::RegisterDirectoryOfPixelShader ( ( projectDir + "Shader/" ).c_str() );
+
 	pCamera = std::make_unique<Do::Camera>();
 
 	return true;
@@ -385,21 +393,21 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 		ImGui::Text( "" );
 
-		for ( auto &it = loaders.begin(); it != loaders.end(); )
+		for ( auto &it = meshes.begin(); it != meshes.end(); )
 		{
-			std::string nodeCaption ="[" + it->GetFileName() + "]";
+			std::string nodeCaption ="[" + it->loader.GetFileName() + "]";
 			if( ImGui::TreeNode( nodeCaption.c_str() ) )
 			{
 				if ( ImGui::Button( "Remove" ) )
 				{
-					it = loaders.erase( it );
+					it = meshes.erase( it );
 
 					ImGui::TreePop();
 					continue;
 				}
 				// else
 
-				it->EnumPreservingDataToImGui( LoadFileWindowName );
+				it->loader.EnumPreservingDataToImGui( LoadFileWindowName );
 				ImGui::TreePop();
 			}
 
@@ -526,6 +534,14 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 			cameraPos.w = 1.0f;
 		}
 
+		for ( auto &it : meshes )
+		{
+			if ( it.pMesh )
+			{
+				it.pMesh->Render( worldViewProjection, world, lightDirection, materialColor, isFillDraw );
+			}
+		}
+
 		/*
 		if ( 0 )
 		{
@@ -578,6 +594,8 @@ bool Framework::OpenCommonDialogAndFile()
 	ofn.nMaxFileTitle	= MAX_PATH;
 	ofn.Flags			= OFN_FILEMUSTEXIST;
 
+	// TODO:Support multiple files.
+
 	auto result = GetOpenFileNameA( &ofn );
 	if ( !result ) { return false; }
 	// else
@@ -585,8 +603,9 @@ bool Framework::OpenCommonDialogAndFile()
 	std::string filePath( chosenFilesFullPath );
 	std::string errorMessage{};
 
-	loaders.push_back( Donya::Loader() );
-	loaders.back().Load( filePath, &errorMessage );
+	meshes.push_back( {} );
+	meshes.back().loader.Load( filePath, &errorMessage );
+	Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
 
 	return true;
 }

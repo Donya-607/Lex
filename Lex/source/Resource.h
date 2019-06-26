@@ -11,20 +11,28 @@ namespace Donya
 {
 	namespace Resource
 	{
-		#pragma region Shader
+	#pragma region Shader
 
+		/// <summary>
+		/// You can register the directory used by Donya::Resource::CreateVertexShaderFromCso().<para></para>
+		/// registered name are used just combine before CreateVertexShaderFromCso()'s file name.<para></para>
+		/// for exanmple:<para></para>
+		/// RegisterDirectoryOfVertexShader( "./Shader/" );<para></para>
+		/// CreateVertexShaderFromCso( "foo.cso" ); // Loading cso name is "./Shader/foo.cso".<para></para>
+		/// </summary>
+		void RegisterDirectoryOfVertexShader( const char *fileDirectory );
 		/// <summary>
 		/// I doing; read cso-file, CreateVertexShader().<para></para>
 		/// If unnecessary ID3D11InputLayout, you can set nullptr.
 		/// </summary>
 		void CreateVertexShaderFromCso
 		(
-			ID3D11Device							*pd3dDevice,
-			const char								*csoname,
-			const char								*openMode,
-			ID3D11VertexShader						**pd3dVertexShader,
-			ID3D11InputLayout						**pd3dInputLayout,
-			D3D11_INPUT_ELEMENT_DESC				*d3dInputElementsDesc,
+			ID3D11Device *pd3dDevice,
+			const char *csoname,
+			const char *openMode,
+			ID3D11VertexShader **pd3dVertexShader,
+			ID3D11InputLayout **pd3dInputLayout,
+			D3D11_INPUT_ELEMENT_DESC *d3dInputElementsDesc,
 			size_t									inputElementSize,
 			bool enableCache
 		);
@@ -32,23 +40,39 @@ namespace Donya
 		void ReleaseAllVertexShaderCaches();
 
 		/// <summary>
+		/// You can register the directory used by Donya::Resource::CreatePixelShaderFromCso().<para></para>
+		/// registered name are used just combine before CreatePixelShaderFromCso()'s file name.<para></para>
+		/// for exanmple:<para></para>
+		/// RegisterDirectoryOfPixelShader( "./Shader/" );<para></para>
+		/// CreatePixelShaderFromCso( "foo.cso" ); // Loading cso name is "./Shader/foo.cso".<para></para>
+		/// </summary>
+		void RegisterDirectoryOfPixelShader( const char *fileDirectory );
+		/// <summary>
 		/// I doing; read cso-file, CreatePixelShader().
 		/// </summary>
 		void CreatePixelShaderFromCso
 		(
-			ID3D11Device							*pd3dDevice,
-			const char								*csoname,
-			const char								*openMode,
-			ID3D11PixelShader						**pd3dPixelShader,
+			ID3D11Device *pd3dDevice,
+			const char *csoname,
+			const char *openMode,
+			ID3D11PixelShader **pd3dPixelShader,
 			bool enableCache
 		);
 
 		void ReleaseAllPixelShaderCaches();
 
-		#pragma endregion
+	#pragma endregion
 
-		#pragma region Texture
+	#pragma region Texture
 
+		/// <summary>
+		/// You can register the directory used by Donya::Resource::CreateTexture2DFromFile().<para></para>
+		/// registered name are used just combine before CreateTexture2DFromFile()'s file name.<para></para>
+		/// for exanmple:<para></para>
+		/// RegisterDirectoryOfTexture( L"./Data/Images/" );<para></para>
+		/// CreateTexture2DFromFile( L"foo/bar.png" ); // Loading cso name is L"./Data/Images/foo/bar.png".<para></para>
+		/// </summary>
+		void RegisterDirectoryOfTexture( const wchar_t *fileDirectory );
 		/// <summary>
 		/// I doing; CreateWICTextureFromFile(), QueryInterface(),<para></para>
 		/// ID3D11Texture2D::GetDesc(), CreateSamplerState(), CreateShaderResourceView().<para></para>
@@ -56,20 +80,20 @@ namespace Donya
 		/// </summary>
 		void CreateTexture2DFromFile
 		(
-			ID3D11Device				*pd3dDevice,
-			const std::wstring			filename,
-			ID3D11ShaderResourceView	**pd3dShaderResourceView,
-			ID3D11SamplerState			**pd3dSamplerState,
-			D3D11_TEXTURE2D_DESC		*pd3dTexture2DDesc,
-			const D3D11_SAMPLER_DESC	*pd3dSamplerDesc,
+			ID3D11Device *pd3dDevice,
+			const std::wstring &filename,
+			ID3D11ShaderResourceView **pd3dShaderResourceView,
+			ID3D11SamplerState **pd3dSamplerState,
+			D3D11_TEXTURE2D_DESC *pd3dTexture2DDesc,
+			const D3D11_SAMPLER_DESC *pd3dSamplerDesc,
 			bool isEnableCache = true
 		);
 
 		void ReleaseAllTexture2DCaches();
 
-		#pragma endregion
+	#pragma endregion
 
-		#pragma region OBJ
+	#pragma region OBJ
 
 		/// <summary>
 		/// It is one of material in mtl-file.
@@ -121,20 +145,20 @@ namespace Donya
 		/// </summary>
 		void LoadObjFile
 		(
-			ID3D11Device					*piDevice,
-			const std::wstring				&objFileName,
-			std::vector<DirectX::XMFLOAT3>	*pVertices,
-			std::vector<DirectX::XMFLOAT3>	*pNormals,
-			std::vector<DirectX::XMFLOAT2>	*pTexCoords,
-			std::vector<size_t>				*pIndices,
-			std::vector<Material>			*pMaterials,
-			bool							*hasLoadedMaterial = nullptr,
+			ID3D11Device *piDevice,
+			const std::wstring &objFileName,
+			std::vector<DirectX::XMFLOAT3> *pVertices,
+			std::vector<DirectX::XMFLOAT3> *pNormals,
+			std::vector<DirectX::XMFLOAT2> *pTexCoords,
+			std::vector<size_t> *pIndices,
+			std::vector<Material> *pMaterials,
+			bool *hasLoadedMaterial = nullptr,
 			bool isEnableCache = true
 		);
 
 		void ReleaseAllObjFileCaches();
 
-		#pragma endregion
+	#pragma endregion
 
 		/// <summary>
 		/// I doing:<para></para>

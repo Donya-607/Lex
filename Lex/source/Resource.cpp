@@ -34,30 +34,39 @@ namespace Donya
 {
 	namespace Resource
 	{
-		#pragma region VerteShaderCache
+	#pragma region VerteShaderCache
 
 		struct VertexShaderCacheContents
 		{
 			Microsoft::WRL::ComPtr<ID3D11VertexShader> d3dVertexShader;
-			Microsoft::WRL::ComPtr<ID3D11InputLayout> d3dInputLayout;
+			Microsoft::WRL::ComPtr<ID3D11InputLayout>  d3dInputLayout;
 		public:
 			VertexShaderCacheContents
 			(
-				ID3D11VertexShader	*pVertexShader,
-				ID3D11InputLayout	*pInputLayout
+				ID3D11VertexShader *pVertexShader,
+				ID3D11InputLayout *pInputLayout
 			) :
 				d3dVertexShader( pVertexShader ),
 				d3dInputLayout( pInputLayout )
-			{}
+			{
+			}
 		};
 
-		static std::map<const char *, VertexShaderCacheContents> vertexShaderCache;
+		static std::map<const char *, VertexShaderCacheContents> vertexShaderCache{};
+		static std::string vertexShaderDirectory{};
+
+		void RegisterDirectoryOfVertexShader( const char *fileDirectory )
+		{
+			vertexShaderDirectory = fileDirectory;
+		}
 
 		void CreateVertexShaderFromCso( ID3D11Device *d3dDevice, const char *csoname, const char *openMode, ID3D11VertexShader **d3dVertexShader, ID3D11InputLayout **d3dInputLayout, D3D11_INPUT_ELEMENT_DESC *d3dInputElementsDesc, size_t inputElementDescSize, bool enableCache )
 		{
 			HRESULT hr = S_OK;
 
-			std::map<const char *, VertexShaderCacheContents>::iterator it = vertexShaderCache.find( csoname );
+			std::string combinedCsoname = vertexShaderDirectory + csoname;
+
+			std::map<const char *, VertexShaderCacheContents>::iterator it = vertexShaderCache.find( combinedCsoname.c_str() );
 			if ( it != vertexShaderCache.end() )
 			{
 				*d3dVertexShader = it->second.d3dVertexShader.Get();
@@ -74,8 +83,8 @@ namespace Donya
 			}
 			// else
 
-			FILE* fp = nullptr;
-			fopen_s( &fp, csoname, openMode );
+			FILE *fp = nullptr;
+			fopen_s( &fp, combinedCsoname.c_str(), openMode );
 			if ( !fp ) { _ASSERT_EXPR( 0, L"vs cso file not found" ); }
 
 			fseek( fp, 0, SEEK_END );
@@ -115,12 +124,12 @@ namespace Donya
 			(
 				std::make_pair
 				(
-					csoname,
+					combinedCsoname.c_str(),
 					VertexShaderCacheContents
-			{
-				*d3dVertexShader,
-				( ( d3dInputLayout != nullptr ) ? *d3dInputLayout : nullptr )
-			}
+					{
+						*d3dVertexShader,
+						( ( d3dInputLayout != nullptr ) ? *d3dInputLayout : nullptr )
+					}
 				)
 			);
 		}
@@ -130,17 +139,25 @@ namespace Donya
 			vertexShaderCache.clear();
 		}
 
-		#pragma endregion
+	#pragma endregion
 
-		#pragma region PixelShaderCache
+	#pragma region PixelShaderCache
 
-		static std::map<const char *, Microsoft::WRL::ComPtr<ID3D11PixelShader>> pixelShaderCache;
+		static std::map<const char *, Microsoft::WRL::ComPtr<ID3D11PixelShader>> pixelShaderCache{};
+		static std::string pixelShaderDirectory{};
 
-		void CreatePixelShaderFromCso( ID3D11Device  *d3dDevice, const char *csoname, const char *openMode, ID3D11PixelShader **d3dPixelShader, bool enableCache )
+		void RegisterDirectoryOfPixelShader( const char *fileDirectory )
+		{
+			pixelShaderDirectory = fileDirectory;
+		}
+
+		void CreatePixelShaderFromCso( ID3D11Device *d3dDevice, const char *csoname, const char *openMode, ID3D11PixelShader **d3dPixelShader, bool enableCache )
 		{
 			HRESULT hr = S_OK;
 
-			std::map<const char *, Microsoft::WRL::ComPtr<ID3D11PixelShader>>::iterator it = pixelShaderCache.find( csoname );
+			std::string combinedCsoname = pixelShaderDirectory + csoname;
+
+			std::map<const char *, Microsoft::WRL::ComPtr<ID3D11PixelShader>>::iterator it = pixelShaderCache.find( combinedCsoname.c_str() );
 			if ( it != pixelShaderCache.end() )
 			{
 				*d3dPixelShader = it->second.Get();
@@ -150,8 +167,8 @@ namespace Donya
 			}
 			// else
 
-			FILE* fp = nullptr;
-			fopen_s( &fp, csoname, openMode );
+			FILE *fp = nullptr;
+			fopen_s( &fp, combinedCsoname.c_str(), openMode );
 			if ( !fp ) { _ASSERT_EXPR( 0, L"ps cso file not found" ); }
 
 			fseek( fp, 0, SEEK_END );
@@ -178,7 +195,7 @@ namespace Donya
 			(
 				std::make_pair
 				(
-					csoname,
+					combinedCsoname.c_str(),
 					*d3dPixelShader
 				)
 			);
@@ -189,9 +206,9 @@ namespace Donya
 			pixelShaderCache.clear();
 		}
 
-		#pragma endregion
+	#pragma endregion
 
-		#pragma region SpriteCache
+	#pragma region SpriteCache
 
 		struct SpriteCacheContents
 		{
@@ -201,23 +218,32 @@ namespace Donya
 		public:
 			SpriteCacheContents
 			(
-				ID3D11ShaderResourceView	*pShaderResourceView,
-				ID3D11SamplerState			*pSamplerState,
-				D3D11_TEXTURE2D_DESC		*pTexture2DDesc
+				ID3D11ShaderResourceView *pShaderResourceView,
+				ID3D11SamplerState *pSamplerState,
+				D3D11_TEXTURE2D_DESC *pTexture2DDesc
 			) :
 				d3dShaderResourceView( pShaderResourceView ),
 				d3dSamplerState( pSamplerState ),
 				d3dTexture2DDesc( *pTexture2DDesc )
-			{}
+			{
+			}
 		};
 
-		static std::map<std::wstring, SpriteCacheContents> spriteCache;
+		static std::map<std::wstring, SpriteCacheContents> spriteCache{};
+		static std::wstring spriteDirectory{};
 
-		void CreateTexture2DFromFile( ID3D11Device *d3dDevice, const std::wstring filename, ID3D11ShaderResourceView **d3dShaderResourceView, ID3D11SamplerState **d3dSamplerState, D3D11_TEXTURE2D_DESC *d3dTexture2DDesc, const D3D11_SAMPLER_DESC *d3dSamplerDesc, bool isEnableCache )
+		void RegisterDirectoryOfTexture( const wchar_t *fileDirectory )
+		{
+			spriteDirectory = fileDirectory;
+		}
+
+		void CreateTexture2DFromFile( ID3D11Device *d3dDevice, const std::wstring &filename, ID3D11ShaderResourceView **d3dShaderResourceView, ID3D11SamplerState **d3dSamplerState, D3D11_TEXTURE2D_DESC *d3dTexture2DDesc, const D3D11_SAMPLER_DESC *d3dSamplerDesc, bool isEnableCache )
 		{
 			HRESULT hr = S_OK;
 
-			std::map<std::wstring, SpriteCacheContents>::iterator it = spriteCache.find( filename );
+			std::wstring combinedFilename = spriteDirectory + filename;
+
+			std::map<std::wstring, SpriteCacheContents>::iterator it = spriteCache.find( combinedFilename );
 			if ( it != spriteCache.end() )
 			{
 				*d3dShaderResourceView = it->second.d3dShaderResourceView.Get();
@@ -233,11 +259,11 @@ namespace Donya
 			// else
 
 			Microsoft::WRL::ComPtr<ID3D11Resource> d3dResource;
-			if ( filename.find( L".dds" ) != std::wstring::npos )
+			if ( combinedFilename.find( L".dds" ) != std::wstring::npos )
 			{
 				hr = CreateDDSTextureFromFile
 				(
-					d3dDevice, filename.c_str(),
+					d3dDevice, combinedFilename.c_str(),
 					d3dResource.GetAddressOf(),
 					d3dShaderResourceView
 				);
@@ -246,7 +272,7 @@ namespace Donya
 			{
 				hr = CreateWICTextureFromFile	// ID3D11Resource Ç∆ ID3D11ShaderResourceView ÇÃÇQÇ¬Ç™çÏê¨Ç≥ÇÍÇÈ
 				(
-					d3dDevice, filename.c_str(),
+					d3dDevice, combinedFilename.c_str(),
 					d3dResource.GetAddressOf(),
 					d3dShaderResourceView
 				);
@@ -291,13 +317,13 @@ namespace Donya
 			(
 				std::make_pair
 				(
-					filename,
+					combinedFilename,
 					SpriteCacheContents
-			{
-				*d3dShaderResourceView,
-				*d3dSamplerState,
-				d3dTexture2DDesc
-			}
+					{
+						*d3dShaderResourceView,
+						*d3dSamplerState,
+						d3dTexture2DDesc
+					}
 				)
 			);
 		}
@@ -307,9 +333,9 @@ namespace Donya
 			spriteCache.clear();
 		}
 
-		#pragma endregion
+	#pragma endregion
 
-		#pragma region OBJ
+	#pragma region OBJ
 
 		struct ObjFileCacheContents
 		{
@@ -321,18 +347,19 @@ namespace Donya
 		public:
 			ObjFileCacheContents
 			(
-				std::vector<DirectX::XMFLOAT3>	*pVertices,
-				std::vector<DirectX::XMFLOAT3>	*pNormals,
-				std::vector<DirectX::XMFLOAT2>	*pTexCoords,
-				std::vector<size_t>				*pIndices,
-				std::vector<Material>			*pMaterials
+				std::vector<DirectX::XMFLOAT3> *pVertices,
+				std::vector<DirectX::XMFLOAT3> *pNormals,
+				std::vector<DirectX::XMFLOAT2> *pTexCoords,
+				std::vector<size_t> *pIndices,
+				std::vector<Material> *pMaterials
 			) :
 				vertices( *pVertices ),
 				normals( *pNormals ),
 				texCoords( *pTexCoords ),
 				indices( *pIndices ),
 				materials( *pMaterials )
-			{}
+			{
+			}
 			~ObjFileCacheContents()
 			{
 				std::vector<DirectX::XMFLOAT3>().swap( vertices );
@@ -360,7 +387,7 @@ namespace Donya
 			}
 			~MtlFile() {}
 			MtlFile( const MtlFile & ) = delete;
-			MtlFile & operator = ( const MtlFile & ) = delete;
+			MtlFile &operator = ( const MtlFile & ) = delete;
 		private:
 			void Load( ID3D11Device *pDevice, const std::wstring &mtlFileName )
 			{
@@ -392,7 +419,7 @@ namespace Donya
 					// else
 					if ( IsContainStr( lineBuf, L"newmtl" ) )
 					{
-						#pragma region newmtl
+					#pragma region newmtl
 
 						SkipUntilNextDelim( &lineBuf, &ss );
 						lineBuf.erase( lineBuf.begin() );	// erase space.
@@ -400,17 +427,17 @@ namespace Donya
 						mtlName = lineBuf;
 						newMtls.insert( std::make_pair( mtlName, Material{} ) );
 
-						#pragma endregion
+					#pragma endregion
 						continue;
 					}
 					// else
 					if ( IsContainStr( lineBuf, L"map" ) )
 					{
-						#pragma region map_
+					#pragma region map_
 
 						if ( IsContainStr( lineBuf, L"map_Kd" ) )
 						{
-							#pragma region diffuseMap
+						#pragma region diffuseMap
 
 							SkipUntilNextDelim( &lineBuf, &ss );
 							lineBuf.erase( lineBuf.begin() );	// erase space.
@@ -429,43 +456,43 @@ namespace Donya
 								{
 									if ( IsContainStr( mapName, L"-" ) )
 									{
-										#pragma region options
+									#pragma region options
 
 										// TODO:Apply a options.
 
 										ss.ignore();
 										ss >> mapName;
 
-										#pragma endregion
+									#pragma endregion
 									}
 								}
 
 								it->second.diffuseMap.mapName = mapPath + mapName;
 
 								D3D11_SAMPLER_DESC samplerDesc{};
-								samplerDesc.Filter			= D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-								samplerDesc.AddressU		= D3D11_TEXTURE_ADDRESS_WRAP;
-								samplerDesc.AddressV		= D3D11_TEXTURE_ADDRESS_WRAP;
-								samplerDesc.AddressW		= D3D11_TEXTURE_ADDRESS_WRAP;
-								samplerDesc.ComparisonFunc	= D3D11_COMPARISON_NEVER;
-								samplerDesc.MinLOD			= 0;
-								samplerDesc.MaxLOD			= D3D11_FLOAT32_MAX;
+								samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+								samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+								samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+								samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+								samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+								samplerDesc.MinLOD = 0;
+								samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 								it->second.CreateDiffuseMap( pDevice, samplerDesc );
 							}
 
-							#pragma endregion
+						#pragma endregion
 							continue;
 						}
 						// else
 
-						#pragma endregion
+					#pragma endregion
 						continue;
 					}
 					// else
 					if ( IsContainStr( lineBuf, L"illum" ) )
 					{
-						#pragma region illum
+					#pragma region illum
 
 						SkipUntilNextDelim( &lineBuf, &ss );
 
@@ -475,13 +502,13 @@ namespace Donya
 							ss >> it->second.illuminate;
 						}
 
-						#pragma endregion
+					#pragma endregion
 						continue;
 					}
 					// else
 					if ( IsContainStr( lineBuf, L"Ns" ) )
 					{
-						#pragma region Ns
+					#pragma region Ns
 
 						SkipUntilNextDelim( &lineBuf, &ss );
 
@@ -491,13 +518,13 @@ namespace Donya
 							ss >> it->second.shininess;
 						}
 
-						#pragma endregion
+					#pragma endregion
 						continue;
 					}
 					// else
 					if ( IsContainStr( lineBuf, L"Ka" ) )
 					{
-						#pragma region Ka
+					#pragma region Ka
 
 						SkipUntilNextDelim( &lineBuf, &ss );
 
@@ -509,13 +536,13 @@ namespace Donya
 							ss >> it->second.ambient[2]; ss.ignore();
 						}
 
-						#pragma endregion
+					#pragma endregion
 						continue;
 					}
 					// else
 					if ( IsContainStr( lineBuf, L"Kd" ) )
 					{
-						#pragma region Kd
+					#pragma region Kd
 
 						SkipUntilNextDelim( &lineBuf, &ss );
 
@@ -527,13 +554,13 @@ namespace Donya
 							ss >> it->second.diffuse[2]; ss.ignore();
 						}
 
-						#pragma endregion
+					#pragma endregion
 						continue;
 					}
 					// else
 					if ( IsContainStr( lineBuf, L"Ks" ) )
 					{
-						#pragma region Ks
+					#pragma region Ks
 
 						SkipUntilNextDelim( &lineBuf, &ss );
 
@@ -545,7 +572,7 @@ namespace Donya
 							ss >> it->second.specular[2]; ss.ignore();
 						}
 
-						#pragma endregion
+					#pragma endregion
 						continue;
 					}
 					// else
@@ -583,10 +610,10 @@ namespace Donya
 				decltype( objFileCache )::iterator it = objFileCache.find( objFileName );
 				if ( it != objFileCache.end() )
 				{
-					if ( pVertices  ) { *pVertices  = it->second.vertices;  }
-					if ( pNormals   ) { *pNormals   = it->second.normals;   }
-					if ( pTexCoords ) { *pNormals   = it->second.normals;   }
-					if ( pIndices   ) { *pIndices   = it->second.indices;   }
+					if ( pVertices ) { *pVertices = it->second.vertices; }
+					if ( pNormals ) { *pNormals = it->second.normals; }
+					if ( pTexCoords ) { *pNormals = it->second.normals; }
+					if ( pIndices ) { *pIndices = it->second.indices; }
 					if ( pMaterials ) { *pMaterials = it->second.materials; }
 
 					return;
@@ -605,8 +632,8 @@ namespace Donya
 			}
 			// else
 
-			size_t lastVertexIndex   = 0;	// zero-based number.
-			size_t lastNormalIndex   = 0;	// zero-based number.
+			size_t lastVertexIndex = 0;	// zero-based number.
+			size_t lastNormalIndex = 0;	// zero-based number.
 			size_t lastTexCoordIndex = 0;	// zero-based number.
 			std::wstring command{};
 			std::wstringstream ss{};
@@ -615,7 +642,7 @@ namespace Donya
 			std::vector<DirectX::XMFLOAT2> tmpTexCoords{};
 
 			size_t		materialCount = 0;	// zero-based number.
-			Material	*usemtlTarget = nullptr;
+			Material *usemtlTarget = nullptr;
 			std::unique_ptr<MtlFile> pMtllib{};
 
 			for ( size_t i = 0; ifs; ++i )	// i is column num.
@@ -636,7 +663,7 @@ namespace Donya
 				// else
 				if ( IsContainStr( command, L"mtllib" ) )
 				{
-					#pragma region mtllib
+				#pragma region mtllib
 
 					SkipUntilNextDelim( &command, &ss );
 
@@ -651,27 +678,27 @@ namespace Donya
 
 					pMtllib = std::make_unique<MtlFile>( pDevice, mtlPath + mtlName );
 
-					#pragma endregion
+				#pragma endregion
 					continue;
 				}
 				// else
 				if ( IsContainStr( command, L"g " ) )
 				{
-					#pragma region Group
-					#pragma endregion
+				#pragma region Group
+				#pragma endregion
 					continue;
 				}
 				// else
 				if ( IsContainStr( command, L"s " ) )
 				{
-					#pragma region Smooth
-					#pragma endregion
+				#pragma region Smooth
+				#pragma endregion
 					continue;
 				}
 				// else
 				if ( IsContainStr( command, L"v " ) )
 				{
-					#pragma region Vertex
+				#pragma region Vertex
 
 					SkipUntilNextDelim( &command, &ss );
 
@@ -684,13 +711,13 @@ namespace Donya
 
 					lastVertexIndex++;
 
-					#pragma endregion
+				#pragma endregion
 					continue;
 				}
 				// else
 				if ( IsContainStr( command, L"vt " ) )
 				{
-					#pragma region TexCoord
+				#pragma region TexCoord
 					if ( pTexCoords == nullptr ) { continue; }
 					// else
 
@@ -699,19 +726,19 @@ namespace Donya
 					float u, v;
 					ss >> u;
 					ss >> v;
-					
+
 					// tmpTexCoords.push_back( { u, v } );	// If obj-file is LH
 					tmpTexCoords.push_back( { u, -v } );	// If obj-file is RH
 
 					lastTexCoordIndex++;
 
-					#pragma endregion
+				#pragma endregion
 					continue;
 				}
 				// else
 				if ( IsContainStr( command, L"vn " ) )
 				{
-					#pragma region Normal
+				#pragma region Normal
 					if ( pNormals == nullptr ) { continue; }
 					// else
 
@@ -726,13 +753,13 @@ namespace Donya
 
 					lastNormalIndex++;
 
-					#pragma endregion
+				#pragma endregion
 					continue;
 				}
 				// else
 				if ( IsContainStr( command, L"usemtl " ) )
 				{
-					#pragma region usemtl
+				#pragma region usemtl
 
 					SkipUntilNextDelim( &command, &ss );
 					command.erase( command.begin() );	// erase space.
@@ -742,7 +769,7 @@ namespace Donya
 					{
 						usemtlTarget->indexCount = materialCount;
 
-						usemtlTarget  = nullptr;
+						usemtlTarget = nullptr;
 						materialCount = 0;
 					}
 
@@ -754,13 +781,13 @@ namespace Donya
 						usemtlTarget->indexStart = pIndices->size();
 					}
 
-					#pragma endregion
+				#pragma endregion
 					continue;
 				}
 				// else
 				if ( IsContainStr( command, L"f " ) )
 				{
-					#pragma region Face Indices
+				#pragma region Face Indices
 
 					SkipUntilNextDelim( &command, &ss );
 
@@ -790,7 +817,7 @@ namespace Donya
 							pVertices->push_back( tmpPositions[index - 1] ); // convert one-based -> zero-based.
 						}
 
-						if ( ss.peek() != L'/' ) { ss.ignore( 1024, L' '  ); continue; }
+						if ( ss.peek() != L'/' ) { ss.ignore( 1024, L' ' ); continue; }
 						// else
 						ss.ignore();
 
@@ -837,7 +864,7 @@ namespace Donya
 						ss.ignore();
 					}
 
-					#pragma endregion
+				#pragma endregion
 					continue;
 				}
 				// else
@@ -847,7 +874,7 @@ namespace Donya
 			{
 				usemtlTarget->indexCount = materialCount;
 
-				usemtlTarget  = nullptr;
+				usemtlTarget = nullptr;
 				materialCount = 0;
 			}
 
@@ -876,7 +903,7 @@ namespace Donya
 			objFileCache.clear();
 		}
 
-		#pragma endregion
+	#pragma endregion
 
 		void ReleaseAllCachedResources()
 		{

@@ -61,6 +61,8 @@ namespace Donya
 
 	void Traverse( FBX::FbxNode *pNode, std::vector<FBX::FbxNode *> *pFetchedMeshes )
 	{
+		// TODO:スタックオーバーフローが発生する？
+
 		if ( !pNode ) { return; }
 		// else
 
@@ -200,9 +202,11 @@ namespace Donya
 	#if USE_IMGUI
 	void Loader::EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const
 	{
+		ImVec2 childFrameSize( 256.0f, 256.0f );
+
 		if ( ImGui::TreeNode( "Positions" ) )
 		{
-			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( ImGui::GetWindowWidth(), ImGui::GetWindowHeight() ) );
+			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
 			size_t end = positions.size();
 			for ( size_t i = 0; i < end; ++i )
 			{
@@ -215,7 +219,7 @@ namespace Donya
 
 		if ( ImGui::TreeNode( "Normals" ) )
 		{
-			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( ImGui::GetWindowWidth(), ImGui::GetWindowHeight() ) );
+			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
 			size_t end = normals.size();
 			for ( size_t i = 0; i < end; ++i )
 			{
@@ -228,7 +232,7 @@ namespace Donya
 
 		if ( ImGui::TreeNode( "Indices" ) )
 		{
-			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( ImGui::GetWindowWidth(), ImGui::GetWindowHeight() ) );
+			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
 			size_t end = indices.size();
 			for ( size_t i = 0; i < end; ++i )
 			{

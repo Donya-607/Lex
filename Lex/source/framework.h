@@ -12,6 +12,7 @@
 
 #include "Loader.h"
 #include "HighResolutionTimer.h"
+#include "SkinnedMesh.h"
 
 #define scast static_cast
 
@@ -31,8 +32,13 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	d3dRenderTargetView;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	d3dDepthStencilView;
 private:
-	std::unique_ptr<Donya::Camera>	pCamera;
-	std::vector<Donya::Loader>		loaders;
+	std::unique_ptr<Donya::Camera>		pCamera;
+	struct MeshAndInfo
+	{
+		Donya::Loader loader;
+		std::unique_ptr<Donya::SkinnedMesh> pMesh;
+	};
+	std::vector<MeshAndInfo> meshes;
 private:
 	bool isFillDraw;
 public:

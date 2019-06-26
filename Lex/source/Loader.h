@@ -34,6 +34,9 @@ namespace Donya
 		bool Load( const std::string &filePath, std::string *outputErrorString );
 	public:
 		std::string GetFileName() const { return fileName; }
+		const std::vector<size_t> *GetIndices() const { return &indices; }
+		const std::vector<Donya::Vector3> *GetNormals() const { return &normals; }
+		const std::vector<Donya::Vector3> *GetPositions() const { return &positions; }
 	private:
 		void MakeFileName( const std::string &filePath );
 	#if USE_IMGUI
