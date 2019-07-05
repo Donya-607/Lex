@@ -31,12 +31,32 @@ namespace Donya
 		{
 			DirectX::XMFLOAT4X4	worldViewProjection;
 			DirectX::XMFLOAT4X4	world;
+			DirectX::XMFLOAT4	eyePosition;
 			DirectX::XMFLOAT4	lightDirection;
 			DirectX::XMFLOAT4	materialColor;
 		};
+		struct MaterialConstantBuffer
+		{
+			DirectX::XMFLOAT4	ambient;
+			DirectX::XMFLOAT4	bump;
+			DirectX::XMFLOAT4	diffuse;
+			DirectX::XMFLOAT4	emissive;
+			DirectX::XMFLOAT4	specular;
+			float				shininess;
+			DirectX::XMFLOAT3	padding;
+		public:
+			MaterialConstantBuffer() : ambient(), bump(), diffuse(), emissive(), specular(), shininess()
+			{}
+		};
 		struct Material
 		{
-			DirectX::XMFLOAT4	color;
+			DirectX::XMFLOAT3	ambient;
+			DirectX::XMFLOAT3	bump;
+			DirectX::XMFLOAT3	diffuse;
+			DirectX::XMFLOAT3	emissive;
+			DirectX::XMFLOAT3	specular;
+			float				transparency;
+			float				shininess;
 			struct Texture
 			{
 				std::string fileName;	// absolute path.
@@ -48,7 +68,7 @@ namespace Donya
 			};
 			std::vector<Texture> textures;
 		public:
-			Material() : color( 1.0f, 1.0f, 1.0f, 1.0f ), textures() {}
+			Material() : ambient(), bump(), diffuse(), emissive(), specular(), transparency(), shininess(), textures() {}
 		};
 		struct Subset
 		{
@@ -60,6 +80,7 @@ namespace Donya
 		COM_PTR<ID3D11Buffer>				iVertexBuffer;
 		COM_PTR<ID3D11Buffer>				iIndexBuffer;
 		COM_PTR<ID3D11Buffer>				iConstantBuffer;
+		COM_PTR<ID3D11Buffer>				iMaterialConstantBuffer;
 		COM_PTR<ID3D11InputLayout>			iInputLayout;
 		COM_PTR<ID3D11VertexShader>			iVertexShader;
 		COM_PTR<ID3D11PixelShader>			iPixelShader;
@@ -69,13 +90,14 @@ namespace Donya
 	#undef	COM_PTR
 		std::vector<Material> materials;
 	public:
-		SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<std::string> &textureNames );
+		SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<Material> &loadedMaterials );
 		~SkinnedMesh();
 	public:
 		void Render
 		(
 			const DirectX::XMFLOAT4X4	&worldViewProjection,
 			const DirectX::XMFLOAT4X4	&world,
+			const DirectX::XMFLOAT4		&eyePosition,
 			const DirectX::XMFLOAT4		&lightDirection,
 			const DirectX::XMFLOAT4		&materialColor,
 			bool isEnableFill = true

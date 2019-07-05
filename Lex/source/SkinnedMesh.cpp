@@ -40,18 +40,43 @@ namespace Donya
 			}
 		}
 
+		std::vector<Material> materials{};
+
+		auto *loadedMtls = loader->GetMaterials();
+		size_t mtlCount  = loadedMtls->size();
+
+		materials.resize( mtlCount );
+		for ( size_t i = 0; i < mtlCount; ++i )
+		{
+			materials[i].ambient		= ( *loadedMtls )[i].ambient;
+			materials[i].bump			= ( *loadedMtls )[i].bump;
+			materials[i].diffuse		= ( *loadedMtls )[i].diffuse;
+			materials[i].emissive		= ( *loadedMtls )[i].emissive;
+			materials[i].transparency	= ( *loadedMtls )[i].transparency;
+			if ( ( *loadedMtls )[i].pPhong )
+			{
+				materials[i].shininess	= ( *loadedMtls )[i].pPhong->shininess;
+				materials[i].specular	= ( *loadedMtls )[i].pPhong->specular;
+			}
+			else
+			{
+				materials[i].shininess	= 1.0f;
+				materials[i].specular	= { 1.0f, 1.0f, 1.0f };
+			}
+		}
+
 		*ppOutput =
 		std::make_unique<SkinnedMesh>
 		(
 			*pIndices,
 			vertices,
-			*loader->GetTextureNames()
+			materials
 		);
 
 		return true;
 	}
 
-	SkinnedMesh::SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<std::string> &textureNames )
+	SkinnedMesh::SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<Material> &loadedMaterials )
 		: vertexCount( vertexCount )
 	{
 		HRESULT hr = S_OK;
@@ -73,7 +98,7 @@ namespace Donya
 			d3d11SubResourceData.SysMemSlicePitch	= 0;
 
 			hr = pDevice->CreateBuffer( &d3d11BufferDesc, &d3d11SubResourceData, iVertexBuffer.GetAddressOf() );
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer()" );
+			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
 		}
 		// Create IndexBuffer
 		{
@@ -93,9 +118,9 @@ namespace Donya
 			vertexCount = indices.size();
 
 			hr = pDevice->CreateBuffer( &d3dIndexBufferDesc, &d3dSubresourceData, iIndexBuffer.GetAddressOf() );
-			assert( SUCCEEDED( hr ) );
+			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
 		}
-		// Create ConstantBuffer
+		// Create ConstantBuffers
 		{
 			D3D11_BUFFER_DESC d3dConstantBufferDesc{};
 			d3dConstantBufferDesc.ByteWidth				= sizeof( ConstantBuffer );
@@ -106,7 +131,12 @@ namespace Donya
 			d3dConstantBufferDesc.StructureByteStride	= 0;
 
 			hr = pDevice->CreateBuffer( &d3dConstantBufferDesc, nullptr, iConstantBuffer.GetAddressOf() );
-			assert( SUCCEEDED( hr ) );
+			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
+
+			d3dConstantBufferDesc.ByteWidth				= sizeof( MaterialConstantBuffer );
+
+			hr = pDevice->CreateBuffer( &d3dConstantBufferDesc, nullptr, iMaterialConstantBuffer.GetAddressOf() );
+			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
 		}
 		// Create VertexShader and InputLayout
 		{
@@ -176,7 +206,7 @@ namespace Donya
 				&d3dDepthStencilDesc,
 				iDepthStencilState.GetAddressOf()
 			);
-			_ASSERT_EXPR( SUCCEEDED( hr ), "Failed : CreateDepthStencilState" );
+			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateDepthStencilState" );
 		}
 		// Read Texture
 		{
@@ -192,31 +222,38 @@ namespace Donya
 			samplerDesc.MinLOD			= 0;
 			samplerDesc.MaxLOD			= D3D11_FLOAT32_MAX;
 
-			size_t textureCount = textureNames.size();
-			for ( size_t i = 0; i < textureCount; ++i )
+			size_t mtlCount = loadedMaterials.size();
+			for ( size_t i = 0; i < mtlCount; ++i )
 			{
-				mtl.textures.push_back( {} );
-				auto &mtlTex = mtl.textures.back();
+				auto &textures = loadedMaterials[i].textures;
 
-				Resource::CreateTexture2DFromFile
-				(
-					pDevice,
-					Donya::MultiToWide( textureNames[i] ),
-					mtlTex.iSRV.GetAddressOf(),
-					mtlTex.iSampler.GetAddressOf(),
-					&mtlTex.texture2DDesc,
-					&samplerDesc,
-					/* enableCache = */ true
-				);
+				size_t textureCount = textures.size();
+				for ( size_t j = 0; j < textureCount; ++j )
+				{
+					mtl.textures.push_back( {} );
+					auto &mtlTex = mtl.textures.back();
+
+					Resource::CreateTexture2DFromFile
+					(
+						pDevice,
+						Donya::MultiToWide( textures[j].fileName ),
+						mtlTex.iSRV.GetAddressOf(),
+						mtlTex.iSampler.GetAddressOf(),
+						&mtlTex.texture2DDesc,
+						&samplerDesc,
+						/* enableCache = */ true
+					);
+				}
 			}
 		}
 	}
 	SkinnedMesh::~SkinnedMesh()
 	{
-		std::vector<Material>().swap( materials );
+		materials.clear();
+		materials.shrink_to_fit();
 	}
 
-	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &lightDirection, const DirectX::XMFLOAT4 &materialColor, bool isEnableFill )
+	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &lightDirection, const DirectX::XMFLOAT4 &materialColor, bool isEnableFill )
 	{
 		HRESULT hr = S_OK;
 		ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
@@ -226,6 +263,7 @@ namespace Donya
 			ConstantBuffer cb;
 			cb.worldViewProjection	= worldViewProjection;
 			cb.world				= world;
+			cb.eyePosition			= eyePosition;
 			cb.lightDirection		= lightDirection;
 			cb.materialColor		= materialColor;
 			pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
@@ -268,14 +306,48 @@ namespace Donya
 			pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xffffffff );
 		}
 
-		auto &mtlTex = materials[0].textures;
-		size_t texCount = mtlTex.size();
-		for ( size_t i = 0; i < texCount; ++i )
-		{
-			pImmediateContext->PSSetSamplers( 0, 1, mtlTex[i].iSampler.GetAddressOf() );
-			pImmediateContext->PSSetShaderResources( 0, 1, mtlTex[i].iSRV.GetAddressOf() );
 
-			pImmediateContext->DrawIndexed( vertexCount, 0, 0 );
+		size_t mtlCount = materials.size();
+		for ( size_t i = 0; i < mtlCount; ++i )
+		{
+			auto &mtl = materials[i];
+
+			// Update Subresource
+			{
+				auto ConvertFloat4 =
+				[&]( const XMFLOAT3 &color )
+				{
+					XMFLOAT4 rv;
+					rv.x = color.x;
+					rv.y = color.y;
+					rv.z = color.z;
+					rv.w = 1.0f; // mtl.transparency;
+
+					return rv;
+				};
+
+				MaterialConstantBuffer mtlCB{};
+				mtlCB.ambient	= ConvertFloat4( mtl.ambient );
+				mtlCB.bump		= ConvertFloat4( mtl.bump );
+				mtlCB.diffuse	= ConvertFloat4( mtl.diffuse );
+				mtlCB.emissive	= ConvertFloat4( mtl.emissive );
+				mtlCB.specular	= ConvertFloat4( mtl.specular );
+				mtlCB.shininess	= mtl.shininess;
+
+				pImmediateContext->UpdateSubresource( iMaterialConstantBuffer.Get(), 0, nullptr, &mtlCB, 0, 0 );
+			}
+			pImmediateContext->VSSetConstantBuffers( 1, 1, iMaterialConstantBuffer.GetAddressOf() );
+			pImmediateContext->PSSetConstantBuffers( 1, 1, iMaterialConstantBuffer.GetAddressOf() );
+
+			auto &mtlTex = materials[i].textures;
+			size_t texCount = mtlTex.size();
+			for ( size_t j = 0; j < texCount; ++j )
+			{
+				pImmediateContext->PSSetSamplers( 0, 1, mtlTex[j].iSampler.GetAddressOf() );
+				pImmediateContext->PSSetShaderResources( 0, 1, mtlTex[j].iSRV.GetAddressOf() );
+
+				pImmediateContext->DrawIndexed( vertexCount, 0, 0 );
+			}
 		}
 	}
 }

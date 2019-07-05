@@ -74,13 +74,13 @@ namespace Donya
 		/// </summary>
 		bool Load( const std::string &filePath, std::string *outputErrorString );
 	public:
-		size_t GetMaterialCount() const { return materials.size(); }
 		std::string GetFileName() const { return fileName; }
-		const std::vector<std::string> *GetTextureNames( size_t materialInex = 0 ) const { return &materials[materialInex].textureNames; }
-		const std::vector<size_t> *GetIndices() const { return &indices; }
-		const std::vector<Donya::Vector3> *GetNormals() const { return &normals; }
-		const std::vector<Donya::Vector3> *GetPositions() const { return &positions; }
-		const std::vector<Donya::Vector2> *GetTexCoords() const { return &texCoords; }
+		const std::vector<std::string>		*GetTextureNames( size_t materialInex = 0 ) const { return &materials[materialInex].textureNames; }
+		const std::vector<size_t>			*GetIndices() const { return &indices; }
+		const std::vector<Donya::Vector3>	*GetNormals() const { return &normals; }
+		const std::vector<Donya::Vector3>	*GetPositions() const { return &positions; }
+		const std::vector<Donya::Vector2>	*GetTexCoords() const { return &texCoords; }
+		const std::vector<Material>			*GetMaterials() const { return &materials; }
 	private:
 		void MakeFileName( const std::string &filePath );
 

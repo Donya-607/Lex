@@ -543,7 +543,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		{
 			if ( it.pMesh )
 			{
-				it.pMesh->Render( worldViewProjection, world, lightDirection, materialColor, isFillDraw );
+				it.pMesh->Render( worldViewProjection, world, cameraPos, lightDirection, materialColor, isFillDraw );
 			}
 		}
 
