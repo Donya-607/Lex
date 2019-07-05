@@ -30,8 +30,6 @@ namespace Donya
 	public:
 		struct Material
 		{
-			std::string		textureName; // diffuse map, relatve name,
-
 			Donya::Vector3	ambient;
 			Donya::Vector3	bump;
 			Donya::Vector3	diffuse;
@@ -50,8 +48,10 @@ namespace Donya
 				Phong &operator = ( const Phong & ) = default;
 			};
 			std::unique_ptr<Phong> pPhong;
+
+			std::vector<std::string> textureNames; // diffuse map, full path.
 		public:
-			Material() : textureName( "" ), ambient( 0, 0, 0 ), bump( 0, 0, 0 ), diffuse( 0, 0, 0 ), emissive( 0, 0, 0 ), transparency( 0 ), pPhong( nullptr )
+			Material() : ambient( 0, 0, 0 ), bump( 0, 0, 0 ), diffuse( 0, 0, 0 ), emissive( 0, 0, 0 ), transparency( 0 ), pPhong( nullptr ), textureNames()
 			{}
 			Material( const Material & );
 			Material &operator = ( const Material & );
@@ -59,6 +59,7 @@ namespace Donya
 	private:
 		size_t						vertexCount;	// 0 based.
 		std::string					fileName;
+		std::string					fileDirectory;	// '/' terminated.
 		std::vector<size_t>			indices;
 		std::vector<Donya::Vector3>	normals;
 		std::vector<Donya::Vector3>	positions;
@@ -73,8 +74,9 @@ namespace Donya
 		/// </summary>
 		bool Load( const std::string &filePath, std::string *outputErrorString );
 	public:
+		size_t GetMaterialCount() const { return materials.size(); }
 		std::string GetFileName() const { return fileName; }
-		std::string GetTextureName( size_t materialInex = 0 ) const { return materials[materialInex].textureName; }
+		const std::vector<std::string> *GetTextureNames( size_t materialInex = 0 ) const { return &materials[materialInex].textureNames; }
 		const std::vector<size_t> *GetIndices() const { return &indices; }
 		const std::vector<Donya::Vector3> *GetNormals() const { return &normals; }
 		const std::vector<Donya::Vector3> *GetPositions() const { return &positions; }

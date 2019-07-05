@@ -40,14 +40,18 @@ namespace Donya
 			}
 		}
 
-		// TODO:Copy materials.
-
-		*ppOutput = std::make_unique<SkinnedMesh>( *pIndices, vertices, loader->GetTextureName() );
+		*ppOutput =
+		std::make_unique<SkinnedMesh>
+		(
+			*pIndices,
+			vertices,
+			*loader->GetTextureNames()
+		);
 
 		return true;
 	}
 
-	SkinnedMesh::SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::string &textureName )
+	SkinnedMesh::SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<std::string> &textureNames )
 		: vertexCount( vertexCount )
 	{
 		HRESULT hr = S_OK;
@@ -176,6 +180,9 @@ namespace Donya
 		}
 		// Read Texture
 		{
+			materials.push_back( Material{} );
+			auto &mtl = materials.back();
+
 			D3D11_SAMPLER_DESC samplerDesc{};
 			samplerDesc.Filter			= D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 			samplerDesc.AddressU		= D3D11_TEXTURE_ADDRESS_WRAP;
@@ -185,19 +192,23 @@ namespace Donya
 			samplerDesc.MinLOD			= 0;
 			samplerDesc.MaxLOD			= D3D11_FLOAT32_MAX;
 
-			materials.push_back( Material{} );
-			auto &mtl = materials.back();
+			size_t textureCount = textureNames.size();
+			for ( size_t i = 0; i < textureCount; ++i )
+			{
+				mtl.textures.push_back( {} );
+				auto &mtlTex = mtl.textures.back();
 
-			Resource::CreateTexture2DFromFile
-			(
-				pDevice,
-				Donya::MultiToWide( textureName ),
-				mtl.iSRV.GetAddressOf(),
-				mtl.iSampler.GetAddressOf(),
-				&mtl.texture2DDesc,
-				&samplerDesc,
-				/* enableCache = */ true
-			);
+				Resource::CreateTexture2DFromFile
+				(
+					pDevice,
+					Donya::MultiToWide( textureNames[i] ),
+					mtlTex.iSRV.GetAddressOf(),
+					mtlTex.iSampler.GetAddressOf(),
+					&mtlTex.texture2DDesc,
+					&samplerDesc,
+					/* enableCache = */ true
+				);
+			}
 		}
 	}
 	SkinnedMesh::~SkinnedMesh()
@@ -253,12 +264,18 @@ namespace Donya
 			pImmediateContext->RSSetState( ppRasterizerState );
 
 			pImmediateContext->PSSetShader( iPixelShader.Get(), nullptr, 0 );
-			pImmediateContext->PSSetSamplers( 0, 1, materials.back().iSampler.GetAddressOf() );
-			pImmediateContext->PSSetShaderResources( 0, 1, materials.back().iSRV.GetAddressOf() );
 
 			pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xffffffff );
 		}
 
-		pImmediateContext->DrawIndexed( vertexCount, 0, 0 );
+		auto &mtlTex = materials[0].textures;
+		size_t texCount = mtlTex.size();
+		for ( size_t i = 0; i < texCount; ++i )
+		{
+			pImmediateContext->PSSetSamplers( 0, 1, mtlTex[i].iSampler.GetAddressOf() );
+			pImmediateContext->PSSetShaderResources( 0, 1, mtlTex[i].iSRV.GetAddressOf() );
+
+			pImmediateContext->DrawIndexed( vertexCount, 0, 0 );
+		}
 	}
 }

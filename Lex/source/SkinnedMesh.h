@@ -36,11 +36,19 @@ namespace Donya
 		};
 		struct Material
 		{
-			DirectX::XMFLOAT4		color;
-			std::string				textureName;	// relative name.
-			D3D11_TEXTURE2D_DESC	texture2DDesc;
-			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	iSRV;
-			Microsoft::WRL::ComPtr<ID3D11SamplerState>			iSampler;
+			DirectX::XMFLOAT4	color;
+			struct Texture
+			{
+				std::string fileName;	// absolute path.
+				D3D11_TEXTURE2D_DESC texture2DDesc;
+				Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	iSRV;
+				Microsoft::WRL::ComPtr<ID3D11SamplerState>			iSampler;
+			public:
+				Texture() : fileName( "" ), texture2DDesc(), iSRV(), iSampler() {}
+			};
+			std::vector<Texture> textures;
+		public:
+			Material() : color( 1.0f, 1.0f, 1.0f, 1.0f ), textures() {}
 		};
 		struct Subset
 		{
@@ -61,7 +69,7 @@ namespace Donya
 	#undef	COM_PTR
 		std::vector<Material> materials;
 	public:
-		SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::string &textureName );
+		SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<std::string> &textureNames );
 		~SkinnedMesh();
 	public:
 		void Render
