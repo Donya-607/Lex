@@ -14,19 +14,22 @@ struct VS_IN
 {
 	float4 pos		: POSITION;
 	float4 normal	: NORMAL;
+	float2 texCoord	: TEXCOORD;
 };
 
-VS_OUT main( float4 pos : POSITION, float4 normal : NORMAL )
+VS_OUT main( VS_IN vin )
 {
-	normal.w = 0;
-	float4 norm		= normalize( mul( normal, world ) );
+	vin.normal.w = 0;
+	float4 norm		= normalize( mul( vin.normal, world ) );
 	float4 light	= normalize( -lightDirection );
 
 	VS_OUT vout;
-	vout.pos		= mul( pos, worldViewProjection );
+	vout.pos		= mul( vin.pos, worldViewProjection );
 
 	vout.color		= materialColor * max( dot( light, norm ), 0.0f );
 	vout.color.a	= materialColor.a;
+
+	vout.texCoord	= vin.texCoord;
 
 	return vout;
 }

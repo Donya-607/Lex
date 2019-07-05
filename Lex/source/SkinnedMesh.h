@@ -25,6 +25,7 @@ namespace Donya
 		{
 			DirectX::XMFLOAT3	pos;
 			DirectX::XMFLOAT3	normal;
+			DirectX::XMFLOAT2	texCoord;
 		};
 		struct ConstantBuffer
 		{
@@ -35,8 +36,11 @@ namespace Donya
 		};
 		struct Material
 		{
-			DirectX::XMFLOAT4	color;
-			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> iSRV;
+			DirectX::XMFLOAT4		color;
+			std::string				textureName;	// relative name.
+			D3D11_TEXTURE2D_DESC	texture2DDesc;
+			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	iSRV;
+			Microsoft::WRL::ComPtr<ID3D11SamplerState>			iSampler;
 		};
 		struct Subset
 		{
@@ -55,8 +59,9 @@ namespace Donya
 		COM_PTR<ID3D11RasterizerState>		iRasterizerStateSurface;
 		COM_PTR<ID3D11DepthStencilState>	iDepthStencilState;
 	#undef	COM_PTR
+		std::vector<Material> materials;
 	public:
-		SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices );
+		SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::string &textureName );
 		~SkinnedMesh();
 	public:
 		void Render

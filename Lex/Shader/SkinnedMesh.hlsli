@@ -2,6 +2,7 @@ struct VS_OUT
 {
 	float4 pos		: SV_POSITION;
 	float4 color	: COLOR;
+	float2 texCoord	: TEXCOORD;
 };
 
 cbuffer CONSTANT_BUFFER : register( b0 )

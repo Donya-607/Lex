@@ -1,8 +1,10 @@
 #include "SkinnedMesh.h"
 
+#include "Common.h"
 #include "Donya.h"
 #include "Loader.h"
 #include "Resource.h"
+#include "Useful.h"
 
 using namespace DirectX;
 
@@ -18,22 +20,34 @@ namespace Donya
 		{
 			const std::vector<Donya::Vector3> *normals   = loader->GetNormals();
 			const std::vector<Donya::Vector3> *positions = loader->GetPositions();
+			const std::vector<Donya::Vector2> *texCoords = loader->GetTexCoords();
 
 			vertices.resize( max( normals->size(), positions->size() ) );
 			size_t end = vertices.size();
 			for ( size_t i = 0; i < end; ++i )
 			{
-				vertices[i].normal	= ( *normals   )[i];
-				vertices[i].pos		= ( *positions )[i];
+				vertices[i].normal		= scast<DirectX::XMFLOAT3>( ( *normals   )[i] );
+				vertices[i].pos			= scast<DirectX::XMFLOAT3>( ( *positions )[i] );
+
+				if ( i < texCoords->size() )
+				{
+					vertices[i].texCoord = scast<DirectX::XMFLOAT2>( ( *texCoords )[i] );
+				}
+				else
+				{
+					vertices[i].texCoord = { 0, 0 };
+				}
 			}
 		}
 
-		*ppOutput = std::make_unique<SkinnedMesh>( *pIndices, vertices );
+		// TODO:Copy materials.
+
+		*ppOutput = std::make_unique<SkinnedMesh>( *pIndices, vertices, loader->GetTextureName() );
 
 		return true;
 	}
 
-	SkinnedMesh::SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices )
+	SkinnedMesh::SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::string &textureName )
 		: vertexCount( vertexCount )
 	{
 		HRESULT hr = S_OK;
@@ -94,8 +108,9 @@ namespace Donya
 		{
 			D3D11_INPUT_ELEMENT_DESC d3d11InputElementsDesc[] =
 			{
-				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-				{ "NORMAL"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "POSITION"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "NORMAL"		, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "TEXCOORD"	, 0, DXGI_FORMAT_R32G32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			};
 
 			Resource::CreateVertexShaderFromCso
@@ -159,10 +174,35 @@ namespace Donya
 			);
 			_ASSERT_EXPR( SUCCEEDED( hr ), "Failed : CreateDepthStencilState" );
 		}
+		// Read Texture
+		{
+			D3D11_SAMPLER_DESC samplerDesc{};
+			samplerDesc.Filter			= D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+			samplerDesc.AddressU		= D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.AddressV		= D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.AddressW		= D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.ComparisonFunc	= D3D11_COMPARISON_NEVER;
+			samplerDesc.MinLOD			= 0;
+			samplerDesc.MaxLOD			= D3D11_FLOAT32_MAX;
+
+			materials.push_back( Material{} );
+			auto &mtl = materials.back();
+
+			Resource::CreateTexture2DFromFile
+			(
+				pDevice,
+				Donya::MultiToWide( textureName ),
+				mtl.iSRV.GetAddressOf(),
+				mtl.iSampler.GetAddressOf(),
+				&mtl.texture2DDesc,
+				&samplerDesc,
+				/* enableCache = */ true
+			);
+		}
 	}
 	SkinnedMesh::~SkinnedMesh()
 	{
-
+		std::vector<Material>().swap( materials );
 	}
 
 	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &lightDirection, const DirectX::XMFLOAT4 &materialColor, bool isEnableFill )
@@ -213,6 +253,8 @@ namespace Donya
 			pImmediateContext->RSSetState( ppRasterizerState );
 
 			pImmediateContext->PSSetShader( iPixelShader.Get(), nullptr, 0 );
+			pImmediateContext->PSSetSamplers( 0, 1, materials.back().iSampler.GetAddressOf() );
+			pImmediateContext->PSSetShaderResources( 0, 1, materials.back().iSRV.GetAddressOf() );
 
 			pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xffffffff );
 		}

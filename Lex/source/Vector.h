@@ -1,7 +1,10 @@
 #ifndef INCLUDED_VECTOR_H_
 #define INCLUDED_VECTOR_H_
 
+#include <cstdint> // use for std::uint32_t
 #include <DirectXMath.h>
+
+#include "cereal/cereal.hpp"
 
 namespace Donya
 {
@@ -13,60 +16,68 @@ namespace Donya
 	public:
 		Vector2() : XMFLOAT2() {}
 		Vector2( float x, float y ) : XMFLOAT2( x, y ) {}
-		Vector2( const XMFLOAT2 &ref ) : XMFLOAT2( ref ) {}
-		Vector2( const XMFLOAT2&&ref ) : XMFLOAT2( ref ) {}
-		Vector2( const Vector2  &ref ) : XMFLOAT2( ref ) {}
-		Vector2( const Vector2 &&ref ) noexcept : XMFLOAT2( ref ) {}
-		Vector2 & operator = ( const XMFLOAT2 &ref ) { *this = ref; return *this; }
-		Vector2 & operator = ( const XMFLOAT2&&ref ) { *this = ref; return *this; }
-		Vector2 & operator = ( const Vector2  &ref ) { *this = ref; return *this; }
-		Vector2 & operator = ( const Vector2 &&ref ) noexcept { *this = ref; return *this; }
+		Vector2( const XMFLOAT2 &ref  ) : XMFLOAT2( ref ) {}
+		Vector2( const XMFLOAT2 &&ref ) : XMFLOAT2( ref ) {}
+		Vector2( const Vector2  &ref  ) : XMFLOAT2( ref ) {}
+		Vector2( const Vector2  &&ref ) noexcept : XMFLOAT2( ref ) {}
+		Vector2 &operator = ( float scalar ) noexcept { x = y = scalar; return *this; }
+		Vector2 &operator = ( const XMFLOAT2 &ref  ) noexcept { x = ref.x; y = ref.y; return *this; }
+		Vector2 &operator = ( const XMFLOAT2 &&ref ) noexcept { x = ref.x; y = ref.y; return *this; }
+		Vector2 &operator = ( const Vector2 &ref   ) noexcept { x = ref.x; y = ref.y; return *this; }
+		Vector2 &operator = ( const Vector2 &&ref  ) noexcept { x = ref.x; y = ref.y; return *this; }
 		~Vector2() = default;
+	private:
+		friend class cereal::access;
+		template<class Archive>
+		void serialize( Archive &archive, std::uint32_t version )
+		{
+			archive( x, y );
+		}
 	public:
-		inline Vector2 operator - () const { return Vector2{ -x, -y }; }
-		inline Vector2 operator += ( float scalar )
+		Vector2 operator - () const { return Vector2{ -x, -y }; }
+		Vector2 operator += ( float scalar )
 		{
 			x += scalar;
 			y += scalar;
 			return *this;
 		}
-		inline Vector2 operator += ( const Vector2  &R )
+		Vector2 operator += ( const Vector2 &R )
 		{
 			x += R.x;
 			y += R.y;
 			return *this;
 		}
-		inline Vector2 operator += ( const XMFLOAT2 &R )
+		Vector2 operator += ( const XMFLOAT2 &R )
 		{
 			x += R.x;
 			y += R.y;
 			return *this;
 		}
-		inline Vector2 operator -= ( float scalar )
+		Vector2 operator -= ( float scalar )
 		{
 			x -= scalar;
 			y -= scalar;
 			return *this;
 		}
-		inline Vector2 operator -= ( const Vector2  &R )
+		Vector2 operator -= ( const Vector2 &R )
 		{
 			x -= R.x;
 			y -= R.y;
 			return *this;
 		}
-		inline Vector2 operator -= ( const XMFLOAT2 &R )
+		Vector2 operator -= ( const XMFLOAT2 &R )
 		{
 			x -= R.x;
 			y -= R.y;
 			return *this;
 		}
-		inline Vector2 operator *= ( float scalar )
+		Vector2 operator *= ( float scalar )
 		{
 			x *= scalar;
 			y *= scalar;
 			return *this;
 		}
-		inline Vector2 operator /= ( float scalar )
+		Vector2 operator /= ( float scalar )
 		{
 			x /= scalar;
 			y /= scalar;
@@ -74,43 +85,48 @@ namespace Donya
 		}
 	public:
 		// using sqrtf().
-		inline float Length()   const { return sqrtf( LengthSq() ); }
-		inline float LengthSq() const { return ( x * x ) + ( y * y ); }
+		float Length()   const { return sqrtf( LengthSq() ); }
+		float LengthSq() const { return ( x * x ) + ( y * y ); }
 		Vector2 Normalize();
 	public:
-		inline float Dot( const Vector2  &R ) const
+		float Dot( const Vector2  &R ) const
 		{
 			return ( x * R.x ) + ( y * R.y );
 		}
-		inline float Dot( const XMFLOAT2 &R ) const
+		float Dot( const XMFLOAT2 &R ) const
 		{
 			return ( x * R.x ) + ( y * R.y );
 		}
-		inline float Cross( const Vector2  &R ) const
+		float Cross( const Vector2  &R ) const
 		{
 			return ( x * R.y ) - ( y * R.x );
 		}
-		inline float Cross( const XMFLOAT2 &R ) const
+		float Cross( const XMFLOAT2 &R ) const
 		{
 			return ( x * R.y ) - ( y * R.x );
 		}
 	public:
-		inline static float Dot( const Vector2  &L, const Vector2  &R ) { return L.Dot( R ); }
-		inline static float Dot( const XMFLOAT2 &L, const XMFLOAT2 &R ) { return Vector2( L ).Dot( R ); }
-		inline static float Cross( const Vector2  &L, const Vector2  &R ) { return L.Cross( R ); }
-		inline static float Cross( const XMFLOAT2 &L, const XMFLOAT2 &R ) { return Vector2( L ).Cross( R ); }
+		static float Dot( const Vector2  &L, const Vector2  &R ) { return L.Dot( R ); }
+		static float Dot( const XMFLOAT2 &L, const XMFLOAT2 &R ) { return Vector2( L ).Dot( R ); }
+		static float Cross( const Vector2  &L, const Vector2  &R ) { return L.Cross( R ); }
+		static float Cross( const XMFLOAT2 &L, const XMFLOAT2 &R ) { return Vector2( L ).Cross( R ); }
 	};
 
-	inline Vector2 operator + ( const Vector2 &L, float scalar )		{ return ( Vector2( L ) += scalar ); }
-	inline Vector2 operator - ( const Vector2 &L, float scalar )		{ return ( Vector2( L ) -= scalar ); }
-	inline Vector2 operator + ( const Vector2 &L, const Vector2 &R )	{ return ( Vector2( L ) += R ); }
-	inline Vector2 operator - ( const Vector2 &L, const Vector2 &R )	{ return ( Vector2( L ) -= R ); }
-	inline Vector2 operator * ( const Vector2 &L, float scalar )		{ return ( Vector2( L ) *= scalar ); }
-	inline Vector2 operator * ( float scalar, const Vector2 &R )		{ return ( Vector2( R ) *= scalar ); }
-	inline Vector2 operator / ( const Vector2 &L, float scalar )		{ return ( Vector2( L ) /= scalar ); }
+	static Vector2	operator + ( const Vector2 &L, float scalar )					{ return ( Vector2( L ) += scalar ); }
+	static Vector2	operator - ( const Vector2 &L, float scalar )					{ return ( Vector2( L ) -= scalar ); }
+	static Vector2	operator + ( const Vector2 &L, const Vector2 &R )				{ return ( Vector2( L ) += R ); }
+	static Vector2	operator - ( const Vector2 &L, const Vector2 &R )				{ return ( Vector2( L ) -= R ); }
+	static Vector2	operator * ( const Vector2 &L, float scalar )					{ return ( Vector2( L ) *= scalar ); }
+	static Vector2	operator * ( float scalar, const Vector2 &R )					{ return ( Vector2( R ) *= scalar ); }
+	static Vector2	operator / ( const Vector2 &L, float scalar )					{ return ( Vector2( L ) /= scalar ); }
 
-	bool		operator == ( const Vector2 &L, const Vector2 &R );
-	inline bool	operator != ( const Vector2 &L, const Vector2 &R )		{ return !( L == R ); }
+	bool			operator == ( const Vector2 &L, const Vector2 &R );
+	static bool		operator != ( const Vector2 &L, const Vector2 &R )				{ return !( L == R ); }
+
+	static float	Dot( const Vector2 &L, const Vector2 &R )						{ return L.Dot( R ); }
+	static float	Dot( const DirectX::XMFLOAT2 &L, const DirectX::XMFLOAT2 &R )	{ return Vector2( L ).Dot( R ); }
+	static float	Cross( const Vector2 &L, const Vector2 &R )						{ return L.Cross( R ); }
+	static float	Cross( const DirectX::XMFLOAT2 &L, const DirectX::XMFLOAT2 &R )	{ return Vector2( L ).Cross( R ); }
 
 #pragma endregion
 
@@ -121,67 +137,75 @@ namespace Donya
 	public:
 		Vector3() : XMFLOAT3() {}
 		Vector3( float x, float y, float z ) : XMFLOAT3( x, y, z ) {}
-		Vector3( const XMFLOAT3 &ref ) : XMFLOAT3( ref ) {}
-		Vector3( const XMFLOAT3&&ref ) : XMFLOAT3( ref ) {}
-		Vector3( const Vector3  &ref ) : XMFLOAT3( ref ) {}
-		Vector3( const Vector3 &&ref ) noexcept : XMFLOAT3( ref ) {}
-		Vector3 & operator = ( const XMFLOAT3 &ref ) { *this = ref; return *this; }
-		Vector3 & operator = ( const XMFLOAT3&&ref ) { *this = ref; return *this; }
-		Vector3 & operator = ( const Vector3  &ref ) { *this = ref; return *this; }
-		Vector3 & operator = ( const Vector3 &&ref ) noexcept { *this = ref; return *this; }
+		Vector3( const XMFLOAT3 &ref  ) : XMFLOAT3( ref ) {}
+		Vector3( const XMFLOAT3 &&ref ) : XMFLOAT3( ref ) {}
+		Vector3( const Vector3  &ref  ) : XMFLOAT3( ref ) {}
+		Vector3( const Vector3  &&ref ) noexcept : XMFLOAT3( ref ) {}
+		Vector3 &operator = ( float scalar ) noexcept { x = y = z = scalar; return *this; }
+		Vector3 &operator = ( const XMFLOAT3 &ref  ) noexcept { x = ref.x; y = ref.y; z = ref.z; return *this; }
+		Vector3 &operator = ( const XMFLOAT3 &&ref ) noexcept { x = ref.x; y = ref.y; z = ref.z; return *this; }
+		Vector3 &operator = ( const Vector3  &ref  ) noexcept { x = ref.x; y = ref.y; z = ref.z; return *this; }
+		Vector3 &operator = ( const Vector3  &&ref ) noexcept { x = ref.x; y = ref.y; z = ref.z; return *this; }
 		~Vector3() = default;
+	private:
+		friend class cereal::access;
+		template<class Archive>
+		void serialize( Archive &archive, std::uint32_t version )
+		{
+			archive( x, y, z );
+		}
 	public:
-		inline Vector3 operator - () const { return Vector3{ -x, -y, -z }; }
-		inline Vector3 operator += ( float scalar )
+		Vector3 operator - () const { return Vector3{ -x, -y, -z }; }
+		Vector3 operator += ( float scalar )
 		{
 			x += scalar;
 			y += scalar;
 			z += scalar;
 			return *this;
 		}
-		inline Vector3 operator += ( const Vector3  &R )
+		Vector3 operator += ( const Vector3 &R )
 		{
 			x += R.x;
 			y += R.y;
 			z += R.z;
 			return *this;
 		}
-		inline Vector3 operator += ( const XMFLOAT3 &R )
+		Vector3 operator += ( const XMFLOAT3 &R )
 		{
 			x += R.x;
 			y += R.y;
 			z += R.z;
 			return *this;
 		}
-		inline Vector3 operator -= ( float scalar )
+		Vector3 operator -= ( float scalar )
 		{
 			x -= scalar;
 			y -= scalar;
 			z -= scalar;
 			return *this;
 		}
-		inline Vector3 operator -= ( const Vector3  &R )
+		Vector3 operator -= ( const Vector3 &R )
 		{
 			x -= R.x;
 			y -= R.y;
 			z -= R.z;
 			return *this;
 		}
-		inline Vector3 operator -= ( const XMFLOAT3 &R )
+		Vector3 operator -= ( const XMFLOAT3 &R )
 		{
 			x -= R.x;
 			y -= R.y;
 			z -= R.z;
 			return *this;
 		}
-		inline Vector3 operator *= ( float scalar )
+		Vector3 operator *= ( float scalar )
 		{
 			x *= scalar;
 			y *= scalar;
 			z *= scalar;
 			return *this;
 		}
-		inline Vector3 operator /= ( float scalar )
+		Vector3 operator /= ( float scalar )
 		{
 			x /= scalar;
 			y /= scalar;
@@ -190,19 +214,19 @@ namespace Donya
 		}
 	public:
 		// using sqrtf().
-		inline float Length()   const { return sqrtf( LengthSq() ); }
-		inline float LengthSq() const { return ( x * x ) + ( y * y ) + ( z * z ); }
+		float Length()   const { return sqrtf( LengthSq() ); }
+		float LengthSq() const { return ( x * x ) + ( y * y ) + ( z * z ); }
 		Vector3 Normalize();
 	public:
-		inline float Dot( const Vector3  &R ) const
+		float Dot( const Vector3  &R ) const
 		{
 			return ( x * R.x ) + ( y * R.y ) + ( z * R.z );
 		}
-		inline float Dot( const XMFLOAT3 &R ) const
+		float Dot( const XMFLOAT3 &R ) const
 		{
 			return ( x * R.x ) + ( y * R.y ) + ( z * R.z );
 		}
-		inline Vector3 Cross( const Vector3  &R ) const
+		Vector3 Cross( const Vector3  &R ) const
 		{
 			return Vector3
 			{
@@ -211,7 +235,7 @@ namespace Donya
 				( x * R.y ) - ( y * R.z )
 			};
 		}
-		inline Vector3 Cross( const XMFLOAT3 &R ) const
+		Vector3 Cross( const XMFLOAT3 &R ) const
 		{
 			return Vector3
 			{
@@ -221,22 +245,27 @@ namespace Donya
 			};
 		}
 	public:
-		inline static float Dot( const Vector3  &L, const Vector3  &R )		{ return L.Dot( R ); }
-		inline static float Dot( const XMFLOAT3 &L, const XMFLOAT3 &R )		{ return Vector3( L ).Dot( R ); }
-		inline static Vector3 Cross( const Vector3  &L, const Vector3  &R )	{ return L.Cross( R ); }
-		inline static Vector3 Cross( const XMFLOAT3 &L, const XMFLOAT3 &R )	{ return Vector3( L ).Cross( R ); }
+		static float Dot( const Vector3  &L, const Vector3  &R ) { return L.Dot( R ); }
+		static float Dot( const XMFLOAT3 &L, const XMFLOAT3 &R ) { return Vector3( L ).Dot( R ); }
+		static Vector3 Cross( const Vector3  &L, const Vector3  &R ) { return L.Cross( R ); }
+		static Vector3 Cross( const XMFLOAT3 &L, const XMFLOAT3 &R ) { return Vector3( L ).Cross( R ); }
 	};
 
-	inline Vector3 operator + ( const Vector3 &L, float scalar )		{ return ( Vector3( L ) += scalar ); }
-	inline Vector3 operator - ( const Vector3 &L, float scalar )		{ return ( Vector3( L ) -= scalar ); }
-	inline Vector3 operator + ( const Vector3 &L, const Vector3 &R )	{ return ( Vector3( L ) += R ); }
-	inline Vector3 operator - ( const Vector3 &L, const Vector3 &R )	{ return ( Vector3( L ) -= R ); }
-	inline Vector3 operator * ( const Vector3 &L, float scalar )		{ return ( Vector3( L ) *= scalar ); }
-	inline Vector3 operator * ( float scalar, const Vector3 &R )		{ return ( Vector3( R ) *= scalar ); }
-	inline Vector3 operator / ( const Vector3 &L, float scalar )		{ return ( Vector3( L ) /= scalar ); }
+	static Vector3	operator + ( const Vector3 &L, float scalar )					{ return ( Vector3( L ) += scalar ); }
+	static Vector3	operator - ( const Vector3 &L, float scalar )					{ return ( Vector3( L ) -= scalar ); }
+	static Vector3	operator + ( const Vector3 &L, const Vector3 &R )				{ return ( Vector3( L ) += R ); }
+	static Vector3	operator - ( const Vector3 &L, const Vector3 &R )				{ return ( Vector3( L ) -= R ); }
+	static Vector3	operator * ( const Vector3 &L, float scalar )					{ return ( Vector3( L ) *= scalar ); }
+	static Vector3	operator * ( float scalar, const Vector3 &R )					{ return ( Vector3( R ) *= scalar ); }
+	static Vector3	operator / ( const Vector3 &L, float scalar )					{ return ( Vector3( L ) /= scalar ); }
 
-	bool		operator == ( const Vector3 &L, const Vector3 &R );
-	inline bool operator != ( const Vector3 &L, const Vector3 &R )		{ return !( L == R ); }
+	bool			operator == ( const Vector3 &L, const Vector3 &R );
+	static bool		operator != ( const Vector3 &L, const Vector3 &R )				{ return !( L == R ); }
+
+	static float	Dot( const Vector3 &L, const Vector3 &R )						{ return L.Dot( R );				}
+	static float	Dot( const DirectX::XMFLOAT3 &L, const DirectX::XMFLOAT3 &R )	{ return Vector3( L ).Dot( R );		}
+	static Vector3	Cross( const Vector3 &L, const Vector3 &R )						{ return L.Cross( R );				}
+	static Vector3	Cross( const DirectX::XMFLOAT3 &L, const DirectX::XMFLOAT3 &R )	{ return Vector3( L ).Cross( R );	}
 
 #pragma endregion
 
@@ -247,18 +276,26 @@ namespace Donya
 	public:
 		Vector4() : XMFLOAT4() {}
 		Vector4( float x, float y, float z, float w ) : XMFLOAT4( x, y, z, w ) {}
-		Vector4( const XMFLOAT4 &ref ) : XMFLOAT4( ref ) {}
-		Vector4( const XMFLOAT4&&ref ) : XMFLOAT4( ref ) {}
-		Vector4( const Vector4  &ref ) : XMFLOAT4( ref ) {}
-		Vector4( const Vector4 &&ref ) noexcept : XMFLOAT4( ref ) {}
-		Vector4 & operator = ( const XMFLOAT4 &ref ) { *this = ref; return *this; }
-		Vector4 & operator = ( const XMFLOAT4&&ref ) { *this = ref; return *this; }
-		Vector4 & operator = ( const Vector4  &ref ) { *this = ref; return *this; }
-		Vector4 & operator = ( const Vector4 &&ref ) noexcept { *this = ref; return *this; }
+		Vector4( const XMFLOAT4 &ref  ) : XMFLOAT4( ref ) {}
+		Vector4( const XMFLOAT4 &&ref ) : XMFLOAT4( ref ) {}
+		Vector4( const Vector4  &ref  ) : XMFLOAT4( ref ) {}
+		Vector4( const Vector4  &&ref ) noexcept : XMFLOAT4( ref ) {}
+		Vector4 &operator = ( float scalar ) noexcept { x = y = z = w = scalar; return *this; }
+		Vector4 &operator = ( const XMFLOAT4 &ref  ) noexcept { x = ref.x; y = ref.y; z = ref.z; w = ref.w; return *this; }
+		Vector4 &operator = ( const XMFLOAT4 &&ref ) noexcept { x = ref.x; y = ref.y; z = ref.z; w = ref.w; return *this; }
+		Vector4 &operator = ( const Vector4  &ref  ) noexcept { x = ref.x; y = ref.y; z = ref.z; w = ref.w; return *this; }
+		Vector4 &operator = ( const Vector4  &&ref ) noexcept { x = ref.x; y = ref.y; z = ref.z; w = ref.w; return *this; }
 		~Vector4() = default;
+	private:
+		friend class cereal::access;
+		template<class Archive>
+		void serialize( Archive &archive, const std::uint32_t version )
+		{
+			archive( x, y, z, w );
+		}
 	public:
-		inline Vector4 operator - () const { return Vector4{ -x, -y, -z, -w }; }
-		inline Vector4 operator += ( float scalar )
+		Vector4 operator - () const { return Vector4{ -x, -y, -z, -w }; }
+		Vector4 operator += ( float scalar )
 		{
 			x += scalar;
 			y += scalar;
@@ -266,7 +303,7 @@ namespace Donya
 			w += scalar;
 			return *this;
 		}
-		inline Vector4 operator += ( const Vector4  &R )
+		Vector4 operator += ( const Vector4 &R )
 		{
 			x += R.x;
 			y += R.y;
@@ -274,7 +311,7 @@ namespace Donya
 			w += R.w;
 			return *this;
 		}
-		inline Vector4 operator += ( const XMFLOAT4 &R )
+		Vector4 operator += ( const XMFLOAT4 &R )
 		{
 			x += R.x;
 			y += R.y;
@@ -282,7 +319,7 @@ namespace Donya
 			w += R.w;
 			return *this;
 		}
-		inline Vector4 operator -= ( float scalar )
+		Vector4 operator -= ( float scalar )
 		{
 			x -= scalar;
 			y -= scalar;
@@ -290,7 +327,7 @@ namespace Donya
 			w -= scalar;
 			return *this;
 		}
-		inline Vector4 operator -= ( const Vector4  &R )
+		Vector4 operator -= ( const Vector4 &R )
 		{
 			x -= R.x;
 			y -= R.y;
@@ -298,7 +335,7 @@ namespace Donya
 			w -= R.w;
 			return *this;
 		}
-		inline Vector4 operator -= ( const XMFLOAT4 &R )
+		Vector4 operator -= ( const XMFLOAT4 &R )
 		{
 			x -= R.x;
 			y -= R.y;
@@ -306,7 +343,7 @@ namespace Donya
 			w -= R.w;
 			return *this;
 		}
-		inline Vector4 operator *= ( float scalar )
+		Vector4 operator *= ( float scalar )
 		{
 			x *= scalar;
 			y *= scalar;
@@ -314,7 +351,7 @@ namespace Donya
 			w *= scalar;
 			return *this;
 		}
-		inline Vector4 operator /= ( float scalar )
+		Vector4 operator /= ( float scalar )
 		{
 			x /= scalar;
 			y /= scalar;
@@ -352,16 +389,16 @@ namespace Donya
 //		inline static Vector4 Cross( const XMFLOAT4 &L, const XMFLOAT4 &R ) { return Vector4( L ).Cross( R ); }
 	};
 
-	inline Vector4 operator + ( const Vector4 &L, float scalar )		{ return ( Vector4( L ) += scalar ); }
-	inline Vector4 operator - ( const Vector4 &L, float scalar )		{ return ( Vector4( L ) -= scalar ); }
-	inline Vector4 operator + ( const Vector4 &L, const Vector4 &R )	{ return ( Vector4( L ) += R ); }
-	inline Vector4 operator - ( const Vector4 &L, const Vector4 &R )	{ return ( Vector4( L ) -= R ); }
-	inline Vector4 operator * ( const Vector4 &L, float scalar )		{ return ( Vector4( L ) *= scalar ); }
-	inline Vector4 operator * ( float scalar, const Vector4 &R )		{ return ( Vector4( R ) *= scalar ); }
-	inline Vector4 operator / ( const Vector4 &L, float scalar )		{ return ( Vector4( L ) /= scalar ); }
-
-	bool		operator == ( const Vector4 &L, const Vector4 &R );
-	inline bool operator != ( const Vector4 &L, const Vector4 &R )		{ return !( L == R ); }
+	static Vector4	operator + ( const Vector4 &L, float scalar )		{ return ( Vector4( L ) += scalar ); }
+	static Vector4	operator - ( const Vector4 &L, float scalar )		{ return ( Vector4( L ) -= scalar ); }
+	static Vector4	operator + ( const Vector4 &L, const Vector4 &R )	{ return ( Vector4( L ) += R ); }
+	static Vector4	operator - ( const Vector4 &L, const Vector4 &R )	{ return ( Vector4( L ) -= R ); }
+	static Vector4	operator * ( const Vector4 &L, float scalar )		{ return ( Vector4( L ) *= scalar ); }
+	static Vector4	operator * ( float scalar, const Vector4 &R )		{ return ( Vector4( R ) *= scalar ); }
+	static Vector4	operator / ( const Vector4 &L, float scalar )		{ return ( Vector4( L ) /= scalar ); }
+	
+	bool			operator == ( const Vector4 &L, const Vector4 &R );
+	static bool		operator != ( const Vector4 &L, const Vector4 &R )	{ return !( L == R ); }
 
 #pragma endregion
 

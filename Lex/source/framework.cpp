@@ -424,8 +424,6 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 {
 #ifdef USE_IMGUI
 
-	ImGui::Render();
-
 #endif
 
 	// ClearRenderTargetView, ClearDepthStencilView
@@ -531,7 +529,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		XMStoreFloat4x4( &world, matWorld );
 
 		XMFLOAT4 lightDirection{ 0.0f, -1.0f, 1.0f, 0.0f };
-		XMFLOAT4 materialColor{ 0.7f, 1.0f, 0.9f, 1.0f };
+		XMFLOAT4 materialColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 		XMFLOAT4 cameraPos{};
 		{
 			XMFLOAT3 ref = pCamera->GetPosition();
@@ -575,6 +573,8 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	}
 
 #ifdef USE_IMGUI
+
+	ImGui::Render();
 
 	ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData() );
 
