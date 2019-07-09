@@ -2,18 +2,16 @@ struct VS_OUT
 {
 	float4 pos		: SV_POSITION;
 	float4 color	: COLOR;
-	float4 eyeVector: TEXCOORD0;
-	float4 normal	: TEXCOORD1;
-	float2 texCoord	: TEXCOORD2;
+	float4 normal	: TEXCOORD0;
+	float2 texCoord	: TEXCOORD1;
 };
 
 cbuffer CONSTANT_BUFFER : register( b0 )
 {
 	row_major float4x4	worldViewProjection;
 	row_major float4x4	world;
-	float4				eyePosition;
-	float4				lightDirection;
-	float4				materialColor;
+	float4				lightColor;
+	float4				lightDir;
 };
 
 cbuffer MATERIAL_CONSTANT_BUFFER : register( b1 )

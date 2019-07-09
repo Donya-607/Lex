@@ -11,6 +11,7 @@
 #include <WICTextureLoader.h>
 
 #include "Common.h"
+#include "Donya.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -901,6 +902,25 @@ namespace Donya
 		void ReleaseAllObjFileCaches()
 		{
 			objFileCache.clear();
+		}
+
+	#pragma endregion
+
+	#pragma region ID3DObject
+
+		ID3D11SamplerState **RequireInvalidSamplerState()
+		{
+			static Microsoft::WRL::ComPtr<ID3D11SamplerState> pInvalidSampler;
+			if ( !pInvalidSampler )
+			{
+				D3D11_SAMPLER_DESC null{};
+				null.AddressU = null.AddressV = null.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+
+				HRESULT hr = Donya::GetDevice()->CreateSamplerState( &null, pInvalidSampler.GetAddressOf() );
+				_ASSERT_EXPR( SUCCEEDED( hr ), _TEXT( "Failed : CreateSamplerState()" ) );
+			}
+
+			return pInvalidSampler.GetAddressOf();
 		}
 
 	#pragma endregion

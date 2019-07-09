@@ -160,6 +160,15 @@ namespace Donya
 
 	#pragma endregion
 
+	#pragma region ID3DObject
+
+		/// <summary>
+		/// Returns invalid ID3D11SamplerState.GetAddressOf.
+		/// </summary>
+		ID3D11SamplerState **RequireInvalidSamplerState();
+
+	#pragma endregion
+
 		/// <summary>
 		/// I doing:<para></para>
 		/// ReleaseAllVertexShaderCaches,<para></para>

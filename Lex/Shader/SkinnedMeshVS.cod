@@ -9,9 +9,8 @@
 //
 //   row_major float4x4 worldViewProjection;// Offset:    0 Size:    64
 //   row_major float4x4 world;          // Offset:   64 Size:    64
-//   float4 eyePosition;                // Offset:  128 Size:    16
-//   float4 lightDirection;             // Offset:  144 Size:    16
-//   float4 materialColor;              // Offset:  160 Size:    16
+//   float4 lightColor;                 // Offset:  128 Size:    16 [unused]
+//   float4 lightDir;                   // Offset:  144 Size:    16 [unused]
 //
 // }
 //
@@ -40,8 +39,7 @@
 // SV_POSITION              0   xyzw        0      POS   float   xyzw
 // COLOR                    0   xyzw        1     NONE   float   xyzw
 // TEXCOORD                 0   xyzw        2     NONE   float   xyzw
-// TEXCOORD                 1   xyzw        3     NONE   float   xyzw
-// TEXCOORD                 2   xy          4     NONE   float   xy  
+// TEXCOORD                 1   xy          3     NONE   float   xy  
 //
 //
 // Constant buffer to DX9 shader constant mappings:
@@ -49,7 +47,6 @@
 // Target Reg Buffer  Start Reg # of Regs        Data Conversion
 // ---------- ------- --------- --------- ----------------------
 // c1         cb0             0         7  ( FLT, FLT, FLT, FLT)
-// c8         cb0             8         3  ( FLT, FLT, FLT, FLT)
 //
 //
 // Runtime generated constant mappings:
@@ -62,87 +59,70 @@
 // Level9 shader bytecode:
 //
     vs_2_x
-    def c11, 0, 0, 0, 0
+    def c8, 0, 0, 0, 0
     dcl_texcoord v0  // vin<0,1,2,3>
     dcl_texcoord1 v1  // vin<4,5,6,7>
     dcl_texcoord2 v2  // vin<8,9>
 
-#line 33 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshVS.hlsl"
+#line 13 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshVS.hlsl"
     mul r0, v1.x, c5
     mul r1, v1.y, c6
     add r0, r0, r1
     mul r1, v1.z, c7
     add r0, r0, r1
-    add r0, r0, c11.x
+    add r0, r0, c8.x
     dp4 r1.x, r0, r0
     rsq r1.x, r1.x
     mul r0, r0, r1.x  // ::nNorm<0,1,2,3>
-    mov r1, -c9
-    dp4 r2.x, r1, r1
-    rsq r2.x, r2.x
-    mul r1, r1, r2.x  // ::nLight<0,1,2,3>
 
-#line 37
-    mul r2, v0.x, c1
-    mul r3, v0.y, c2
-    add r2, r2, r3
-    mul r3, v0.z, c3
-    add r2, r2, r3
-    mul r3, v0.w, c4
-    add r2, r2, r3  // ::vout<0,1,2,3>
+#line 17
+    mul r1, v0.x, c1
+    mul r2, v0.y, c2
+    add r1, r1, r2
+    mul r2, v0.z, c3
+    add r1, r1, r2
+    mul r2, v0.w, c4
+    add r1, r1, r2  // ::vout<0,1,2,3>
 
-#line 40
-    dp4 r1.x, r1, r0
-    max r1.x, r1.x, c11.x
-    mul r1.xyz, r1.x, c10  // ::vout<4,5,6>
-    mov r1.w, c10.w  // ::vout<7>
-    dp4 r3.x, r2, r2
-    rsq r3.x, r3.x
-    mul r3, r2, r3.x
-    mov r3, -r3
-    add r3, r3, c8  // ::vout<8,9,10,11>
-    mov r0, r0  // ::vout<12,13,14,15>
-    mov r4.xy, v2  // ::vout<16,17>
-    mov oT0.xyz, r1  // ::main<4,5,6>
-    mov oT0.w, r1.w  // ::main<7>
-    mov oT1, r3  // ::main<8,9,10,11>
-    mov oT2, r0  // ::main<12,13,14,15>
-    mov r2.xy, r2  // ::main<0,1>
-    mov r2.zw, r2  // ::main<2,3>
-    mov oT3.xy, r4  // ::main<16,17>
+#line 24
+    mov r0, r0  // ::vout<8,9,10,11>
+    mov r2.xy, v2  // ::vout<12,13>
+    mov oT1, r0  // ::main<8,9,10,11>
+    mov r1.xy, r1  // ::main<0,1>
+    mov r1.zw, r1  // ::main<2,3>
+    mov oT2.xy, r2  // ::main<12,13>
 
-#line 30
-    mul r0.xy, r2.w, c0
-    add oPos.xy, r0, r2  // ::main<0,1>
-    mov oPos.zw, r2  // ::main<2,3>
+#line 10
+    mul r0.xy, r1.w, c0
+    add oPos.xy, r0, r1  // ::main<0,1>
+    mov oPos.zw, r1  // ::main<2,3>
+    mov oT0, c8.x  // ::main<4,5,6,7>
 
-// approximately 41 instruction slots used
+// approximately 26 instruction slots used
 vs_4_0
-dcl_constantbuffer CB0[11], immediateIndexed
+dcl_constantbuffer CB0[8], immediateIndexed
 dcl_input v0.xyzw
 dcl_input v1.xyz
 dcl_input v2.xy
 dcl_output_siv o0.xyzw, position
 dcl_output o1.xyzw
 dcl_output o2.xyzw
-dcl_output o3.xyzw
-dcl_output o4.xy
-dcl_temps 5
+dcl_output o3.xy
+dcl_temps 4
 //
 // Initial variable locations:
 //   v0.x <- vin.pos.x; v0.y <- vin.pos.y; v0.z <- vin.pos.z; v0.w <- vin.pos.w; 
 //   v1.x <- vin.normal.x; v1.y <- vin.normal.y; v1.z <- vin.normal.z; v1.w <- vin.normal.w; 
 //   v2.x <- vin.texCoord.x; v2.y <- vin.texCoord.y; 
-//   o4.x <- <main return value>.texCoord.x; o4.y <- <main return value>.texCoord.y; 
-//   o3.x <- <main return value>.normal.x; o3.y <- <main return value>.normal.y; o3.z <- <main return value>.normal.z; o3.w <- <main return value>.normal.w; 
-//   o2.x <- <main return value>.eyeVector.x; o2.y <- <main return value>.eyeVector.y; o2.z <- <main return value>.eyeVector.z; o2.w <- <main return value>.eyeVector.w; 
+//   o3.x <- <main return value>.texCoord.x; o3.y <- <main return value>.texCoord.y; 
+//   o2.x <- <main return value>.normal.x; o2.y <- <main return value>.normal.y; o2.z <- <main return value>.normal.z; o2.w <- <main return value>.normal.w; 
 //   o1.x <- <main return value>.color.x; o1.y <- <main return value>.color.y; o1.z <- <main return value>.color.z; o1.w <- <main return value>.color.w; 
 //   o0.x <- <main return value>.pos.x; o0.y <- <main return value>.pos.y; o0.z <- <main return value>.pos.z; o0.w <- <main return value>.pos.w
 //
-#line 32 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshVS.hlsl"
+#line 12 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshVS.hlsl"
 itof r0.x, l(0)  // r0.x <- vin.normal.w
 
-#line 33
+#line 13
 mul r1.xyzw, v1.xxxx, cb0[4].xyzw
 mul r2.xyzw, v1.yyyy, cb0[5].xyzw
 add r1.xyzw, r1.xyzw, r2.xyzw
@@ -154,13 +134,10 @@ dp4 r1.x, r0.xyzw, r0.xyzw
 rsq r1.x, r1.x
 mul r0.xyzw, r0.xyzw, r1.xxxx  // r0.x <- nNorm.x; r0.y <- nNorm.y; r0.z <- nNorm.z; r0.w <- nNorm.w
 
-#line 34
-mov r1.xyzw, -cb0[9].xyzw
-dp4 r2.x, r1.xyzw, r1.xyzw
-rsq r2.x, r2.x
-mul r1.xyzw, r1.xyzw, r2.xxxx  // r1.x <- nLight.x; r1.y <- nLight.y; r1.z <- nLight.z; r1.w <- nLight.w
+#line 16
+itof r1.xyzw, l(0, 0, 0, 0)  // r1.x <- vout.color.x; r1.y <- vout.color.y; r1.z <- vout.color.z; r1.w <- vout.color.w
 
-#line 37
+#line 17
 mul r2.xyzw, v0.xxxx, cb0[0].xyzw
 mul r3.xyzw, v0.yyyy, cb0[1].xyzw
 add r2.xyzw, r2.xyzw, r3.xyzw
@@ -169,33 +146,16 @@ add r2.xyzw, r2.xyzw, r3.xyzw
 mul r3.xyzw, v0.wwww, cb0[3].xyzw
 add r2.xyzw, r2.xyzw, r3.xyzw  // r2.x <- vout.pos.x; r2.y <- vout.pos.y; r2.z <- vout.pos.z; r2.w <- vout.pos.w
 
-#line 40
-dp4 r1.x, r1.xyzw, r0.xyzw
-max r1.x, r1.x, l(0.000000)
-mul r1.xyz, r1.xxxx, cb0[10].xyzx  // r1.x <- vout.color.x; r1.y <- vout.color.y; r1.z <- vout.color.z
-
-#line 41
-mov r1.w, cb0[10].w  // r1.w <- vout.color.w
-
-#line 43
-dp4 r3.x, r2.xyzw, r2.xyzw
-rsq r3.x, r3.x
-mul r3.xyzw, r2.xyzw, r3.xxxx
-mov r3.xyzw, -r3.xyzw
-add r3.xyzw, r3.xyzw, cb0[8].xyzw  // r3.x <- vout.eyeVector.x; r3.y <- vout.eyeVector.y; r3.z <- vout.eyeVector.z; r3.w <- vout.eyeVector.w
-
-#line 45
+#line 24
 mov r0.xyzw, r0.xyzw  // r0.x <- vout.normal.x; r0.y <- vout.normal.y; r0.z <- vout.normal.z; r0.w <- vout.normal.w
 
-#line 47
-mov r4.xy, v2.xyxx  // r4.x <- vout.texCoord.x; r4.y <- vout.texCoord.y
+#line 26
+mov r3.xy, v2.xyxx  // r3.x <- vout.texCoord.x; r3.y <- vout.texCoord.y
 
-#line 49
+#line 28
 mov o0.xyzw, r2.xyzw
-mov o1.xyz, r1.xyzx
-mov o1.w, r1.w
-mov o2.xyzw, r3.xyzw
-mov o3.xyzw, r0.xyzw
-mov o4.xy, r4.xyxx
+mov o1.xyzw, r1.xyzw
+mov o2.xyzw, r0.xyzw
+mov o3.xy, r3.xyxx
 ret 
-// Approximately 40 instruction slots used
+// Approximately 26 instruction slots used

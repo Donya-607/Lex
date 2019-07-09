@@ -21,6 +21,8 @@ using namespace DirectX;
 
 namespace Do = Donya;
 
+constexpr char *ImGuiWindowName = "File Information";
+
 Framework::Framework( HWND hwnd ) :
 	hWnd( hwnd ),
 	pCamera( nullptr ), meshes(),
@@ -383,8 +385,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 #if USE_IMGUI
 
-	const char *LoadFileWindowName = "File Information";
-	if ( ImGui::BeginIfAllowed( LoadFileWindowName ) )
+	if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
 	{
 		if ( ImGui::Button( "Open FBX File" ) )
 		{
@@ -407,7 +408,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 				}
 				// else
 
-				it->loader.EnumPreservingDataToImGui( LoadFileWindowName );
+				it->loader.EnumPreservingDataToImGui( ImGuiWindowName );
 				ImGui::TreePop();
 			}
 
@@ -458,16 +459,16 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	{
 		XMMATRIX matWorld{};
 		{
-			static float scale	= 2.0f;
-			static float angleX	=-0.2f;
-			static float angleY	= 0.5f;
+			static float scale	= 0.1f;
+			static float angleX	= -10.0f;
+			static float angleY	= -160.0f;
 			static float angleZ	= 0;
-			static float moveX	= 0;
-			static float moveY	= 0;
+			static float moveX	= 2.0f;
+			static float moveY	= -2.0f;
 			static float moveZ	= 0;
 
 			{
-				constexpr float SCALE_ADD = 0.0005f;
+				constexpr float SCALE_ADD = 0.0012f;
 				constexpr float ANGLE_ADD = 0.12f;
 				constexpr float MOVE_ADD  = 0.04f;
 
@@ -528,8 +529,8 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		XMFLOAT4X4 world{};
 		XMStoreFloat4x4( &world, matWorld );
 
-		XMFLOAT4 lightDirection{ 0.0f, -1.0f, 1.0f, 0.0f };
-		XMFLOAT4 materialColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+		static XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+		static XMFLOAT4 lightDirection{ 0.0f, 1.0f, 1.0f, 0.0f };
 		XMFLOAT4 cameraPos{};
 		{
 			XMFLOAT3 ref = pCamera->GetPosition();
@@ -539,11 +540,19 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 			cameraPos.w = 1.0f;
 		}
 
+		if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
+		{
+			ImGui::ColorEdit4( "Light Color", &lightColor.x );
+			ImGui::SliderFloat3( "Light Direction", &lightDirection.x, -2.0f, 2.0f );
+
+			ImGui::End();
+		}
+
 		for ( auto &it : meshes )
 		{
 			if ( it.pMesh )
 			{
-				it.pMesh->Render( worldViewProjection, world, cameraPos, lightDirection, materialColor, isFillDraw );
+				it.pMesh->Render( worldViewProjection, world, cameraPos, lightColor, lightDirection, isFillDraw );
 			}
 		}
 

@@ -40,7 +40,7 @@ namespace Donya
 			}
 		}
 
-		std::vector<Material> materials{};
+		std::vector<SkinnedMesh::Material> materials{};
 
 		auto *loadedMtls = loader->GetMaterials();
 		size_t mtlCount  = loadedMtls->size();
@@ -62,6 +62,16 @@ namespace Donya
 			{
 				materials[i].shininess	= 1.0f;
 				materials[i].specular	= { 1.0f, 1.0f, 1.0f };
+			}
+
+			auto &texNames = ( *loadedMtls )[i].textureNames;
+			auto &texContainer = materials[i].textures;
+
+			size_t texCount = texNames.size();
+			texContainer.resize( texCount );
+			for ( size_t j = 0; j < texCount; ++j )
+			{
+				texContainer[j].fileName = ( ( *loadedMtls )[i].textureNames[j] );
 			}
 		}
 
@@ -210,8 +220,7 @@ namespace Donya
 		}
 		// Read Texture
 		{
-			materials.push_back( Material{} );
-			auto &mtl = materials.back();
+			materials = loadedMaterials;
 
 			D3D11_SAMPLER_DESC samplerDesc{};
 			samplerDesc.Filter			= D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -222,21 +231,20 @@ namespace Donya
 			samplerDesc.MinLOD			= 0;
 			samplerDesc.MaxLOD			= D3D11_FLOAT32_MAX;
 
-			size_t mtlCount = loadedMaterials.size();
+			size_t mtlCount = materials.size();
 			for ( size_t i = 0; i < mtlCount; ++i )
 			{
-				auto &textures = loadedMaterials[i].textures;
+				auto &mtl = materials[i];
 
-				size_t textureCount = textures.size();
+				size_t textureCount = mtl.textures.size();
 				for ( size_t j = 0; j < textureCount; ++j )
 				{
-					mtl.textures.push_back( {} );
-					auto &mtlTex = mtl.textures.back();
+					auto &mtlTex = mtl.textures[j];
 
 					Resource::CreateTexture2DFromFile
 					(
 						pDevice,
-						Donya::MultiToWide( textures[j].fileName ),
+						Donya::MultiToWide( mtlTex.fileName ),
 						mtlTex.iSRV.GetAddressOf(),
 						mtlTex.iSampler.GetAddressOf(),
 						&mtlTex.texture2DDesc,
@@ -253,7 +261,7 @@ namespace Donya
 		materials.shrink_to_fit();
 	}
 
-	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &lightDirection, const DirectX::XMFLOAT4 &materialColor, bool isEnableFill )
+	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
 	{
 		HRESULT hr = S_OK;
 		ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
@@ -263,10 +271,19 @@ namespace Donya
 			ConstantBuffer cb;
 			cb.worldViewProjection	= worldViewProjection;
 			cb.world				= world;
-			cb.eyePosition			= eyePosition;
-			cb.lightDirection		= lightDirection;
-			cb.materialColor		= materialColor;
+			cb.lightColor			= lightColor;
+			cb.lightDir				= lightDirection;
+			// cb.eyePosition			= eyePosition;
 			pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
+		}
+
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState>	prevRasterizerState;
+		Microsoft::WRL::ComPtr<ID3D11SamplerState>		prevSamplerState;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	prevDepthStencilState;
+		{
+			pImmediateContext->RSGetState( prevRasterizerState.ReleaseAndGetAddressOf() );
+			pImmediateContext->PSGetSamplers( 0, 1, prevSamplerState.ReleaseAndGetAddressOf() );
+			pImmediateContext->OMGetDepthStencilState( prevDepthStencilState.ReleaseAndGetAddressOf(), 0 );
 		}
 
 		// Settings
@@ -302,6 +319,7 @@ namespace Donya
 			pImmediateContext->RSSetState( ppRasterizerState );
 
 			pImmediateContext->PSSetShader( iPixelShader.Get(), nullptr, 0 );
+			pImmediateContext->PSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
 
 			pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xffffffff );
 		}
@@ -321,7 +339,7 @@ namespace Donya
 					rv.x = color.x;
 					rv.y = color.y;
 					rv.z = color.z;
-					rv.w = 1.0f; // mtl.transparency;
+					rv.w = 1.0f - mtl.transparency;
 
 					return rv;
 				};
@@ -341,13 +359,43 @@ namespace Donya
 
 			auto &mtlTex = materials[i].textures;
 			size_t texCount = mtlTex.size();
-			for ( size_t j = 0; j < texCount; ++j )
+			if ( !texCount )
 			{
-				pImmediateContext->PSSetSamplers( 0, 1, mtlTex[j].iSampler.GetAddressOf() );
-				pImmediateContext->PSSetShaderResources( 0, 1, mtlTex[j].iSRV.GetAddressOf() );
+				ID3D11ShaderResourceView *pNullSRV = nullptr;
+				pImmediateContext->PSSetShaderResources( 0, 1, &pNullSRV );
+				pImmediateContext->PSSetSamplers( 0, 1, Donya::Resource::RequireInvalidSamplerState() );
 
 				pImmediateContext->DrawIndexed( vertexCount, 0, 0 );
 			}
+			else
+			{
+				for ( size_t j = 0; j < texCount; ++j )
+				{
+					pImmediateContext->PSSetSamplers( 0, 1, mtlTex[j].iSampler.GetAddressOf() );
+					pImmediateContext->PSSetShaderResources( 0, 1, mtlTex[j].iSRV.GetAddressOf() );
+
+					pImmediateContext->DrawIndexed( vertexCount, 0, 0 );
+				}
+			}
+		}
+
+		// PostProcessing
+		{
+			ID3D11ShaderResourceView *pNullSRV = nullptr;
+
+			pImmediateContext->IASetInputLayout( 0 );
+
+			pImmediateContext->VSSetShader( 0, 0, 0 );
+
+			pImmediateContext->RSSetState( prevRasterizerState.Get() );
+
+			pImmediateContext->PSSetShader( 0, 0, 0 );
+			pImmediateContext->PSSetShaderResources( 0, 1, &pNullSRV );
+			pImmediateContext->PSSetSamplers( 0, 1, prevSamplerState.GetAddressOf() );
+
+			pImmediateContext->OMSetDepthStencilState( prevDepthStencilState.Get(), 1 );
 		}
 	}
+
+
 }

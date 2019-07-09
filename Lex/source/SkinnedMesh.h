@@ -31,9 +31,9 @@ namespace Donya
 		{
 			DirectX::XMFLOAT4X4	worldViewProjection;
 			DirectX::XMFLOAT4X4	world;
-			DirectX::XMFLOAT4	eyePosition;
-			DirectX::XMFLOAT4	lightDirection;
-			DirectX::XMFLOAT4	materialColor;
+			// DirectX::XMFLOAT4	eyePosition;
+			DirectX::XMFLOAT4	lightColor;
+			DirectX::XMFLOAT4	lightDir;
 		};
 		struct MaterialConstantBuffer
 		{
@@ -45,7 +45,7 @@ namespace Donya
 			float				shininess;
 			DirectX::XMFLOAT3	padding;
 		public:
-			MaterialConstantBuffer() : ambient(), bump(), diffuse(), emissive(), specular(), shininess()
+			MaterialConstantBuffer() : ambient(), bump(), diffuse(), emissive(), specular(), shininess(), padding()
 			{}
 		};
 		struct Material
@@ -98,8 +98,8 @@ namespace Donya
 			const DirectX::XMFLOAT4X4	&worldViewProjection,
 			const DirectX::XMFLOAT4X4	&world,
 			const DirectX::XMFLOAT4		&eyePosition,
+			const DirectX::XMFLOAT4		&lightColor,
 			const DirectX::XMFLOAT4		&lightDirection,
-			const DirectX::XMFLOAT4		&materialColor,
 			bool isEnableFill = true
 		);
 	};
