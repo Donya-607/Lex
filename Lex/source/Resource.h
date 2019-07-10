@@ -88,6 +88,22 @@ namespace Donya
 			const D3D11_SAMPLER_DESC *pd3dSamplerDesc,
 			bool isEnableCache = true
 		);
+		/// <summary>
+		/// The color range are 0.0f ~ 1.0f.
+		/// </summary>
+		void CreateUnicolorTexture
+		(
+			ID3D11Device *pDevice,
+			ID3D11ShaderResourceView **pOutputShaderResourceView,
+			Microsoft::WRL::ComPtr<ID3D11SamplerState> *pOutputSamplerState,
+			D3D11_TEXTURE2D_DESC *pOutputTexture2DDesc,
+			unsigned int dimensions = 1,
+			float R = 1.0f,
+			float G = 1.0f,
+			float B = 1.0f,
+			float A = 1.0f,
+			bool isEnableCache = true
+		);
 
 		void ReleaseAllTexture2DCaches();
 
@@ -165,7 +181,7 @@ namespace Donya
 		/// <summary>
 		/// Returns invalid ID3D11SamplerState.GetAddressOf.
 		/// </summary>
-		ID3D11SamplerState **RequireInvalidSamplerState();
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> &RequireInvalidSamplerStateComPtr();
 
 	#pragma endregion
 

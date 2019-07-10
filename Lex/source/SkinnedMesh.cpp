@@ -237,6 +237,21 @@ namespace Donya
 				auto &mtl = materials[i];
 
 				size_t textureCount = mtl.textures.size();
+				if ( !textureCount )
+				{
+					SkinnedMesh::Material::Texture dummy{};
+					Resource::CreateUnicolorTexture
+					(
+						pDevice,
+						dummy.iSRV.GetAddressOf(),
+						&dummy.iSampler,
+						&dummy.texture2DDesc
+					);
+
+					mtl.textures.push_back( dummy );
+					continue;
+				}
+				// else
 				for ( size_t j = 0; j < textureCount; ++j )
 				{
 					auto &mtlTex = mtl.textures[j];
@@ -359,23 +374,12 @@ namespace Donya
 
 			auto &mtlTex = materials[i].textures;
 			size_t texCount = mtlTex.size();
-			if ( !texCount )
+			for ( size_t j = 0; j < texCount; ++j )
 			{
-				ID3D11ShaderResourceView *pNullSRV = nullptr;
-				pImmediateContext->PSSetShaderResources( 0, 1, &pNullSRV );
-				pImmediateContext->PSSetSamplers( 0, 1, Donya::Resource::RequireInvalidSamplerState() );
+				pImmediateContext->PSSetSamplers( 0, 1, mtlTex[j].iSampler.GetAddressOf() );
+				pImmediateContext->PSSetShaderResources( 0, 1, mtlTex[j].iSRV.GetAddressOf() );
 
 				pImmediateContext->DrawIndexed( vertexCount, 0, 0 );
-			}
-			else
-			{
-				for ( size_t j = 0; j < texCount; ++j )
-				{
-					pImmediateContext->PSSetSamplers( 0, 1, mtlTex[j].iSampler.GetAddressOf() );
-					pImmediateContext->PSSetShaderResources( 0, 1, mtlTex[j].iSRV.GetAddressOf() );
-
-					pImmediateContext->DrawIndexed( vertexCount, 0, 0 );
-				}
 			}
 		}
 

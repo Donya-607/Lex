@@ -530,7 +530,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		XMStoreFloat4x4( &world, matWorld );
 
 		static XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-		static XMFLOAT4 lightDirection{ 0.0f, 1.0f, 1.0f, 0.0f };
+		static XMFLOAT4 lightDirection{ 0.0f, -1.0f, 1.0f, 0.0f };
 		XMFLOAT4 cameraPos{};
 		{
 			XMFLOAT3 ref = pCamera->GetPosition();

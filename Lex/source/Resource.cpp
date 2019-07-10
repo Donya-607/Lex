@@ -329,6 +329,97 @@ namespace Donya
 			);
 		}
 
+		void CreateUnicolorTexture( ID3D11Device *pDevice, ID3D11ShaderResourceView **pOutSRV, Microsoft::WRL::ComPtr<ID3D11SamplerState> *pOutSampler, D3D11_TEXTURE2D_DESC *pOutTexDesc, unsigned int dimensions, float R, float G, float B, float A, bool isEnableCache )
+		{
+			unsigned int RGBA{};
+			{
+				auto Clamp = []( float &color )
+				{
+					if ( color < 0.0f ) { color = 0.0f; }
+					if ( 1.0f < color ) { color = 1.0f; }
+				};
+				Clamp( R );
+				Clamp( B );
+				Clamp( G );
+				Clamp( A );
+
+				int r = scast<unsigned int>( R * 255.0f );
+				int g = scast<unsigned int>( G * 255.0f );
+				int b = scast<unsigned int>( B * 255.0f );
+				int a = scast<unsigned int>( A * 255.0f );
+
+				RGBA = ( r << 24 ) | ( g << 16 ) | ( b << 8 ) | ( a << 0 );
+			}
+
+			std::wstring dummyFileName = L"UnicolorTexture:[RGBA" + std::to_wstring( RGBA ) + L"]";
+			auto &it = spriteCache.find( dummyFileName );
+			if ( it != spriteCache.end() )
+			{
+				*pOutSRV = it->second.d3dShaderResourceView.Get();
+				( *pOutSRV )->AddRef();
+
+				return;
+			}
+			// else
+
+			HRESULT hr = S_OK;
+
+			*pOutTexDesc = {};
+			pOutTexDesc->Width				= dimensions;
+			pOutTexDesc->Height				= dimensions;
+			pOutTexDesc->MipLevels			= 1;
+			pOutTexDesc->ArraySize			= 1;
+			pOutTexDesc->Format				= DXGI_FORMAT_R8G8B8A8_UNORM;
+			pOutTexDesc->SampleDesc.Count	= 1;
+			pOutTexDesc->SampleDesc.Quality	= 0;
+			pOutTexDesc->Usage				= D3D11_USAGE_DEFAULT;
+			pOutTexDesc->BindFlags			= D3D11_BIND_SHADER_RESOURCE;
+			pOutTexDesc->CPUAccessFlags		= 0;
+			pOutTexDesc->MiscFlags			= 0;
+
+			std::unique_ptr<unsigned int[]> pSysMem = std::make_unique<unsigned int[]>( dimensions * dimensions );
+			for ( unsigned int i = 0; i < dimensions * dimensions; i++ )
+			{
+				pSysMem[i] = RGBA;
+			}
+			D3D11_SUBRESOURCE_DATA subresource{};
+			subresource.pSysMem				= pSysMem.get();
+			subresource.SysMemPitch			= sizeof( unsigned int ) * dimensions;
+			subresource.SysMemSlicePitch	= 0;
+
+			Microsoft::WRL::ComPtr<ID3D11Texture2D> iTexture2D{};
+			hr = pDevice->CreateTexture2D( pOutTexDesc, &subresource, iTexture2D.GetAddressOf() );
+			_ASSERT_EXPR( SUCCEEDED( hr ), _TEXT( "Failed : CreateUnocolorTexture" ) );
+
+
+			D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc{};
+			SRVDesc.Format					= pOutTexDesc->Format;
+			SRVDesc.ViewDimension			= D3D11_SRV_DIMENSION_TEXTURE2D;
+			SRVDesc.Texture2D.MipLevels		= 1;
+
+			hr = pDevice->CreateShaderResourceView( iTexture2D.Get(), &SRVDesc, pOutSRV );
+			_ASSERT_EXPR( SUCCEEDED( hr ), _TEXT( "Failed : CreateUnocolorTexture" ) );
+
+			*pOutSampler = RequireInvalidSamplerStateComPtr();
+
+			if ( isEnableCache )
+			{
+				spriteCache.insert
+				(
+					std::make_pair
+					(
+						dummyFileName,
+						SpriteCacheContents
+						{
+							*pOutSRV,
+							pOutSampler->Get(),
+							pOutTexDesc
+						}
+					)
+				);
+			}
+		}
+
 		void ReleaseAllTexture2DCaches()
 		{
 			spriteCache.clear();
@@ -908,7 +999,7 @@ namespace Donya
 
 	#pragma region ID3DObject
 
-		ID3D11SamplerState **RequireInvalidSamplerState()
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> &RequireInvalidSamplerStateComPtr()
 		{
 			static Microsoft::WRL::ComPtr<ID3D11SamplerState> pInvalidSampler;
 			if ( !pInvalidSampler )
@@ -920,7 +1011,7 @@ namespace Donya
 				_ASSERT_EXPR( SUCCEEDED( hr ), _TEXT( "Failed : CreateSamplerState()" ) );
 			}
 
-			return pInvalidSampler.GetAddressOf();
+			return pInvalidSampler;
 		}
 
 	#pragma endregion
