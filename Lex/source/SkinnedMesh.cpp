@@ -40,39 +40,40 @@ namespace Donya
 			}
 		}
 
-		std::vector<SkinnedMesh::Material> materials{};
+		auto *loadedSubsets = loader->GetSubsets();
+		size_t subsetCount  = loadedSubsets->size();
 
-		auto *loadedMtls = loader->GetMaterials();
-		size_t mtlCount  = loadedMtls->size();
-
-		materials.resize( mtlCount );
-		for ( size_t i = 0; i < mtlCount; ++i )
+		std::vector<SkinnedMesh::Subset> subsets{};
+		subsets.resize( subsetCount );
+		for ( size_t i = 0; i < subsetCount; ++i )
 		{
-			materials[i].ambient		= ( *loadedMtls )[i].ambient;
-			materials[i].bump			= ( *loadedMtls )[i].bump;
-			materials[i].diffuse		= ( *loadedMtls )[i].diffuse;
-			materials[i].emissive		= ( *loadedMtls )[i].emissive;
-			materials[i].transparency	= ( *loadedMtls )[i].transparency;
-			if ( ( *loadedMtls )[i].pPhong )
-			{
-				materials[i].shininess	= ( *loadedMtls )[i].pPhong->shininess;
-				materials[i].specular	= ( *loadedMtls )[i].pPhong->specular;
-			}
-			else
-			{
-				materials[i].shininess	= 1.0f;
-				materials[i].specular	= { 1.0f, 1.0f, 1.0f };
-			}
+			auto &loadedSubset = ( *loadedSubsets )[i];
 
-			auto &texNames = ( *loadedMtls )[i].textureNames;
-			auto &texContainer = materials[i].textures;
+			subsets[i].indexStart = loadedSubset.indexStart;
+			subsets[i].indexCount = loadedSubset.indexCount;
 
-			size_t texCount = texNames.size();
-			texContainer.resize( texCount );
-			for ( size_t j = 0; j < texCount; ++j )
+			auto FetchMaterialContain =
+			[]( SkinnedMesh::Material *meshMtl, const Loader::Material &loadedMtl )
 			{
-				texContainer[j].fileName = ( ( *loadedMtls )[i].textureNames[j] );
-			}
+				meshMtl->color.x = loadedMtl.color.x;
+				meshMtl->color.y = loadedMtl.color.y;
+				meshMtl->color.z = loadedMtl.color.z;
+				meshMtl->color.w = 1.0f;
+
+				size_t texCount = loadedMtl.textureNames.size();
+				meshMtl->textures.resize( texCount );
+				for ( size_t i = 0; i < texCount; ++i )
+				{
+					meshMtl->textures[i].fileName = loadedMtl.textureNames[i];
+				}
+			};
+
+			FetchMaterialContain( &subsets[i].ambient,	loadedSubset.ambient	);
+			FetchMaterialContain( &subsets[i].bump,		loadedSubset.bump		);
+			FetchMaterialContain( &subsets[i].diffuse,	loadedSubset.diffuse	);
+			FetchMaterialContain( &subsets[i].emissive,	loadedSubset.emissive	);
+			FetchMaterialContain( &subsets[i].specular,	loadedSubset.specular	);
+			subsets[i].transparency	= loadedSubset.transparency;
 		}
 
 		*ppOutput =
@@ -80,14 +81,14 @@ namespace Donya
 		(
 			*pIndices,
 			vertices,
-			materials
+			subsets
 		);
 
 		return true;
 	}
 
-	SkinnedMesh::SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<Material> &loadedMaterials )
-		: vertexCount( vertexCount )
+	SkinnedMesh::SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<Subset> &loadedSubsets )
+		: vertexCount( vertexCount ), subsets()
 	{
 		HRESULT hr = S_OK;
 		ID3D11Device *pDevice = Donya::GetDevice();
@@ -220,7 +221,7 @@ namespace Donya
 		}
 		// Read Texture
 		{
-			materials = loadedMaterials;
+			subsets = loadedSubsets;
 
 			D3D11_SAMPLER_DESC samplerDesc{};
 			samplerDesc.Filter			= D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -231,49 +232,56 @@ namespace Donya
 			samplerDesc.MinLOD			= 0;
 			samplerDesc.MaxLOD			= D3D11_FLOAT32_MAX;
 
-			size_t mtlCount = materials.size();
-			for ( size_t i = 0; i < mtlCount; ++i )
+			size_t subsetCount = subsets.size();
+			for ( size_t i = 0; i < subsetCount; ++i )
 			{
-				auto &mtl = materials[i];
-
-				size_t textureCount = mtl.textures.size();
-				if ( !textureCount )
+				auto CreateSamplerAndTextures =
+				[&]( SkinnedMesh::Material *pMtl )
 				{
-					SkinnedMesh::Material::Texture dummy{};
-					Resource::CreateUnicolorTexture
-					(
-						pDevice,
-						dummy.iSRV.GetAddressOf(),
-						&dummy.iSampler,
-						&dummy.texture2DDesc
-					);
+					size_t textureCount = pMtl->textures.size();
+					if ( !textureCount )
+					{
+						pMtl->iSampler = Resource::RequireInvalidSamplerStateComPtr();
 
-					mtl.textures.push_back( dummy );
-					continue;
-				}
-				// else
-				for ( size_t j = 0; j < textureCount; ++j )
-				{
-					auto &mtlTex = mtl.textures[j];
+						SkinnedMesh::Material::Texture dummy{};
+						Resource::CreateUnicolorTexture
+						(
+							pDevice,
+							dummy.iSRV.GetAddressOf(),
+							&dummy.texture2DDesc
+						);
 
-					Resource::CreateTexture2DFromFile
-					(
-						pDevice,
-						Donya::MultiToWide( mtlTex.fileName ),
-						mtlTex.iSRV.GetAddressOf(),
-						mtlTex.iSampler.GetAddressOf(),
-						&mtlTex.texture2DDesc,
-						&samplerDesc,
-						/* enableCache = */ true
-					);
-				}
+						pMtl->textures.push_back( dummy );
+
+						return;
+					}
+					// else
+					for ( size_t i = 0; i < textureCount; ++i )
+					{
+						auto &tex = pMtl->textures[i];
+
+						Resource::CreateTexture2DFromFile
+						(
+							pDevice,
+							Donya::MultiToWide( tex.fileName ),
+							tex.iSRV.GetAddressOf(),
+							&tex.texture2DDesc
+						);
+					}
+				};
+
+				CreateSamplerAndTextures( &subsets[i].ambient	);
+				CreateSamplerAndTextures( &subsets[i].bump		);
+				CreateSamplerAndTextures( &subsets[i].diffuse	);
+				CreateSamplerAndTextures( &subsets[i].emissive	);
+				CreateSamplerAndTextures( &subsets[i].specular	);
 			}
 		}
 	}
 	SkinnedMesh::~SkinnedMesh()
 	{
-		materials.clear();
-		materials.shrink_to_fit();
+		subsets.clear();
+		subsets.shrink_to_fit();
 	}
 
 	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
@@ -340,46 +348,35 @@ namespace Donya
 		}
 
 
-		size_t mtlCount = materials.size();
-		for ( size_t i = 0; i < mtlCount; ++i )
+		size_t subsetCount = subsets.size();
+		for ( size_t i = 0; i < subsetCount; ++i )
 		{
-			auto &mtl = materials[i];
+			auto &subset = subsets[i];
 
 			// Update Subresource
 			{
-				auto ConvertFloat4 =
-				[&]( const XMFLOAT3 &color )
-				{
-					XMFLOAT4 rv;
-					rv.x = color.x;
-					rv.y = color.y;
-					rv.z = color.z;
-					rv.w = 1.0f - mtl.transparency;
-
-					return rv;
-				};
-
 				MaterialConstantBuffer mtlCB{};
-				mtlCB.ambient	= ConvertFloat4( mtl.ambient );
-				mtlCB.bump		= ConvertFloat4( mtl.bump );
-				mtlCB.diffuse	= ConvertFloat4( mtl.diffuse );
-				mtlCB.emissive	= ConvertFloat4( mtl.emissive );
-				mtlCB.specular	= ConvertFloat4( mtl.specular );
-				mtlCB.shininess	= mtl.shininess;
+				mtlCB.ambient	= subset.ambient.color;
+				mtlCB.bump		= subset.bump.color;
+				mtlCB.diffuse	= subset.diffuse.color;
+				mtlCB.emissive	= subset.emissive.color;
+				mtlCB.specular	= subset.specular.color;
 
 				pImmediateContext->UpdateSubresource( iMaterialConstantBuffer.Get(), 0, nullptr, &mtlCB, 0, 0 );
 			}
 			pImmediateContext->VSSetConstantBuffers( 1, 1, iMaterialConstantBuffer.GetAddressOf() );
 			pImmediateContext->PSSetConstantBuffers( 1, 1, iMaterialConstantBuffer.GetAddressOf() );
 
-			auto &mtlTex = materials[i].textures;
-			size_t texCount = mtlTex.size();
+			// TODO:diffuseˆÈŠO‚Ì‚à‚Ì‚à“K—p‚·‚é
+
+			pImmediateContext->PSSetSamplers( 0, 1, subset.diffuse.iSampler.GetAddressOf() );
+
+			size_t texCount = subset.diffuse.textures.size();
 			for ( size_t j = 0; j < texCount; ++j )
 			{
-				pImmediateContext->PSSetSamplers( 0, 1, mtlTex[j].iSampler.GetAddressOf() );
-				pImmediateContext->PSSetShaderResources( 0, 1, mtlTex[j].iSRV.GetAddressOf() );
+				pImmediateContext->PSSetShaderResources( 0, 1, subset.diffuse.textures[j].iSRV.GetAddressOf() );
 
-				pImmediateContext->DrawIndexed( vertexCount, 0, 0 );
+				pImmediateContext->DrawIndexed( subset.indexStart, subset.indexCount, 0 );
 			}
 		}
 

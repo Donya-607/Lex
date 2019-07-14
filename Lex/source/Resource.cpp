@@ -3,7 +3,7 @@
 #include <D3D11.h>
 #include <DirectXMath.h>
 #include <fstream>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <sstream>
 #include <tchar.h>
@@ -53,7 +53,7 @@ namespace Donya
 			}
 		};
 
-		static std::map<const char *, VertexShaderCacheContents> vertexShaderCache{};
+		static std::unordered_map<const char *, VertexShaderCacheContents> vertexShaderCache{};
 		static std::string vertexShaderDirectory{};
 
 		void RegisterDirectoryOfVertexShader( const char *fileDirectory )
@@ -67,7 +67,7 @@ namespace Donya
 
 			std::string combinedCsoname = vertexShaderDirectory + csoname;
 
-			std::map<const char *, VertexShaderCacheContents>::iterator it = vertexShaderCache.find( combinedCsoname.c_str() );
+			auto it = vertexShaderCache.find( combinedCsoname.c_str() );
 			if ( it != vertexShaderCache.end() )
 			{
 				*d3dVertexShader = it->second.d3dVertexShader.Get();
@@ -144,7 +144,7 @@ namespace Donya
 
 	#pragma region PixelShaderCache
 
-		static std::map<const char *, Microsoft::WRL::ComPtr<ID3D11PixelShader>> pixelShaderCache{};
+		static std::unordered_map<const char *, Microsoft::WRL::ComPtr<ID3D11PixelShader>> pixelShaderCache{};
 		static std::string pixelShaderDirectory{};
 
 		void RegisterDirectoryOfPixelShader( const char *fileDirectory )
@@ -158,7 +158,7 @@ namespace Donya
 
 			std::string combinedCsoname = pixelShaderDirectory + csoname;
 
-			std::map<const char *, Microsoft::WRL::ComPtr<ID3D11PixelShader>>::iterator it = pixelShaderCache.find( combinedCsoname.c_str() );
+			auto it = pixelShaderCache.find( combinedCsoname.c_str() );
 			if ( it != pixelShaderCache.end() )
 			{
 				*d3dPixelShader = it->second.Get();
@@ -214,23 +214,20 @@ namespace Donya
 		struct SpriteCacheContents
 		{
 			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	d3dShaderResourceView;
-			Microsoft::WRL::ComPtr<ID3D11SamplerState>			d3dSamplerState;
 			D3D11_TEXTURE2D_DESC								d3dTexture2DDesc;
 		public:
 			SpriteCacheContents
 			(
 				ID3D11ShaderResourceView *pShaderResourceView,
-				ID3D11SamplerState *pSamplerState,
 				D3D11_TEXTURE2D_DESC *pTexture2DDesc
 			) :
 				d3dShaderResourceView( pShaderResourceView ),
-				d3dSamplerState( pSamplerState ),
 				d3dTexture2DDesc( *pTexture2DDesc )
 			{
 			}
 		};
 
-		static std::map<std::wstring, SpriteCacheContents> spriteCache{};
+		static std::unordered_map<std::wstring, SpriteCacheContents> spriteCache{};
 		static std::wstring spriteDirectory{};
 
 		void RegisterDirectoryOfTexture( const wchar_t *fileDirectory )
@@ -238,20 +235,17 @@ namespace Donya
 			spriteDirectory = fileDirectory;
 		}
 
-		void CreateTexture2DFromFile( ID3D11Device *d3dDevice, const std::wstring &filename, ID3D11ShaderResourceView **d3dShaderResourceView, ID3D11SamplerState **d3dSamplerState, D3D11_TEXTURE2D_DESC *d3dTexture2DDesc, const D3D11_SAMPLER_DESC *d3dSamplerDesc, bool isEnableCache )
+		void CreateTexture2DFromFile( ID3D11Device *d3dDevice, const std::wstring &filename, ID3D11ShaderResourceView **d3dShaderResourceView, D3D11_TEXTURE2D_DESC *d3dTexture2DDesc, bool isEnableCache )
 		{
 			HRESULT hr = S_OK;
 
 			std::wstring combinedFilename = spriteDirectory + filename;
 
-			std::map<std::wstring, SpriteCacheContents>::iterator it = spriteCache.find( combinedFilename );
+			auto it = spriteCache.find( combinedFilename );
 			if ( it != spriteCache.end() )
 			{
 				*d3dShaderResourceView = it->second.d3dShaderResourceView.Get();
 				( *d3dShaderResourceView )->AddRef();
-
-				*d3dSamplerState = it->second.d3dSamplerState.Get();
-				( *d3dSamplerState )->AddRef();
 
 				*d3dTexture2DDesc = it->second.d3dTexture2DDesc;
 
@@ -307,10 +301,6 @@ namespace Donya
 			}
 			*/
 
-			hr = d3dDevice->CreateSamplerState( d3dSamplerDesc, d3dSamplerState );
-			_ASSERT_EXPR( SUCCEEDED( hr ), _TEXT( "Failed : CreateSamplerState()" ) );
-
-
 			if ( !isEnableCache ) { return; }
 			// else
 
@@ -322,14 +312,13 @@ namespace Donya
 					SpriteCacheContents
 					{
 						*d3dShaderResourceView,
-						*d3dSamplerState,
 						d3dTexture2DDesc
 					}
 				)
 			);
 		}
 
-		void CreateUnicolorTexture( ID3D11Device *pDevice, ID3D11ShaderResourceView **pOutSRV, Microsoft::WRL::ComPtr<ID3D11SamplerState> *pOutSampler, D3D11_TEXTURE2D_DESC *pOutTexDesc, unsigned int dimensions, float R, float G, float B, float A, bool isEnableCache )
+		void CreateUnicolorTexture( ID3D11Device *pDevice, ID3D11ShaderResourceView **pOutSRV, D3D11_TEXTURE2D_DESC *pOutTexDesc, unsigned int dimensions, float R, float G, float B, float A, bool isEnableCache )
 		{
 			unsigned int RGBA{};
 			{
@@ -351,7 +340,7 @@ namespace Donya
 				RGBA = ( r << 24 ) | ( g << 16 ) | ( b << 8 ) | ( a << 0 );
 			}
 
-			std::wstring dummyFileName = L"UnicolorTexture:[RGBA" + std::to_wstring( RGBA ) + L"]";
+			std::wstring dummyFileName = L"UnicolorTexture:[RGBA:" + std::to_wstring( RGBA ) + L"]";
 			auto &it = spriteCache.find( dummyFileName );
 			if ( it != spriteCache.end() )
 			{
@@ -400,8 +389,6 @@ namespace Donya
 			hr = pDevice->CreateShaderResourceView( iTexture2D.Get(), &SRVDesc, pOutSRV );
 			_ASSERT_EXPR( SUCCEEDED( hr ), _TEXT( "Failed : CreateUnocolorTexture" ) );
 
-			*pOutSampler = RequireInvalidSamplerStateComPtr();
-
 			if ( isEnableCache )
 			{
 				spriteCache.insert
@@ -412,7 +399,6 @@ namespace Donya
 						SpriteCacheContents
 						{
 							*pOutSRV,
-							pOutSampler->Get(),
 							pOutTexDesc
 						}
 					)
@@ -423,6 +409,56 @@ namespace Donya
 		void ReleaseAllTexture2DCaches()
 		{
 			spriteCache.clear();
+		}
+
+	#pragma endregion
+
+	#pragma region Sampler
+
+		static std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D11SamplerState>> samplerCache{};
+
+		size_t RequireSamplerDescHash( const D3D11_SAMPLER_DESC &key )
+		{
+			std::string bytes( reinterpret_cast<const char *>( &key ) );
+			return std::hash<std::string>()( bytes );
+		}
+
+		void CreateSamplerState( ID3D11Device *pDevice, Microsoft::WRL::ComPtr<ID3D11SamplerState> *pOutSampler, const D3D11_SAMPLER_DESC &samplerDesc, bool isEnableCache )
+		{
+			size_t hash = RequireSamplerDescHash( samplerDesc );
+
+			auto it = samplerCache.find( hash );
+			if ( it != samplerCache.end() )
+			{
+				*pOutSampler = it->second;
+				return;
+			}
+			// else
+
+			HRESULT hr = S_OK;
+
+			hr = pDevice->CreateSamplerState( &samplerDesc, pOutSampler->ReleaseAndGetAddressOf() );
+			_ASSERT_EXPR( SUCCEEDED( hr ), _TEXT( "Failed : CreateSamplerState()" ) );
+
+			if ( isEnableCache )
+			{
+				samplerCache.insert( std::make_pair( hash, *pOutSampler ) );
+			}
+		}
+
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> &RequireInvalidSamplerStateComPtr()
+		{
+			static Microsoft::WRL::ComPtr<ID3D11SamplerState> pInvalidSampler;
+			if ( !pInvalidSampler )
+			{
+				D3D11_SAMPLER_DESC null{};
+				null.AddressU = null.AddressV = null.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+
+				HRESULT hr = Donya::GetDevice()->CreateSamplerState( &null, pInvalidSampler.GetAddressOf() );
+				_ASSERT_EXPR( SUCCEEDED( hr ), _TEXT( "Failed : CreateSamplerState()" ) );
+			}
+
+			return pInvalidSampler;
 		}
 
 	#pragma endregion
@@ -462,7 +498,7 @@ namespace Donya
 			}
 		};
 
-		static std::map<std::wstring, ObjFileCacheContents> objFileCache;
+		static std::unordered_map<std::wstring, ObjFileCacheContents> objFileCache;
 
 		/// <summary>
 		/// It is storage of materials by mtl-file.
@@ -471,7 +507,7 @@ namespace Donya
 		{
 		private:
 			std::wstring mtllibName;
-			std::map<std::wstring, Material> newMtls;
+			std::unordered_map<std::wstring, Material> newMtls;
 		public:
 			MtlFile( ID3D11Device *pDevice, const std::wstring &mtlFileName ) : mtllibName(), newMtls()
 			{
@@ -999,20 +1035,7 @@ namespace Donya
 
 	#pragma region ID3DObject
 
-		Microsoft::WRL::ComPtr<ID3D11SamplerState> &RequireInvalidSamplerStateComPtr()
-		{
-			static Microsoft::WRL::ComPtr<ID3D11SamplerState> pInvalidSampler;
-			if ( !pInvalidSampler )
-			{
-				D3D11_SAMPLER_DESC null{};
-				null.AddressU = null.AddressV = null.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 
-				HRESULT hr = Donya::GetDevice()->CreateSamplerState( &null, pInvalidSampler.GetAddressOf() );
-				_ASSERT_EXPR( SUCCEEDED( hr ), _TEXT( "Failed : CreateSamplerState()" ) );
-			}
-
-			return pInvalidSampler;
-		}
 
 	#pragma endregion
 

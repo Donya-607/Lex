@@ -28,6 +28,7 @@ namespace Donya
 	class Loader
 	{
 	public:
+		/*
 		struct Material
 		{
 			Donya::Vector3	ambient;
@@ -56,6 +57,46 @@ namespace Donya
 			Material( const Material & );
 			Material &operator = ( const Material & );
 		};
+		*/
+
+		struct Material
+		{
+			Donya::Vector4 color;	// w channel is used as shininess by only specular.
+			std::vector<std::string> textureNames;
+		public:
+			Material() : color( 0, 0, 0, 0 ), textureNames()
+			{}
+			Material( const Material &ref )
+			{
+				*this = ref;
+			}
+			Material &operator = ( const Material &ref )
+			{
+				color = ref.color;
+				textureNames = ref.textureNames;
+				return *this;
+			}
+			~Material()
+			{}
+		};
+
+		struct Subset
+		{
+			size_t indexCount;
+			size_t indexStart;
+			float  reflection;
+			float  transparency;
+			Material ambient;
+			Material bump;
+			Material diffuse;
+			Material emissive;
+			Material specular;
+		public:
+			Subset() : indexCount( NULL ), indexStart( NULL ), reflection( 0 ), transparency( 0 ), ambient(), bump(), diffuse(), emissive()
+			{}
+			~Subset()
+			{}
+		};
 	private:
 		size_t						vertexCount;	// 0 based.
 		std::string					fileName;
@@ -64,7 +105,7 @@ namespace Donya
 		std::vector<Donya::Vector3>	normals;
 		std::vector<Donya::Vector3>	positions;
 		std::vector<Donya::Vector2>	texCoords;
-		std::vector<Material>		materials;
+		std::vector<Subset>			subsets;
 	public:
 		Loader();
 		~Loader();
@@ -75,12 +116,11 @@ namespace Donya
 		bool Load( const std::string &filePath, std::string *outputErrorString );
 	public:
 		std::string GetFileName() const { return fileName; }
-		const std::vector<std::string>		*GetTextureNames( size_t materialInex = 0 ) const { return &materials[materialInex].textureNames; }
 		const std::vector<size_t>			*GetIndices() const { return &indices; }
 		const std::vector<Donya::Vector3>	*GetNormals() const { return &normals; }
 		const std::vector<Donya::Vector3>	*GetPositions() const { return &positions; }
 		const std::vector<Donya::Vector2>	*GetTexCoords() const { return &texCoords; }
-		const std::vector<Material>			*GetMaterials() const { return &materials; }
+		const std::vector<Subset>			*GetSubsets() const { return &subsets; }
 	private:
 		void MakeFileName( const std::string &filePath );
 

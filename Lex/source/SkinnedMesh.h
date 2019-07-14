@@ -42,12 +42,11 @@ namespace Donya
 			DirectX::XMFLOAT4	diffuse;
 			DirectX::XMFLOAT4	emissive;
 			DirectX::XMFLOAT4	specular;
-			float				shininess;
-			DirectX::XMFLOAT3	padding;
 		public:
-			MaterialConstantBuffer() : ambient(), bump(), diffuse(), emissive(), specular(), shininess(), padding()
+			MaterialConstantBuffer() : ambient(), bump(), diffuse(), emissive(), specular()
 			{}
 		};
+		/*
 		struct Material
 		{
 			DirectX::XMFLOAT3	ambient;
@@ -70,9 +69,37 @@ namespace Donya
 		public:
 			Material() : ambient(), bump(), diffuse(), emissive(), specular(), transparency(), shininess(), textures() {}
 		};
+		*/
+		struct Material
+		{
+			DirectX::XMFLOAT4 color;	// w channel is used as shininess by only specular.
+			Microsoft::WRL::ComPtr<ID3D11SamplerState> iSampler;
+			struct Texture
+			{
+				std::string fileName;	// absolute path.
+				D3D11_TEXTURE2D_DESC texture2DDesc;
+				Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	iSRV;
+			public:
+				Texture() : fileName( "" ), texture2DDesc(), iSRV() {}
+			};
+			std::vector<Texture> textures;
+		public:
+			Material() :color( 0, 0, 0, 0 ), iSampler(), textures()
+			{}
+		};
 		struct Subset
 		{
-
+			size_t indexStart;
+			size_t indexCount;
+			float  transparency;
+			Material ambient;
+			Material bump;
+			Material diffuse;
+			Material emissive;
+			Material specular;
+		public:
+			Subset() : indexStart( NULL ), indexCount( NULL ), transparency( 0 ), ambient(), bump(), diffuse(), emissive(), specular()
+			{}
 		};
 	private:
 		size_t vertexCount;
@@ -88,9 +115,9 @@ namespace Donya
 		COM_PTR<ID3D11RasterizerState>		iRasterizerStateSurface;
 		COM_PTR<ID3D11DepthStencilState>	iDepthStencilState;
 	#undef	COM_PTR
-		std::vector<Material> materials;
+		std::vector<Subset> subsets;
 	public:
-		SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<Material> &loadedMaterials );
+		SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<Subset> &loadedSubsets );
 		~SkinnedMesh();
 	public:
 		void Render

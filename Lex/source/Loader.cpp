@@ -17,28 +17,6 @@ namespace FBX = fbxsdk;
 
 namespace Donya
 {
-	Loader::Material::Material( const Loader::Material &ref )
-	{
-		// use implement of operator =.
-		*this = ref;
-	}
-	Loader::Material &Loader::Material::operator = ( const Loader::Material &ref )
-	{
-		ambient			= ref.ambient;
-		bump			= ref.bump;
-		diffuse			= ref.diffuse;
-		emissive		= ref.emissive;
-		transparency	= ref.transparency;
-		if ( ref.pPhong )
-		{
-			pPhong = std::move( std::make_unique<Loader::Material::Phong>( *ref.pPhong ) );
-		}
-
-		textureNames = ref.textureNames;
-
-		return *this;
-	}
-
 	Loader::Loader() :
 		vertexCount( 0 ),
 		fileName(),
@@ -85,8 +63,6 @@ namespace Donya
 
 	void Traverse( FBX::FbxNode *pNode, std::vector<FBX::FbxNode *> *pFetchedMeshes )
 	{
-		// TODO:スタックオーバーフローが発生する？
-
 		if ( !pNode ) { return; }
 		// else
 
@@ -188,8 +164,8 @@ namespace Donya
 		{
 			FBX::FbxMesh *pMesh = fetchedMeshes[i]->GetMesh();
 
-			FetchVertices( pMesh );
 			FetchMaterial( pMesh );
+			FetchVertices( pMesh );
 		}
 
 		Uninitialize();
@@ -222,9 +198,45 @@ namespace Donya
 	void Loader::FetchVertices( const FBX::FbxMesh *pMesh )
 	{
 		const FBX::FbxVector4 *pControlPointsArray = pMesh->GetControlPoints();
-		const int polygonsCount = pMesh->GetPolygonCount();
-		for ( int polyIndex = 0; polyIndex < polygonsCount; ++polyIndex )
+		const int mtlCount = pMesh->GetNode()->GetMaterialCount();
+		const int polygonCount = pMesh->GetPolygonCount();
+
+		// Calculate subsets start index(not optimized).
 		{
+			// Count the faces each material.
+			for ( int i = 0; i < polygonCount; ++i )
+			{
+				int mtlIndex = pMesh->GetElementMaterial()->GetIndexArray().GetAt( i );
+				subsets[mtlIndex].indexCount += 3;
+			}
+
+			// Record the offset (how many vertex)
+			int offset = 0;
+			for ( auto &subset : subsets )
+			{
+				subset.indexStart = offset;
+				offset += subset.indexCount;
+				// This will be used as counter in the following procedures, reset to zero.
+				subset.indexCount = 0;
+			}
+
+			// indices.resize( offset );
+		}
+
+		indices.resize( polygonCount * 3 );
+		for ( int polyIndex = 0; polyIndex < polygonCount; ++polyIndex )
+		{
+			// The material for current face.
+			int mtlIndex = 0;
+			if ( mtlCount )
+			{
+				mtlIndex = pMesh->GetElementMaterial()->GetIndexArray().GetAt( polyIndex );
+			}
+
+			// Where should I save the vertex attribute index, according to the material.
+			auto &subset = subsets[mtlIndex];
+			int indexOffset = subset.indexStart + subset.indexCount;
+
 			FBX::FbxVector4	fbxNormal;
 			Donya::Vector3	normal;
 			Donya::Vector3	position;
@@ -241,10 +253,14 @@ namespace Donya
 				position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
 				position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
 
-				indices.push_back( vertexCount++ );
 				normals.push_back( normal );
 				positions.push_back( position );
+
+				// indices.push_back( vertexCount++ );
+				indices[indexOffset + v] = vertexCount++;
 			}
+
+			subset.indexCount += size;
 		}
 
 		FBX::FbxStringList uvName;
@@ -269,7 +285,6 @@ namespace Donya
 		int materialCount = pNode->GetMaterialCount();
 		if ( materialCount < 1 ) { return; }
 		// else
-
 
 		for ( int i = 0; i < materialCount; ++i )
 		{
@@ -301,113 +316,127 @@ namespace Donya
 			mtlType = PHONG;
 		}
 
-		Loader::Material mtl;
-
-		/*
-		materials.push_back( {} );
-		auto &mtl = materials.back();
-		*/
-
 		FBX::FbxProperty prop{};
 		FBX::FbxProperty factor{};
 
-		auto AssignFbxDouble3 =
-		[]( Donya::Vector3 *output, const FBX::FbxDouble3 *input, double factor )
+		auto AssignFbxDouble4 =
+		[]( Donya::Vector4 *output, const FBX::FbxDouble3 *input, double factor )
 		{
 			output->x = scast<float>( input->mData[0] * factor );
 			output->y = scast<float>( input->mData[1] * factor );
 			output->z = scast<float>( input->mData[2] * factor );
+			output->w = 1.0f;
 		};
-		auto AssignFbxDouble3Process =
-		[&]( Donya::Vector3 *output )
+		auto AssignFbxDouble4Process =
+		[&]( Donya::Vector4 *output )
 		{
 			auto entity = prop.Get<FBX::FbxDouble3>();
 			double fact = factor.Get<FBX::FbxDouble>();
-			AssignFbxDouble3
+			AssignFbxDouble4
 			(
 				output,
 				&entity,
 				fact
 			);
 		};
-		
-		prop	= pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sAmbient );
-		factor	= pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sAmbientFactor );
-		if ( prop.IsValid() && factor.IsValid() )
+		auto FetchMaterialParam =
+		[&]( Loader::Material *pOutMtl, const char *surfaceMtl, const char *surfaceMtlFactor )
 		{
-			AssignFbxDouble3Process( &mtl.ambient );
-		}
+			prop	= pMaterial->FindProperty( surfaceMtl );
+			factor	= pMaterial->FindProperty( surfaceMtlFactor );
 
-		prop	= pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sBump );
-		factor	= pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sBumpFactor );
-		if ( prop.IsValid() && factor.IsValid() )
-		{
-			AssignFbxDouble3Process( &mtl.bump );
-		}
-
-		prop	= pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sDiffuse );
-		factor	= pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sDiffuseFactor );
-		if ( prop.IsValid() )
-		{
-			int layerCount = prop.GetSrcObjectCount<FBX::FbxLayeredTexture>();
-			if ( !layerCount )
+			if ( prop.IsValid() )
 			{
-				int textureCount = prop.GetSrcObjectCount<FBX::FbxFileTexture>();
-				for ( int i = 0; i < textureCount; ++i )
+				int layerCount = prop.GetSrcObjectCount<FBX::FbxLayeredTexture>();
+				if ( !layerCount )
 				{
-					FBX::FbxFileTexture *texture = prop.GetSrcObject<FBX::FbxFileTexture>( i );
-					if ( texture )
+					int textureCount = prop.GetSrcObjectCount<FBX::FbxFileTexture>();
+					for ( int i = 0; i < textureCount; ++i )
 					{
-						std::string relativePath = texture->GetRelativeFileName();
-						mtl.textureNames.push_back( fileDirectory + relativePath );
+						FBX::FbxFileTexture *texture = prop.GetSrcObject<FBX::FbxFileTexture>( i );
+						if ( texture )
+						{
+							std::string relativePath = texture->GetRelativeFileName();
+							pOutMtl->textureNames.push_back( fileDirectory + relativePath );
+						}
 					}
+				}
+
+				if ( factor.IsValid() )
+				{
+					AssignFbxDouble4Process( &( pOutMtl->color ) );
+				}
+			}
+		};
+		{
+
+			Loader::Subset subset{};
+			{
+
+				FetchMaterialParam
+				(
+					&subset.ambient,
+					FBX::FbxSurfaceMaterial::sAmbient,
+					FBX::FbxSurfaceMaterial::sAmbientFactor
+				);
+				FetchMaterialParam
+				(
+					&subset.bump,
+					FBX::FbxSurfaceMaterial::sBump,
+					FBX::FbxSurfaceMaterial::sBumpFactor
+				);
+				FetchMaterialParam
+				(
+					&subset.diffuse,
+					FBX::FbxSurfaceMaterial::sDiffuse,
+					FBX::FbxSurfaceMaterial::sDiffuseFactor
+				);
+				FetchMaterialParam
+				(
+					&subset.emissive,
+					FBX::FbxSurfaceMaterial::sEmissive,
+					FBX::FbxSurfaceMaterial::sEmissiveFactor
+				);
+		
+				prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sTransparencyFactor );
+				if ( prop.IsValid() )
+				{
+					subset.transparency = scast<float>( prop.Get<FBX::FbxFloat>() );
+				}
+
+				if ( mtlType == PHONG )
+				{ 
+					FetchMaterialParam
+					(
+						&subset.specular,
+						FBX::FbxSurfaceMaterial::sSpecular,
+						FBX::FbxSurfaceMaterial::sSpecularFactor
+					);
+
+					prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sReflection );
+					if ( prop.IsValid() )
+					{
+						subset.reflection = scast<float>( prop.Get<FBX::FbxFloat>() );
+					}
+
+					prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sShininess );
+					if ( prop.IsValid() )
+					{
+						subset.specular.color.w = scast<float>( prop.Get<FBX::FbxFloat>() );
+					}
+				}
+				else
+				{
+					subset.reflection   = 0.0f;
+					subset.transparency = 0.0f;
+					subset.specular.color = Donya::Vector4{ 0.0f, 0.0f, 0.0f, 0.0f };
 				}
 			}
 
-			if ( factor.IsValid() )
-			{
-				AssignFbxDouble3Process( &mtl.diffuse );
-			}
+			subsets.push_back( subset );
 		}
 
-		prop	= pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sEmissive );
-		factor	= pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sEmissiveFactor );
-		if ( prop.IsValid() && factor.IsValid() )
-		{
-			AssignFbxDouble3Process( &mtl.emissive );
-		}
-
-		prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sTransparencyFactor );
-		if ( prop.IsValid() )
-		{
-			mtl.transparency = scast<float>( prop.Get<FBX::FbxFloat>() );
-		}
-
-		if ( mtlType == PHONG )
-		{ 
-			mtl.pPhong = std::make_unique<Material::Phong>();
-
-			prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sReflection );
-			if ( prop.IsValid() )
-			{
-				mtl.pPhong->refrectivity = scast<float>( prop.Get<FBX::FbxFloat>() );
-			}
-
-			prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sShininess );
-			if ( prop.IsValid() )
-			{
-				mtl.pPhong->shininess = scast<float>( prop.Get<FBX::FbxFloat>() );
-			}
-
-			prop	= pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sSpecular );
-			factor	= pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sSpecularFactor );
-			if ( prop.IsValid() && factor.IsValid() )
-			{
-				AssignFbxDouble3Process( &mtl.pPhong->specular );
-			}
-		}
-
-		materials.push_back( mtl );
+		// XXX:この関数から出た際に，例外が投げられる
 	}
 
 	#if USE_IMGUI
@@ -475,43 +504,75 @@ namespace Donya
 
 		if ( ImGui::TreeNode( "Materials" ) )
 		{
-			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-			size_t mtlEnd = materials.size();
-			for ( size_t i = 0; i < mtlEnd; ++i )
+			size_t subsetEnd = subsets.size();
+			for ( size_t i = 0; i < subsetEnd; ++i )
 			{
-				auto &mtl = materials[i];
-				std::string caption = "Material[" + std::to_string( i ) + "]";
+				auto &subset = subsets[i];
+				std::string caption = "Subsets[" + std::to_string( i ) + "]";
 				if ( ImGui::TreeNode( caption.c_str() ) )
 				{
-					size_t texSize = mtl.textureNames.size();
-					for ( size_t i = 0; i < texSize; ++i )
+					auto ShowMaterialContain =
+					[]( const Loader::Material &mtl )
 					{
-						ImGui::Text( "Texture Name No.%d:[%s]", i, mtl.textureNames[i].c_str() );
+						ImGui::Text
+						(
+							"Color:[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3]",
+							mtl.color.x, mtl.color.y, mtl.color.z, mtl.color.w
+						);
+
+						size_t end = mtl.textureNames.size();
+						for ( size_t i = 0; i < end; ++i )
+						{
+							ImGui::Text
+							(
+								"Texture No.%d:[%s]",
+								i, mtl.textureNames[i].c_str()
+							);
+						}
+					};
+
+					if ( ImGui::TreeNode( "Ambient" ) )
+					{
+						ShowMaterialContain( subset.ambient );
+
+						ImGui::TreePop();
 					}
 
-					ImGui::Text( "Ambient:[X:%6.3f][Y:%6.3f][Z:%6.3f]", mtl.ambient.x, mtl.ambient.y, mtl.ambient.z );
-
-					ImGui::Text( "Bump:[X:%6.3f][Y:%6.3f][Z:%6.3f]", mtl.bump.x, mtl.bump.y, mtl.bump.z );
-
-					ImGui::Text( "Diffuse:[X:%6.3f][Y:%6.3f][Z:%6.3f]", mtl.diffuse.x, mtl.diffuse.y, mtl.diffuse.z );
-
-					ImGui::Text( "Emissive:[X:%6.3f][Y:%6.3f][Z:%6.3f]", mtl.emissive.x, mtl.emissive.y, mtl.emissive.z );
-
-					ImGui::Text( "Transparency:[%6.3f]", mtl.transparency );
-
-					if ( mtl.pPhong != nullptr )
+					if ( ImGui::TreeNode( "Bump" ) )
 					{
-						ImGui::Text( "Refrectivity:[%6.3f]", mtl.pPhong->refrectivity );
+						ShowMaterialContain( subset.bump );
 
-						ImGui::Text( "Shininess:[%6.3f]", mtl.pPhong->shininess );
-
-						ImGui::Text( "Specular:[X:%6.3f][Y:%6.3f][Z:%6.3f]", mtl.pPhong->specular.x, mtl.pPhong->specular.y, mtl.pPhong->specular.z );
+						ImGui::TreePop();
 					}
+
+					if ( ImGui::TreeNode( "Diffuse" ) )
+					{
+						ShowMaterialContain( subset.diffuse );
+
+						ImGui::TreePop();
+					}
+
+					if ( ImGui::TreeNode( "Emissive" ) )
+					{
+						ShowMaterialContain( subset.emissive );
+
+						ImGui::TreePop();
+					}
+
+					if ( ImGui::TreeNode( "Specular" ) )
+					{
+						ShowMaterialContain( subset.specular );
+
+						ImGui::TreePop();
+					}
+
+					ImGui::Text( "Transparency:[%6.3f]", subset.transparency );
+
+					ImGui::Text( "Reflectivity:[%6.3f]", subset.reflection );
 
 					ImGui::TreePop();
 				}
 			}
-			ImGui::EndChild();
 			
 			ImGui::TreePop();
 		}

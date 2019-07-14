@@ -75,7 +75,7 @@ namespace Donya
 		void RegisterDirectoryOfTexture( const wchar_t *fileDirectory );
 		/// <summary>
 		/// I doing; CreateWICTextureFromFile(), QueryInterface(),<para></para>
-		/// ID3D11Texture2D::GetDesc(), CreateSamplerState(), CreateShaderResourceView().<para></para>
+		/// ID3D11Texture2D::GetDesc(), CreateShaderResourceView().<para></para>
 		/// These arguments must be not null.
 		/// </summary>
 		void CreateTexture2DFromFile
@@ -83,9 +83,7 @@ namespace Donya
 			ID3D11Device *pd3dDevice,
 			const std::wstring &filename,
 			ID3D11ShaderResourceView **pd3dShaderResourceView,
-			ID3D11SamplerState **pd3dSamplerState,
 			D3D11_TEXTURE2D_DESC *pd3dTexture2DDesc,
-			const D3D11_SAMPLER_DESC *pd3dSamplerDesc,
 			bool isEnableCache = true
 		);
 		/// <summary>
@@ -95,7 +93,6 @@ namespace Donya
 		(
 			ID3D11Device *pDevice,
 			ID3D11ShaderResourceView **pOutputShaderResourceView,
-			Microsoft::WRL::ComPtr<ID3D11SamplerState> *pOutputSamplerState,
 			D3D11_TEXTURE2D_DESC *pOutputTexture2DDesc,
 			unsigned int dimensions = 1,
 			float R = 1.0f,
@@ -106,6 +103,23 @@ namespace Donya
 		);
 
 		void ReleaseAllTexture2DCaches();
+
+	#pragma endregion
+
+	#pragma region Sampler
+
+		void CreateSamplerState
+		(
+			ID3D11Device *pDevice,
+			Microsoft::WRL::ComPtr<ID3D11SamplerState> *pOutputSamplerState,
+			const D3D11_SAMPLER_DESC &samplerDesc,
+			bool isEnableCache = true
+		);
+
+		/// <summary>
+		/// Returns invalid ID3D11SamplerState.GetAddressOf.
+		/// </summary>
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> &RequireInvalidSamplerStateComPtr();
 
 	#pragma endregion
 
@@ -147,9 +161,13 @@ namespace Donya
 					pDevice,
 					diffuseMap.mapName,
 					diffuseMap.srv.GetAddressOf(),
-					diffuseMap.sampler.GetAddressOf(),
-					&diffuseMap.texture2DDesc,
-					&samplerDesc
+					&diffuseMap.texture2DDesc
+				);
+				CreateSamplerState
+				(
+					pDevice,
+					&diffuseMap.sampler,
+					samplerDesc
 				);
 			}
 		};
@@ -178,10 +196,7 @@ namespace Donya
 
 	#pragma region ID3DObject
 
-		/// <summary>
-		/// Returns invalid ID3D11SamplerState.GetAddressOf.
-		/// </summary>
-		Microsoft::WRL::ComPtr<ID3D11SamplerState> &RequireInvalidSamplerStateComPtr();
+		
 
 	#pragma endregion
 
