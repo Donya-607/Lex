@@ -258,8 +258,14 @@ namespace Donya
 					// else
 					for ( size_t i = 0; i < textureCount; ++i )
 					{
-						auto &tex = pMtl->textures[i];
+						Resource::CreateSamplerState
+						(
+							pDevice,
+							&pMtl->iSampler,
+							samplerDesc
+						);
 
+						auto &tex = pMtl->textures[i];
 						Resource::CreateTexture2DFromFile
 						(
 							pDevice,
