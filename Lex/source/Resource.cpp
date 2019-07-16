@@ -265,7 +265,7 @@ namespace Donya
 			}
 			else
 			{
-				hr = CreateWICTextureFromFile	// ID3D11Resource と ID3D11ShaderResourceView の２つが作成される
+				hr = CreateWICTextureFromFile	// This is create two of ID3D11Resource, ID3D11ShaderResourceView.
 				(
 					d3dDevice, combinedFilename.c_str(),
 					d3dResource.GetAddressOf(),
@@ -278,44 +278,23 @@ namespace Donya
 			hr = d3dResource.Get()->QueryInterface<ID3D11Texture2D>( d3dTexture2D.GetAddressOf() );
 			_ASSERT_EXPR( SUCCEEDED( hr ), _TEXT( "Failed : QueryInterface()" ) );
 
-			d3dTexture2D->GetDesc( d3dTexture2DDesc );	// テクスチャ情報の取得
+			d3dTexture2D->GetDesc( d3dTexture2DDesc );
 
-			/*
-			if ( d3dTexture2DDesc->BindFlags & D3D11_BIND_SHADER_RESOURCE )
+			if ( isEnableCache )
 			{
-				// D3D11 WARNING: Process is terminating. Using simple reporting. Please call ReportLiveObjects() at runtime for standard reporting.
-				// D3D11 WARNING: Live Producer at 0x0023E8CC, Refcount: 2. [ STATE_CREATION WARNING #0: UNKNOWN]
-				D3D11_SHADER_RESOURCE_VIEW_DESC d3dShaderResourceViewDesc{};
-				d3dShaderResourceViewDesc.Format = d3dTexture2DDesc->Format;
-				d3dShaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-				d3dShaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
-				d3dShaderResourceViewDesc.Texture2D.MipLevels = d3dTexture2DDesc->MipLevels;
-
-				hr = d3dDevice->CreateShaderResourceView
+				spriteCache.insert
 				(
-					d3dResource.Get(),
-					&d3dShaderResourceViewDesc,
-					d3dShaderResourceView
+					std::make_pair
+					(
+						combinedFilename,
+						SpriteCacheContents
+						{
+							*d3dShaderResourceView,
+							d3dTexture2DDesc
+						}
+					)
 				);
-				_ASSERT_EXPR( SUCCEEDED( hr ), _TEXT( "Failed : CreateShaderResourceView()" ) );
 			}
-			*/
-
-			if ( !isEnableCache ) { return; }
-			// else
-
-			spriteCache.insert
-			(
-				std::make_pair
-				(
-					combinedFilename,
-					SpriteCacheContents
-					{
-						*d3dShaderResourceView,
-						d3dTexture2DDesc
-					}
-				)
-			);
 		}
 
 		void CreateUnicolorTexture( ID3D11Device *pDevice, ID3D11ShaderResourceView **pOutSRV, D3D11_TEXTURE2D_DESC *pOutTexDesc, unsigned int dimensions, float R, float G, float B, float A, bool isEnableCache )
