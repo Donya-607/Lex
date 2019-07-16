@@ -423,7 +423,6 @@ namespace Donya
 			{
 				samplerCache.insert( std::make_pair( hash, *pOutSampler ) );
 			}
-			// FOOBAR
 		}
 
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> &RequireInvalidSamplerStateComPtr()
