@@ -22,7 +22,6 @@
 //   float4 diffuse;                    // Offset:   32 Size:    16
 //   float4 emissive;                   // Offset:   48 Size:    16 [unused]
 //   float4 specular;                   // Offset:   64 Size:    16 [unused]
-//   float shininess;                   // Offset:   80 Size:     4 [unused]
 //
 // }
 //
@@ -91,12 +90,13 @@
     texld r1, t2, s0
     mul r1, r1, c0
     mul r1, r1, c2  // ::surfaceColor<0,1,2,3>
-    mul r0, r0.x, r1  // ::main<0,1,2,3>
+    mul r0, r0.x, r1  // ::output<0,1,2,3>
+    mov r0, r0  // ::main<0,1,2,3>
 
 #line 6
     mov oC0, r0  // ::main<0,1,2,3>
 
-// approximately 14 instruction slots used (1 texture, 13 arithmetic)
+// approximately 15 instruction slots used (1 texture, 14 arithmetic)
 ps_4_0
 dcl_constantbuffer CB0[10], immediateIndexed
 dcl_constantbuffer CB1[3], immediateIndexed
@@ -129,6 +129,9 @@ mul r1.xyzw, r1.xyzw, cb0[8].xyzw
 mul r1.xyzw, r1.xyzw, cb1[2].xyzw  // r1.x <- surfaceColor.x; r1.y <- surfaceColor.y; r1.z <- surfaceColor.z; r1.w <- surfaceColor.w
 
 #line 31
-mul o0.xyzw, r0.xxxx, r1.xyzw
+mul r0.xyzw, r0.xxxx, r1.xyzw  // r0.x <- output.x; r0.y <- output.y; r0.z <- output.z; r0.w <- output.w
+
+#line 32
+mov o0.xyzw, r0.xyzw
 ret 
-// Approximately 12 instruction slots used
+// Approximately 13 instruction slots used

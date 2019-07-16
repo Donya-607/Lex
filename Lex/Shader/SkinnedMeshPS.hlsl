@@ -23,10 +23,11 @@ float4 main( VS_OUT pin ) : SV_TARGET
 
 	// make reference to http://marupeke296.com/DXPS_S_No4_DiffuseMap.html
 
-	float	lightPower =
+	float  lightPower =
 		saturate( dot( pin.normal, normalize( -lightDir ) ) );
-	float4	surfaceColor =
+	float4 surfaceColor =
 		diffuseMap.Sample( diffuseSampler, pin.texCoord ) * lightColor * diffuse;
 
-	return lightPower * surfaceColor;
+	float4 output = lightPower * surfaceColor;
+	return output;
 }

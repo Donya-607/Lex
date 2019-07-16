@@ -21,5 +21,4 @@ cbuffer MATERIAL_CONSTANT_BUFFER : register( b1 )
 	float4	diffuse;
 	float4	emissive;
 	float4	specular;
-	float	shininess;
 }

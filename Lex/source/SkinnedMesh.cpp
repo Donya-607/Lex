@@ -219,7 +219,7 @@ namespace Donya
 			);
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateDepthStencilState" );
 		}
-		// Read Texture
+		// Create Texture
 		{
 			subsets = loadedSubsets;
 
@@ -232,50 +232,50 @@ namespace Donya
 			samplerDesc.MinLOD			= 0;
 			samplerDesc.MaxLOD			= D3D11_FLOAT32_MAX;
 
+			auto CreateSamplerAndTextures =
+			[&]( SkinnedMesh::Material *pMtl )
+			{
+				size_t textureCount = pMtl->textures.size();
+				if ( !textureCount )
+				{
+					pMtl->iSampler = Resource::RequireInvalidSamplerStateComPtr();
+
+					SkinnedMesh::Material::Texture dummy{};
+					Resource::CreateUnicolorTexture
+					(
+						pDevice,
+						dummy.iSRV.GetAddressOf(),
+						&dummy.texture2DDesc
+					);
+
+					pMtl->textures.push_back( dummy );
+
+					return;	// Escape from lambda-expression.
+				}
+				// else
+
+				Resource::CreateSamplerState
+				(
+					pDevice,
+					&pMtl->iSampler,
+					samplerDesc
+				);
+				for ( size_t i = 0; i < textureCount; ++i )
+				{
+					auto &tex = pMtl->textures[i];
+					Resource::CreateTexture2DFromFile
+					(
+						pDevice,
+						Donya::MultiToWide( tex.fileName ),
+						tex.iSRV.GetAddressOf(),
+						&tex.texture2DDesc
+					);
+				}
+			};
+
 			size_t subsetCount = subsets.size();
 			for ( size_t i = 0; i < subsetCount; ++i )
 			{
-				auto CreateSamplerAndTextures =
-				[&]( SkinnedMesh::Material *pMtl )
-				{
-					size_t textureCount = pMtl->textures.size();
-					if ( !textureCount )
-					{
-						pMtl->iSampler = Resource::RequireInvalidSamplerStateComPtr();
-
-						SkinnedMesh::Material::Texture dummy{};
-						Resource::CreateUnicolorTexture
-						(
-							pDevice,
-							dummy.iSRV.GetAddressOf(),
-							&dummy.texture2DDesc
-						);
-
-						pMtl->textures.push_back( dummy );
-
-						return;
-					}
-					// else
-					for ( size_t i = 0; i < textureCount; ++i )
-					{
-						Resource::CreateSamplerState
-						(
-							pDevice,
-							&pMtl->iSampler,
-							samplerDesc
-						);
-
-						auto &tex = pMtl->textures[i];
-						Resource::CreateTexture2DFromFile
-						(
-							pDevice,
-							Donya::MultiToWide( tex.fileName ),
-							tex.iSRV.GetAddressOf(),
-							&tex.texture2DDesc
-						);
-					}
-				};
-
 				CreateSamplerAndTextures( &subsets[i].ambient	);
 				CreateSamplerAndTextures( &subsets[i].bump		);
 				CreateSamplerAndTextures( &subsets[i].diffuse	);
@@ -305,6 +305,8 @@ namespace Donya
 			// cb.eyePosition			= eyePosition;
 			pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 		}
+		pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
+		pImmediateContext->PSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
 
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState>	prevRasterizerState;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>		prevSamplerState;
@@ -339,7 +341,6 @@ namespace Donya
 			pImmediateContext->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 
 			pImmediateContext->VSSetShader( iVertexShader.Get(), nullptr, 0 );
-			pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
 
 			ID3D11RasterizerState	*ppRasterizerState
 									= ( isEnableFill )
@@ -348,7 +349,6 @@ namespace Donya
 			pImmediateContext->RSSetState( ppRasterizerState );
 
 			pImmediateContext->PSSetShader( iPixelShader.Get(), nullptr, 0 );
-			pImmediateContext->PSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
 
 			pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xffffffff );
 		}
@@ -382,8 +382,10 @@ namespace Donya
 			{
 				pImmediateContext->PSSetShaderResources( 0, 1, subset.diffuse.textures[j].iSRV.GetAddressOf() );
 
-				pImmediateContext->DrawIndexed( subset.indexStart, subset.indexCount, 0 );
+				pImmediateContext->DrawIndexed( subset.indexCount, subset.indexStart, 0 );
+				
 			}
+			//break;
 		}
 
 		// PostProcessing

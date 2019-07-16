@@ -46,30 +46,6 @@ namespace Donya
 			MaterialConstantBuffer() : ambient(), bump(), diffuse(), emissive(), specular()
 			{}
 		};
-		/*
-		struct Material
-		{
-			DirectX::XMFLOAT3	ambient;
-			DirectX::XMFLOAT3	bump;
-			DirectX::XMFLOAT3	diffuse;
-			DirectX::XMFLOAT3	emissive;
-			DirectX::XMFLOAT3	specular;
-			float				transparency;
-			float				shininess;
-			struct Texture
-			{
-				std::string fileName;	// absolute path.
-				D3D11_TEXTURE2D_DESC texture2DDesc;
-				Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>	iSRV;
-				Microsoft::WRL::ComPtr<ID3D11SamplerState>			iSampler;
-			public:
-				Texture() : fileName( "" ), texture2DDesc(), iSRV(), iSampler() {}
-			};
-			std::vector<Texture> textures;
-		public:
-			Material() : ambient(), bump(), diffuse(), emissive(), specular(), transparency(), shininess(), textures() {}
-		};
-		*/
 		struct Material
 		{
 			DirectX::XMFLOAT4 color;	// w channel is used as shininess by only specular.

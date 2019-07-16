@@ -348,7 +348,8 @@ bool Framework::Init()
 
 	#pragma endregion
 
-	std::string projectDir = "./";
+	// std::string projectDir = "./";
+	std::string projectDir = "D:\\学校関連\\VS_Projects\\FBXLex\\Lex\\Lex\\";
 	Donya::Resource::RegisterDirectoryOfVertexShader( ( projectDir + "Shader/" ).c_str() );
 	Donya::Resource::RegisterDirectoryOfPixelShader ( ( projectDir + "Shader/" ).c_str() );
 
@@ -372,6 +373,33 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	if ( Donya::Keyboard::State( 'C' ) )
 	{
 		bool breakPoint{};
+	}
+
+	if ( Donya::Keyboard::Trigger( '2' ) && meshes.empty() )
+	{
+		constexpr const char *CUBE_02 = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\002_cube.fbx";
+
+		meshes.push_back( {} );
+		bool result = meshes.back().loader.Load( CUBE_02, nullptr );
+		if ( result )
+		{
+			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+		}
+	}
+	if ( Donya::Keyboard::Trigger( '3' ) && meshes.empty() )
+	{
+		constexpr const char *CUBE_03 = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\003_cube.fbx";
+
+		meshes.push_back( {} );
+		bool result = meshes.back().loader.Load( CUBE_03, nullptr );
+		if ( result )
+		{
+			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+		}
+	}
+	if ( Donya::Keyboard::Trigger( 'Q' ) && !meshes.empty() )
+	{
+		meshes.pop_back();
 	}
 
 #endif // DEBUG_MODE

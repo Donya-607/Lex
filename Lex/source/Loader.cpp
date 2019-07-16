@@ -153,6 +153,7 @@ namespace Donya
 		}
 		#pragma endregion
 
+
 		FBX::FbxGeometryConverter geometryConverter( pManager );
 		geometryConverter.Triangulate( pScene, /* replace = */ true );
 
@@ -202,6 +203,7 @@ namespace Donya
 		const int polygonCount = pMesh->GetPolygonCount();
 
 		// Calculate subsets start index(not optimized).
+		if ( mtlCount )
 		{
 			// Count the faces each material.
 			for ( int i = 0; i < polygonCount; ++i )
@@ -219,8 +221,6 @@ namespace Donya
 				// This will be used as counter in the following procedures, reset to zero.
 				subset.indexCount = 0;
 			}
-
-			// indices.resize( offset );
 		}
 
 		indices.resize( polygonCount * 3 );
@@ -368,93 +368,89 @@ namespace Donya
 				}
 			}
 		};
+		
+		Loader::Subset subset{};
 		{
 
-			Loader::Subset subset{};
-			{
-
-				FetchMaterialParam
-				(
-					&subset.ambient,
-					FBX::FbxSurfaceMaterial::sAmbient,
-					FBX::FbxSurfaceMaterial::sAmbientFactor
-				);
-				FetchMaterialParam
-				(
-					&subset.bump,
-					FBX::FbxSurfaceMaterial::sBump,
-					FBX::FbxSurfaceMaterial::sBumpFactor
-				);
-				FetchMaterialParam
-				(
-					&subset.diffuse,
-					FBX::FbxSurfaceMaterial::sDiffuse,
-					FBX::FbxSurfaceMaterial::sDiffuseFactor
-				);
-				FetchMaterialParam
-				(
-					&subset.emissive,
-					FBX::FbxSurfaceMaterial::sEmissive,
-					FBX::FbxSurfaceMaterial::sEmissiveFactor
-				);
+			FetchMaterialParam
+			(
+				&subset.ambient,
+				FBX::FbxSurfaceMaterial::sAmbient,
+				FBX::FbxSurfaceMaterial::sAmbientFactor
+			);
+			FetchMaterialParam
+			(
+				&subset.bump,
+				FBX::FbxSurfaceMaterial::sBump,
+				FBX::FbxSurfaceMaterial::sBumpFactor
+			);
+			FetchMaterialParam
+			(
+				&subset.diffuse,
+				FBX::FbxSurfaceMaterial::sDiffuse,
+				FBX::FbxSurfaceMaterial::sDiffuseFactor
+			);
+			FetchMaterialParam
+			(
+				&subset.emissive,
+				FBX::FbxSurfaceMaterial::sEmissive,
+				FBX::FbxSurfaceMaterial::sEmissiveFactor
+			);
 		
-				prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sTransparencyFactor );
-				if ( prop.IsValid() )
-				{
-					subset.transparency = scast<float>( prop.Get<FBX::FbxFloat>() );
-				}
-
-				if ( mtlType == PHONG )
-				{ 
-					FetchMaterialParam
-					(
-						&subset.specular,
-						FBX::FbxSurfaceMaterial::sSpecular,
-						FBX::FbxSurfaceMaterial::sSpecularFactor
-					);
-
-					prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sReflection );
-					if ( prop.IsValid() )
-					{
-						subset.reflection = scast<float>( prop.Get<FBX::FbxFloat>() );
-					}
-
-					prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sShininess );
-					if ( prop.IsValid() )
-					{
-						subset.specular.color.w = scast<float>( prop.Get<FBX::FbxFloat>() );
-					}
-				}
-				else
-				{
-					subset.reflection   = 0.0f;
-					subset.transparency = 0.0f;
-					subset.specular.color = Donya::Vector4{ 0.0f, 0.0f, 0.0f, 0.0f };
-				}
+			prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sTransparencyFactor );
+			if ( prop.IsValid() )
+			{
+				subset.transparency = scast<float>( prop.Get<FBX::FbxFloat>() );
 			}
 
-			subsets.push_back( subset );
-		}
+			if ( mtlType == PHONG )
+			{ 
+				FetchMaterialParam
+				(
+					&subset.specular,
+					FBX::FbxSurfaceMaterial::sSpecular,
+					FBX::FbxSurfaceMaterial::sSpecularFactor
+				);
 
-		// XXX:‚±‚ÌŠÖ”‚©‚ço‚½Û‚ÉC—áŠO‚ª“Š‚°‚ç‚ê‚é
+				prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sReflection );
+				if ( prop.IsValid() )
+				{
+					subset.reflection = scast<float>( prop.Get<FBX::FbxFloat>() );
+				}
+
+				prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sShininess );
+				if ( prop.IsValid() )
+				{
+					subset.specular.color.w = scast<float>( prop.Get<FBX::FbxFloat>() );
+				}
+			}
+			else
+			{
+				subset.reflection   = 0.0f;
+				subset.transparency = 0.0f;
+				subset.specular.color = Donya::Vector4{ 0.0f, 0.0f, 0.0f, 0.0f };
+			}
+		}
+		
+		subsets.push_back( subset );
 	}
 
 	#if USE_IMGUI
 	void Loader::EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const
 	{
-		ImVec2 childFrameSize( 512.0f, 256.0f );
+		// ImVec2 childFrameSize( 512.0f, 256.0f );
 
 		if ( ImGui::TreeNode( "Positions" ) )
 		{
 			auto &ref = positions;
 
-			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
 			size_t end = ref.size();
 			for ( size_t i = 0; i < end; ++i )
 			{
 				ImGui::Text ( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
 			}
-			ImGui::EndChild();
+			// ImGui::EndChild();
 
 			ImGui::TreePop();
 		}
@@ -463,26 +459,26 @@ namespace Donya
 		{
 			auto &ref = normals;
 
-			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
 			size_t end = ref.size();
 			for ( size_t i = 0; i < end; ++i )
 			{
 				ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
 			}
-			ImGui::EndChild();
+			// ImGui::EndChild();
 
 			ImGui::TreePop();
 		}
 
 		if ( ImGui::TreeNode( "Indices" ) )
 		{
-			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
 			size_t end = indices.size();
 			for ( size_t i = 0; i < end; ++i )
 			{
 				ImGui::Text( "[No:%d][%d]", i, indices[i] );
 			}
-			ImGui::EndChild();
+			// ImGui::EndChild();
 
 			ImGui::TreePop();
 		}
@@ -491,13 +487,13 @@ namespace Donya
 		{
 			auto &ref = texCoords;
 
-			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
 			size_t end = ref.size();
 			for ( size_t i = 0; i < end; ++i )
 			{
 				ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f]", i, ref[i].x, ref[i].y );
 			}
-			ImGui::EndChild();
+			// ImGui::EndChild();
 
 			ImGui::TreePop();
 		}
@@ -516,7 +512,7 @@ namespace Donya
 					{
 						ImGui::Text
 						(
-							"Color:[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3]",
+							"Color:[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]",
 							mtl.color.x, mtl.color.y, mtl.color.z, mtl.color.w
 						);
 
