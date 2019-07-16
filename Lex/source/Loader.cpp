@@ -165,8 +165,8 @@ namespace Donya
 		{
 			FBX::FbxMesh *pMesh = fetchedMeshes[i]->GetMesh();
 
-			FetchMaterial( pMesh );
 			FetchVertices( pMesh );
+			FetchMaterial( pMesh );
 		}
 
 		Uninitialize();
@@ -201,6 +201,8 @@ namespace Donya
 		const FBX::FbxVector4 *pControlPointsArray = pMesh->GetControlPoints();
 		const int mtlCount = pMesh->GetNode()->GetMaterialCount();
 		const int polygonCount = pMesh->GetPolygonCount();
+
+		subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
 
 		// Calculate subsets start index(not optimized).
 		if ( mtlCount )
@@ -292,11 +294,11 @@ namespace Donya
 			if ( !pMaterial ) { continue; }
 			// else
 
-			AnalyseProperty( pMaterial );
+			AnalyseProperty( i, pMaterial );
 		}
 	}
 
-	void Loader::AnalyseProperty( FBX::FbxSurfaceMaterial *pMaterial )
+	void Loader::AnalyseProperty( int mtlIndex, FBX::FbxSurfaceMaterial *pMaterial )
 	{
 		enum MATERIAL_TYPE
 		{
@@ -369,70 +371,66 @@ namespace Donya
 			}
 		};
 		
-		Loader::Subset subset{};
-		{
+		auto &subset = subsets[mtlIndex];
 
-			FetchMaterialParam
-			(
-				&subset.ambient,
-				FBX::FbxSurfaceMaterial::sAmbient,
-				FBX::FbxSurfaceMaterial::sAmbientFactor
-			);
-			FetchMaterialParam
-			(
-				&subset.bump,
-				FBX::FbxSurfaceMaterial::sBump,
-				FBX::FbxSurfaceMaterial::sBumpFactor
-			);
-			FetchMaterialParam
-			(
-				&subset.diffuse,
-				FBX::FbxSurfaceMaterial::sDiffuse,
-				FBX::FbxSurfaceMaterial::sDiffuseFactor
-			);
-			FetchMaterialParam
-			(
-				&subset.emissive,
-				FBX::FbxSurfaceMaterial::sEmissive,
-				FBX::FbxSurfaceMaterial::sEmissiveFactor
-			);
+		FetchMaterialParam
+		(
+			&subset.ambient,
+			FBX::FbxSurfaceMaterial::sAmbient,
+			FBX::FbxSurfaceMaterial::sAmbientFactor
+		);
+		FetchMaterialParam
+		(
+			&subset.bump,
+			FBX::FbxSurfaceMaterial::sBump,
+			FBX::FbxSurfaceMaterial::sBumpFactor
+		);
+		FetchMaterialParam
+		(
+			&subset.diffuse,
+			FBX::FbxSurfaceMaterial::sDiffuse,
+			FBX::FbxSurfaceMaterial::sDiffuseFactor
+		);
+		FetchMaterialParam
+		(
+			&subset.emissive,
+			FBX::FbxSurfaceMaterial::sEmissive,
+			FBX::FbxSurfaceMaterial::sEmissiveFactor
+		);
 		
-			prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sTransparencyFactor );
+		prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sTransparencyFactor );
+		if ( prop.IsValid() )
+		{
+			subset.transparency = scast<float>( prop.Get<FBX::FbxFloat>() );
+		}
+
+		if ( mtlType == PHONG )
+		{ 
+			FetchMaterialParam
+			(
+				&subset.specular,
+				FBX::FbxSurfaceMaterial::sSpecular,
+				FBX::FbxSurfaceMaterial::sSpecularFactor
+			);
+
+			prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sReflection );
 			if ( prop.IsValid() )
 			{
-				subset.transparency = scast<float>( prop.Get<FBX::FbxFloat>() );
+				subset.reflection = scast<float>( prop.Get<FBX::FbxFloat>() );
 			}
 
-			if ( mtlType == PHONG )
-			{ 
-				FetchMaterialParam
-				(
-					&subset.specular,
-					FBX::FbxSurfaceMaterial::sSpecular,
-					FBX::FbxSurfaceMaterial::sSpecularFactor
-				);
-
-				prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sReflection );
-				if ( prop.IsValid() )
-				{
-					subset.reflection = scast<float>( prop.Get<FBX::FbxFloat>() );
-				}
-
-				prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sShininess );
-				if ( prop.IsValid() )
-				{
-					subset.specular.color.w = scast<float>( prop.Get<FBX::FbxFloat>() );
-				}
-			}
-			else
+			prop = pMaterial->FindProperty( FBX::FbxSurfaceMaterial::sShininess );
+			if ( prop.IsValid() )
 			{
-				subset.reflection   = 0.0f;
-				subset.transparency = 0.0f;
-				subset.specular.color = Donya::Vector4{ 0.0f, 0.0f, 0.0f, 0.0f };
+				subset.specular.color.w = scast<float>( prop.Get<FBX::FbxFloat>() );
 			}
 		}
-		
-		subsets.push_back( subset );
+		else
+		{
+			subset.reflection		= 0.0f;
+			subset.transparency		= 0.0f;
+			subset.specular.color	= Donya::Vector4{ 0.0f, 0.0f, 0.0f, 0.0f };
+		}
 	}
 
 	#if USE_IMGUI

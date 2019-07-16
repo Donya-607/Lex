@@ -126,7 +126,7 @@ namespace Donya
 
 		void FetchVertices( const fbxsdk::FbxMesh *pMesh );
 		void FetchMaterial( const fbxsdk::FbxMesh *pMesh );
-		void AnalyseProperty( fbxsdk::FbxSurfaceMaterial *pMaterial );
+		void AnalyseProperty( int mtlIndex, fbxsdk::FbxSurfaceMaterial *pMaterial );
 
 	#if USE_IMGUI
 	public:
