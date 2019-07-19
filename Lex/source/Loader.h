@@ -28,37 +28,6 @@ namespace Donya
 	class Loader
 	{
 	public:
-		/*
-		struct Material
-		{
-			Donya::Vector3	ambient;
-			Donya::Vector3	bump;
-			Donya::Vector3	diffuse;
-			Donya::Vector3	emissive;
-
-			float			transparency;
-			struct Phong
-			{
-				float			refrectivity;
-				float			shininess;
-				Donya::Vector3	specular;
-			public:
-				Phong() : refrectivity( 0 ), shininess( 0 ), specular( 0, 0, 0 )
-				{}
-				Phong( const Phong & ) = default;
-				Phong &operator = ( const Phong & ) = default;
-			};
-			std::unique_ptr<Phong> pPhong;
-
-			std::vector<std::string> textureNames; // diffuse map, full path.
-		public:
-			Material() : ambient( 0, 0, 0 ), bump( 0, 0, 0 ), diffuse( 0, 0, 0 ), emissive( 0, 0, 0 ), transparency( 0 ), pPhong( nullptr ), textureNames()
-			{}
-			Material( const Material & );
-			Material &operator = ( const Material & );
-		};
-		*/
-
 		struct Material
 		{
 			Donya::Vector4 color;	// w channel is used as shininess by only specular.
@@ -97,6 +66,25 @@ namespace Donya
 			~Subset()
 			{}
 		};
+
+		struct Mesh
+		{
+			DirectX::XMFLOAT4X4 globalTransform;
+			std::vector<Subset> subsets;
+		public:
+			Mesh() : globalTransform
+			(
+				{
+					1, 0, 0, 0,
+					0, 1, 0, 0,
+					0, 0, 1, 0,
+					0, 0, 0, 1
+				}
+			),
+			subsets()
+			{}
+			Mesh( const Mesh & ) = default;
+		};
 	private:
 		size_t						vertexCount;	// 0 based.
 		std::string					fileName;
@@ -105,7 +93,7 @@ namespace Donya
 		std::vector<Donya::Vector3>	normals;
 		std::vector<Donya::Vector3>	positions;
 		std::vector<Donya::Vector2>	texCoords;
-		std::vector<Subset>			subsets;
+		std::vector<Mesh>			meshes;
 	public:
 		Loader();
 		~Loader();
@@ -120,13 +108,14 @@ namespace Donya
 		const std::vector<Donya::Vector3>	*GetNormals() const { return &normals; }
 		const std::vector<Donya::Vector3>	*GetPositions() const { return &positions; }
 		const std::vector<Donya::Vector2>	*GetTexCoords() const { return &texCoords; }
-		const std::vector<Subset>			*GetSubsets() const { return &subsets; }
+		const std::vector<Mesh>				*GetMeshes() const { return &meshes; }
 	private:
 		void MakeFileName( const std::string &filePath );
 
-		void FetchVertices( const fbxsdk::FbxMesh *pMesh );
-		void FetchMaterial( const fbxsdk::FbxMesh *pMesh );
-		void AnalyseProperty( int mtlIndex, fbxsdk::FbxSurfaceMaterial *pMaterial );
+		void FetchVertices( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
+		void FetchMaterial( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
+		void AnalyseProperty( size_t meshIndex, int mtlIndex, fbxsdk::FbxSurfaceMaterial *pMaterial );
+		void FetchGlobalTransform( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
 
 	#if USE_IMGUI
 	public:

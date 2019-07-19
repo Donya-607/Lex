@@ -2,21 +2,26 @@
 
 #include "Common.h"
 #include "Donya.h"
-#include "Loader.h"
 #include "Resource.h"
 #include "Useful.h"
+
+#if IS_SUPPORT_LEX_LOADER
+#include "Loader.h"
+#endif // IS_SUPPORT_LEX_LOADER
 
 using namespace DirectX;
 
 namespace Donya
 {
+#if IS_SUPPORT_LEX_LOADER
+
 	bool SkinnedMesh::Create( const Loader *loader, std::unique_ptr<SkinnedMesh> *ppOutput )
 	{
 		if ( !loader || !ppOutput ) { return false; }
 		// else
 
 		const std::vector<size_t> *pIndices = loader->GetIndices();
-		std::vector<Vertex> vertices;
+		std::vector<Vertex> vertices{};
 		{
 			const std::vector<Donya::Vector3> *normals   = loader->GetNormals();
 			const std::vector<Donya::Vector3> *positions = loader->GetPositions();
@@ -40,40 +45,50 @@ namespace Donya
 			}
 		}
 
-		auto *loadedSubsets = loader->GetSubsets();
-		size_t subsetCount  = loadedSubsets->size();
+		auto *loadedMeshes = loader->GetMeshes();
+		size_t meshCount = loadedMeshes->size();
 
-		std::vector<SkinnedMesh::Subset> subsets{};
-		subsets.resize( subsetCount );
-		for ( size_t i = 0; i < subsetCount; ++i )
+		std::vector<SkinnedMesh::Mesh> meshes{};
+		meshes.resize( meshCount );
+		for ( size_t i = 0; i < meshCount; ++i )
 		{
-			auto &loadedSubset = ( *loadedSubsets )[i];
+			auto &loadedMesh = ( *loadedMeshes )[i];
 
-			subsets[i].indexStart = loadedSubset.indexStart;
-			subsets[i].indexCount = loadedSubset.indexCount;
+			meshes[i].globalTransform = loadedMesh.globalTransform;
 
-			auto FetchMaterialContain =
-			[]( SkinnedMesh::Material *meshMtl, const Loader::Material &loadedMtl )
+			size_t subsetCount = loadedMesh.subsets.size();
+			meshes[i].subsets.resize( subsetCount );
+			for ( size_t j = 0; j < subsetCount; ++j )
 			{
-				meshMtl->color.x = loadedMtl.color.x;
-				meshMtl->color.y = loadedMtl.color.y;
-				meshMtl->color.z = loadedMtl.color.z;
-				meshMtl->color.w = 1.0f;
+				auto &loadedSubset		= loadedMesh.subsets[j];
+				auto &mySubset			= meshes[i].subsets[j];
 
-				size_t texCount = loadedMtl.textureNames.size();
-				meshMtl->textures.resize( texCount );
-				for ( size_t i = 0; i < texCount; ++i )
+				mySubset.indexStart		= loadedSubset.indexStart;
+				mySubset.indexCount		= loadedSubset.indexCount;
+				mySubset.transparency	= loadedSubset.transparency;
+
+				auto FetchMaterialContain =
+				[]( SkinnedMesh::Material *meshMtl, const Loader::Material &loadedMtl )
 				{
-					meshMtl->textures[i].fileName = loadedMtl.textureNames[i];
-				}
-			};
+					meshMtl->color.x = loadedMtl.color.x;
+					meshMtl->color.y = loadedMtl.color.y;
+					meshMtl->color.z = loadedMtl.color.z;
+					meshMtl->color.w = 1.0f;
 
-			FetchMaterialContain( &subsets[i].ambient,	loadedSubset.ambient	);
-			FetchMaterialContain( &subsets[i].bump,		loadedSubset.bump		);
-			FetchMaterialContain( &subsets[i].diffuse,	loadedSubset.diffuse	);
-			FetchMaterialContain( &subsets[i].emissive,	loadedSubset.emissive	);
-			FetchMaterialContain( &subsets[i].specular,	loadedSubset.specular	);
-			subsets[i].transparency	= loadedSubset.transparency;
+					size_t texCount = loadedMtl.textureNames.size();
+					meshMtl->textures.resize( texCount );
+					for ( size_t i = 0; i < texCount; ++i )
+					{
+						meshMtl->textures[i].fileName = loadedMtl.textureNames[i];
+					}
+				};
+
+				FetchMaterialContain( &mySubset.ambient,	loadedSubset.ambient	);
+				FetchMaterialContain( &mySubset.bump,		loadedSubset.bump		);
+				FetchMaterialContain( &mySubset.diffuse,	loadedSubset.diffuse	);
+				FetchMaterialContain( &mySubset.emissive,	loadedSubset.emissive	);
+				FetchMaterialContain( &mySubset.specular,	loadedSubset.specular	);
+			}
 		}
 
 		*ppOutput =
@@ -81,72 +96,89 @@ namespace Donya
 		(
 			*pIndices,
 			vertices,
-			subsets
+			meshes
 		);
 
 		return true;
 	}
 
-	SkinnedMesh::SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<Subset> &loadedSubsets )
-		: vertexCount( vertexCount ), subsets()
+#endif // IS_SUPPORT_LEX_LOADER
+
+	SkinnedMesh::SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<Mesh> &loadedMeshes )
+		: vertexCount( vertexCount ), meshes()
 	{
 		HRESULT hr = S_OK;
 		ID3D11Device *pDevice = Donya::GetDevice();
 
-		// Create VertexBuffer
+		meshes = loadedMeshes;
+		size_t meshCount = meshes.size();
+
+		// Create VertexBuffers
+		for ( size_t i = 0; i < meshCount; ++i )
 		{
-			D3D11_BUFFER_DESC d3d11BufferDesc{};
-			d3d11BufferDesc.ByteWidth				= sizeof( Vertex ) * vertices.size();
-			d3d11BufferDesc.Usage					= D3D11_USAGE_IMMUTABLE;
-			d3d11BufferDesc.BindFlags				= D3D11_BIND_VERTEX_BUFFER;
-			d3d11BufferDesc.CPUAccessFlags			= 0;
-			d3d11BufferDesc.MiscFlags				= 0;
-			d3d11BufferDesc.StructureByteStride		= 0;
+			D3D11_BUFFER_DESC bufferDesc{};
+			bufferDesc.ByteWidth			= sizeof( Vertex ) * vertices.size();
+			bufferDesc.Usage				= D3D11_USAGE_IMMUTABLE;
+			bufferDesc.BindFlags			= D3D11_BIND_VERTEX_BUFFER;
+			bufferDesc.CPUAccessFlags		= 0;
+			bufferDesc.MiscFlags			= 0;
+			bufferDesc.StructureByteStride	= 0;
 
-			D3D11_SUBRESOURCE_DATA d3d11SubResourceData{};
-			d3d11SubResourceData.pSysMem			= vertices.data();
-			d3d11SubResourceData.SysMemPitch		= 0;
-			d3d11SubResourceData.SysMemSlicePitch	= 0;
+			D3D11_SUBRESOURCE_DATA subResource{};
+			subResource.pSysMem				= vertices.data();
+			subResource.SysMemPitch			= 0;
+			subResource.SysMemSlicePitch	= 0;
 
-			hr = pDevice->CreateBuffer( &d3d11BufferDesc, &d3d11SubResourceData, iVertexBuffer.GetAddressOf() );
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
+			hr = pDevice->CreateBuffer
+			(
+				&bufferDesc,
+				&subResource,
+				meshes[i].iVertexBuffer.GetAddressOf()
+			);
+			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer" );
 		}
-		// Create IndexBuffer
+		// Create IndexBuffers
+		for ( size_t i = 0; i < meshCount; ++i )
 		{
-			D3D11_BUFFER_DESC d3dIndexBufferDesc{};
-			d3dIndexBufferDesc.ByteWidth			= sizeof( size_t ) * indices.size();
-			d3dIndexBufferDesc.Usage				= D3D11_USAGE_IMMUTABLE;
-			d3dIndexBufferDesc.BindFlags			= D3D11_BIND_INDEX_BUFFER;
-			d3dIndexBufferDesc.CPUAccessFlags		= 0;
-			d3dIndexBufferDesc.MiscFlags			= 0;
-			d3dIndexBufferDesc.StructureByteStride	= 0;
+			D3D11_BUFFER_DESC bufferDesc{};
+			bufferDesc.ByteWidth			= sizeof( size_t ) * indices.size();
+			bufferDesc.Usage				= D3D11_USAGE_IMMUTABLE;
+			bufferDesc.BindFlags			= D3D11_BIND_INDEX_BUFFER;
+			bufferDesc.CPUAccessFlags		= 0;
+			bufferDesc.MiscFlags			= 0;
+			bufferDesc.StructureByteStride	= 0;
 
-			D3D11_SUBRESOURCE_DATA d3dSubresourceData{};
-			d3dSubresourceData.pSysMem				= indices.data();
-			d3dSubresourceData.SysMemPitch			= 0;
-			d3dSubresourceData.SysMemSlicePitch		= 0;
+			D3D11_SUBRESOURCE_DATA subResource{};
+			subResource.pSysMem				= indices.data();
+			subResource.SysMemPitch			= 0;
+			subResource.SysMemSlicePitch	= 0;
 
 			vertexCount = indices.size();
 
-			hr = pDevice->CreateBuffer( &d3dIndexBufferDesc, &d3dSubresourceData, iIndexBuffer.GetAddressOf() );
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
+			hr = pDevice->CreateBuffer
+			(
+				&bufferDesc,
+				&subResource,
+				meshes[i].iIndexBuffer.GetAddressOf()
+			);
+			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Index-Buffer" );
 		}
 		// Create ConstantBuffers
 		{
-			D3D11_BUFFER_DESC d3dConstantBufferDesc{};
-			d3dConstantBufferDesc.ByteWidth				= sizeof( ConstantBuffer );
-			d3dConstantBufferDesc.Usage					= D3D11_USAGE_DEFAULT;
-			d3dConstantBufferDesc.BindFlags				= D3D11_BIND_CONSTANT_BUFFER;
-			d3dConstantBufferDesc.CPUAccessFlags		= 0;
-			d3dConstantBufferDesc.MiscFlags				= 0;
-			d3dConstantBufferDesc.StructureByteStride	= 0;
+			D3D11_BUFFER_DESC bufferDesc{};
+			bufferDesc.ByteWidth			= sizeof( ConstantBuffer );
+			bufferDesc.Usage				= D3D11_USAGE_DEFAULT;
+			bufferDesc.BindFlags			= D3D11_BIND_CONSTANT_BUFFER;
+			bufferDesc.CPUAccessFlags		= 0;
+			bufferDesc.MiscFlags			= 0;
+			bufferDesc.StructureByteStride	= 0;
 
-			hr = pDevice->CreateBuffer( &d3dConstantBufferDesc, nullptr, iConstantBuffer.GetAddressOf() );
+			hr = pDevice->CreateBuffer( &bufferDesc, nullptr, iConstantBuffer.GetAddressOf() );
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
 
-			d3dConstantBufferDesc.ByteWidth				= sizeof( MaterialConstantBuffer );
+			bufferDesc.ByteWidth			= sizeof( MaterialConstantBuffer );
 
-			hr = pDevice->CreateBuffer( &d3dConstantBufferDesc, nullptr, iMaterialConstantBuffer.GetAddressOf() );
+			hr = pDevice->CreateBuffer( &bufferDesc, nullptr, iMaterialConstantBuffer.GetAddressOf() );
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
 		}
 		// Create VertexShader and InputLayout
@@ -164,7 +196,7 @@ namespace Donya
 				"SkinnedMeshVS.cso", "rb",
 				iVertexShader.GetAddressOf(),
 				iInputLayout.GetAddressOf(),
-				const_cast<D3D11_INPUT_ELEMENT_DESC *>( d3d11InputElementsDesc ),
+				d3d11InputElementsDesc,
 				_countof( d3d11InputElementsDesc ),
 				/* enableCache = */ true
 			);
@@ -221,8 +253,6 @@ namespace Donya
 		}
 		// Create Texture
 		{
-			subsets = loadedSubsets;
-
 			D3D11_SAMPLER_DESC samplerDesc{};
 			samplerDesc.Filter			= D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 			samplerDesc.AddressU		= D3D11_TEXTURE_ADDRESS_WRAP;
@@ -273,40 +303,31 @@ namespace Donya
 				}
 			};
 
-			size_t subsetCount = subsets.size();
-			for ( size_t i = 0; i < subsetCount; ++i )
+			size_t meshCount = meshes.size();
+			for ( size_t i = 0; i < meshCount; ++i )
 			{
-				CreateSamplerAndTextures( &subsets[i].ambient	);
-				CreateSamplerAndTextures( &subsets[i].bump		);
-				CreateSamplerAndTextures( &subsets[i].diffuse	);
-				CreateSamplerAndTextures( &subsets[i].emissive	);
-				CreateSamplerAndTextures( &subsets[i].specular	);
+				size_t subsetCount = meshes[i].subsets.size();
+				for ( size_t j = 0; j < subsetCount; ++j )
+				{
+					CreateSamplerAndTextures( &meshes[i].subsets[j].ambient		);
+					CreateSamplerAndTextures( &meshes[i].subsets[j].bump		);
+					CreateSamplerAndTextures( &meshes[i].subsets[j].diffuse		);
+					CreateSamplerAndTextures( &meshes[i].subsets[j].emissive	);
+					CreateSamplerAndTextures( &meshes[i].subsets[j].specular	);
+				}
 			}
 		}
 	}
 	SkinnedMesh::~SkinnedMesh()
 	{
-		subsets.clear();
-		subsets.shrink_to_fit();
+		meshes.clear();
+		meshes.shrink_to_fit();
 	}
 
 	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
 	{
 		HRESULT hr = S_OK;
 		ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
-
-		// Update Subresource
-		{
-			ConstantBuffer cb;
-			cb.worldViewProjection	= worldViewProjection;
-			cb.world				= world;
-			cb.lightColor			= lightColor;
-			cb.lightDir				= lightDirection;
-			// cb.eyePosition			= eyePosition;
-			pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
-		}
-		pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
-		pImmediateContext->PSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
 
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState>	prevRasterizerState;
 		Microsoft::WRL::ComPtr<ID3D11SamplerState>		prevSamplerState;
@@ -333,10 +354,13 @@ namespace Donya
 			CS...ComputeShader
 			*/
 
+			/* moved to under.
 			UINT stride = sizeof( Vertex );
 			UINT offset = 0;
 			pImmediateContext->IASetVertexBuffers( 0, 1, iVertexBuffer.GetAddressOf(), &stride, &offset );
 			pImmediateContext->IASetIndexBuffer( iIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
+			*/
+
 			pImmediateContext->IASetInputLayout( iInputLayout.Get() );
 			pImmediateContext->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 
@@ -354,38 +378,72 @@ namespace Donya
 		}
 
 
-		size_t subsetCount = subsets.size();
-		for ( size_t i = 0; i < subsetCount; ++i )
+		size_t meshCount = meshes.size();
+		for ( size_t i = 0; i < meshCount; ++i )
 		{
-			auto &subset = subsets[i];
+			auto &mesh = meshes[i];
 
 			// Update Subresource
 			{
-				MaterialConstantBuffer mtlCB{};
-				mtlCB.ambient	= subset.ambient.color;
-				mtlCB.bump		= subset.bump.color;
-				mtlCB.diffuse	= subset.diffuse.color;
-				mtlCB.emissive	= subset.emissive.color;
-				mtlCB.specular	= subset.specular.color;
+				auto MultiFloat4x4 =
+				[]( const DirectX::XMFLOAT4X4 &lhs, const DirectX::XMFLOAT4X4 &rhs )
+				->DirectX::XMFLOAT4X4
+				{
+					DirectX::XMFLOAT4X4 rv{};
+					DirectX::XMStoreFloat4x4
+					(
+						&rv,
+						DirectX::XMLoadFloat4x4( &lhs ) * DirectX::XMLoadFloat4x4( &rhs )
+					);
+					return rv;
+				};
 
-				pImmediateContext->UpdateSubresource( iMaterialConstantBuffer.Get(), 0, nullptr, &mtlCB, 0, 0 );
+				ConstantBuffer cb;
+				cb.worldViewProjection	= MultiFloat4x4( mesh.globalTransform, worldViewProjection );
+				cb.world				= MultiFloat4x4( mesh.globalTransform, world );
+				cb.lightColor			= lightColor;
+				cb.lightDir				= lightDirection;
+				// cb.eyePosition			= eyePosition;
+				pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 			}
-			pImmediateContext->VSSetConstantBuffers( 1, 1, iMaterialConstantBuffer.GetAddressOf() );
-			pImmediateContext->PSSetConstantBuffers( 1, 1, iMaterialConstantBuffer.GetAddressOf() );
+			pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
+			pImmediateContext->PSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
 
-			// TODO:diffuse以外のものも適用する
+			UINT stride = sizeof( Vertex );
+			UINT offset = 0;
+			pImmediateContext->IASetVertexBuffers( 0, 1, mesh.iVertexBuffer.GetAddressOf(), &stride, &offset );
+			pImmediateContext->IASetIndexBuffer( mesh.iIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
 
-			pImmediateContext->PSSetSamplers( 0, 1, subset.diffuse.iSampler.GetAddressOf() );
-
-			size_t texCount = subset.diffuse.textures.size();
-			for ( size_t j = 0; j < texCount; ++j )
+			size_t subsetCount = mesh.subsets.size();
+			for ( size_t j = 0; j < subsetCount; ++j )
 			{
-				pImmediateContext->PSSetShaderResources( 0, 1, subset.diffuse.textures[j].iSRV.GetAddressOf() );
+				auto &subset = mesh.subsets[j];
+				// Update Subresource
+				{
+					MaterialConstantBuffer mtlCB{};
+					mtlCB.ambient	= subset.ambient.color;
+					mtlCB.bump		= subset.bump.color;
+					mtlCB.diffuse	= subset.diffuse.color;
+					mtlCB.emissive	= subset.emissive.color;
+					mtlCB.specular	= subset.specular.color;
 
-				pImmediateContext->DrawIndexed( subset.indexCount, subset.indexStart, 0 );
-				
+					pImmediateContext->UpdateSubresource( iMaterialConstantBuffer.Get(), 0, nullptr, &mtlCB, 0, 0 );
+				}
+				pImmediateContext->VSSetConstantBuffers( 1, 1, iMaterialConstantBuffer.GetAddressOf() );
+				pImmediateContext->PSSetConstantBuffers( 1, 1, iMaterialConstantBuffer.GetAddressOf() );
+
+				// TODO:diffuse以外のものも適用する
+
+				pImmediateContext->PSSetSamplers( 0, 1, subset.diffuse.iSampler.GetAddressOf() );
+
+				size_t texCount = subset.diffuse.textures.size();
+				for ( size_t j = 0; j < texCount; ++j )
+				{
+					pImmediateContext->PSSetShaderResources( 0, 1, subset.diffuse.textures[j].iSRV.GetAddressOf() );
+
+					pImmediateContext->DrawIndexed( subset.indexCount, subset.indexStart, 0 );
+				}
 			}
-			//break;
 		}
 
 		// PostProcessing

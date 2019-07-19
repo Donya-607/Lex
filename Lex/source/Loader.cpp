@@ -160,13 +160,15 @@ namespace Donya
 		std::vector<FBX::FbxNode *> fetchedMeshes{};
 		Traverse( pScene->GetRootNode(), &fetchedMeshes );
 
-		size_t end = 1; // fetchedMeshes.size();
-		for ( size_t i = 0; i < end; ++i )
+		size_t meshCount = fetchedMeshes.size();
+		meshes.resize( meshCount );
+		for ( size_t i = 0; i < meshCount; ++i )
 		{
 			FBX::FbxMesh *pMesh = fetchedMeshes[i]->GetMesh();
 
-			FetchVertices( pMesh );
-			FetchMaterial( pMesh );
+			FetchVertices( i, pMesh );
+			FetchMaterial( i, pMesh );
+			FetchGlobalTransform( i, pMesh );
 		}
 
 		Uninitialize();
@@ -196,13 +198,15 @@ namespace Donya
 		fileName = GetUTF8FullPath( filePath, FILE_PATH_LENGTH );
 	}
 
-	void Loader::FetchVertices( const FBX::FbxMesh *pMesh )
+	void Loader::FetchVertices( size_t meshIndex, const FBX::FbxMesh *pMesh )
 	{
 		const FBX::FbxVector4 *pControlPointsArray = pMesh->GetControlPoints();
 		const int mtlCount = pMesh->GetNode()->GetMaterialCount();
 		const int polygonCount = pMesh->GetPolygonCount();
 
-		subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
+		auto &mesh = meshes[meshIndex];
+
+		mesh.subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
 
 		// Calculate subsets start index(not optimized).
 		if ( mtlCount )
@@ -211,12 +215,12 @@ namespace Donya
 			for ( int i = 0; i < polygonCount; ++i )
 			{
 				int mtlIndex = pMesh->GetElementMaterial()->GetIndexArray().GetAt( i );
-				subsets[mtlIndex].indexCount += 3;
+				mesh.subsets[mtlIndex].indexCount += 3;
 			}
 
 			// Record the offset (how many vertex)
 			int offset = 0;
-			for ( auto &subset : subsets )
+			for ( auto &subset : mesh.subsets )
 			{
 				subset.indexStart = offset;
 				offset += subset.indexCount;
@@ -236,7 +240,7 @@ namespace Donya
 			}
 
 			// Where should I save the vertex attribute index, according to the material.
-			auto &subset = subsets[mtlIndex];
+			auto &subset = mesh.subsets[mtlIndex];
 			int indexOffset = subset.indexStart + subset.indexCount;
 
 			FBX::FbxVector4	fbxNormal;
@@ -278,7 +282,7 @@ namespace Donya
 		}
 	}
 
-	void Loader::FetchMaterial( const FBX::FbxMesh *pMesh )
+	void Loader::FetchMaterial( size_t meshIndex, const FBX::FbxMesh *pMesh )
 	{
 		FBX::FbxNode *pNode = pMesh->GetNode();
 		if ( !pNode ) { return; }
@@ -294,11 +298,11 @@ namespace Donya
 			if ( !pMaterial ) { continue; }
 			// else
 
-			AnalyseProperty( i, pMaterial );
+			AnalyseProperty( meshIndex, i, pMaterial );
 		}
 	}
 
-	void Loader::AnalyseProperty( int mtlIndex, FBX::FbxSurfaceMaterial *pMaterial )
+	void Loader::AnalyseProperty( size_t meshIndex, int mtlIndex, FBX::FbxSurfaceMaterial *pMaterial )
 	{
 		enum MATERIAL_TYPE
 		{
@@ -371,7 +375,7 @@ namespace Donya
 			}
 		};
 		
-		auto &subset = subsets[mtlIndex];
+		auto &subset = meshes[meshIndex].subsets[mtlIndex];
 
 		FetchMaterialParam
 		(
@@ -431,6 +435,22 @@ namespace Donya
 			subset.transparency		= 0.0f;
 			subset.specular.color	= Donya::Vector4{ 0.0f, 0.0f, 0.0f, 0.0f };
 		}
+	}
+
+	void ConvertFloat4x4( DirectX::XMFLOAT4X4 *pOutput, const FBX::FbxAMatrix &affineMatrix )
+	{
+		for ( int r = 0; r < 4; ++r )
+		{
+			for ( int c = 0; c < 4; ++c )
+			{
+				pOutput->m[r][c] = scast<float>( affineMatrix[r][c] );
+			}
+		}
+	}
+	void Loader::FetchGlobalTransform( size_t meshIndex, const fbxsdk::FbxMesh *pMesh )
+	{
+		FBX::FbxAMatrix globalTransform = pMesh->GetNode()->EvaluateGlobalTransform( 0 );
+		ConvertFloat4x4( &meshes[meshIndex].globalTransform, globalTransform );
 	}
 
 	#if USE_IMGUI
@@ -498,76 +518,87 @@ namespace Donya
 
 		if ( ImGui::TreeNode( "Materials" ) )
 		{
-			size_t subsetEnd = subsets.size();
-			for ( size_t i = 0; i < subsetEnd; ++i )
+			size_t meshCount = meshes.size();
+			for ( size_t i = 0; i < meshCount; ++i )
 			{
-				auto &subset = subsets[i];
-				std::string caption = "Subsets[" + std::to_string( i ) + "]";
-				if ( ImGui::TreeNode( caption.c_str() ) )
+				const auto &mesh = meshes[i];
+				std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
+				if ( ImGui::TreeNode( meshCaption.c_str() ) )
 				{
-					auto ShowMaterialContain =
-					[]( const Loader::Material &mtl )
+					size_t subsetCount = mesh.subsets.size();
+					for ( size_t j = 0; j < subsetCount; ++j )
 					{
-						ImGui::Text
-						(
-							"Color:[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]",
-							mtl.color.x, mtl.color.y, mtl.color.z, mtl.color.w
-						);
-
-						size_t end = mtl.textureNames.size();
-						for ( size_t i = 0; i < end; ++i )
+						const Subset &subset = mesh.subsets[j];
+						std::string subsetCaption = "Subset[" + std::to_string( j ) + "]";
+						if ( ImGui::TreeNode( subsetCaption.c_str() ) )
 						{
-							ImGui::Text
-							(
-								"Texture No.%d:[%s]",
-								i, mtl.textureNames[i].c_str()
-							);
+							auto ShowMaterialContain =
+							[]( const Loader::Material &mtl )
+							{
+								ImGui::Text
+								(
+									"Color:[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]",
+									mtl.color.x, mtl.color.y, mtl.color.z, mtl.color.w
+								);
+
+								size_t end = mtl.textureNames.size();
+								for ( size_t i = 0; i < end; ++i )
+								{
+									ImGui::Text
+									(
+										"Texture No.%d:[%s]",
+										i, mtl.textureNames[i].c_str()
+									);
+								}
+							};
+
+							if ( ImGui::TreeNode( "Ambient" ) )
+							{
+								ShowMaterialContain( subset.ambient );
+
+								ImGui::TreePop();
+							}
+
+							if ( ImGui::TreeNode( "Bump" ) )
+							{
+								ShowMaterialContain( subset.bump );
+
+								ImGui::TreePop();
+							}
+
+							if ( ImGui::TreeNode( "Diffuse" ) )
+							{
+								ShowMaterialContain( subset.diffuse );
+
+								ImGui::TreePop();
+							}
+
+							if ( ImGui::TreeNode( "Emissive" ) )
+							{
+								ShowMaterialContain( subset.emissive );
+
+								ImGui::TreePop();
+							}
+
+							if ( ImGui::TreeNode( "Specular" ) )
+							{
+								ShowMaterialContain( subset.specular );
+
+								ImGui::TreePop();
+							}
+
+							ImGui::Text( "Transparency:[%6.3f]", subset.transparency );
+
+							ImGui::Text( "Reflection:[%6.3f]", subset.reflection );
+
+							ImGui::TreePop();
 						}
-					};
-
-					if ( ImGui::TreeNode( "Ambient" ) )
-					{
-						ShowMaterialContain( subset.ambient );
-
-						ImGui::TreePop();
-					}
-
-					if ( ImGui::TreeNode( "Bump" ) )
-					{
-						ShowMaterialContain( subset.bump );
-
-						ImGui::TreePop();
-					}
-
-					if ( ImGui::TreeNode( "Diffuse" ) )
-					{
-						ShowMaterialContain( subset.diffuse );
-
-						ImGui::TreePop();
-					}
-
-					if ( ImGui::TreeNode( "Emissive" ) )
-					{
-						ShowMaterialContain( subset.emissive );
-
-						ImGui::TreePop();
-					}
-
-					if ( ImGui::TreeNode( "Specular" ) )
-					{
-						ShowMaterialContain( subset.specular );
-
-						ImGui::TreePop();
-					}
-
-					ImGui::Text( "Transparency:[%6.3f]", subset.transparency );
-
-					ImGui::Text( "Reflectivity:[%6.3f]", subset.reflection );
+					} // subsets loop.
 
 					ImGui::TreePop();
 				}
-			}
-			
+			} // meshes loop.
+
 			ImGui::TreePop();
 		}
 	}
