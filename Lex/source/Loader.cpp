@@ -19,18 +19,15 @@ namespace Donya
 {
 	Loader::Loader() :
 		vertexCount( 0 ),
-		fileName(),
-		indices(),
-		normals(),
-		positions()
+		fileName(), fileDirectory(),
+		meshes()
 	{
 
 	}
 	Loader::~Loader()
 	{
-		std::vector<size_t>().swap( indices );
-		std::vector<Donya::Vector3>().swap( positions );
-		std::vector<Donya::Vector3>().swap( normals );
+		meshes.clear();
+		meshes.shrink_to_fit();
 	}
 
 	Donya::Vector2 Convert( const FBX::FbxDouble2 &source )
@@ -229,7 +226,7 @@ namespace Donya
 			}
 		}
 
-		indices.resize( polygonCount * 3 );
+		mesh.indices.resize( ( polygonCount * 3 ) );
 		for ( int polyIndex = 0; polyIndex < polygonCount; ++polyIndex )
 		{
 			// The material for current face.
@@ -259,11 +256,11 @@ namespace Donya
 				position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
 				position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
 
-				normals.push_back( normal );
-				positions.push_back( position );
+				mesh.normals.push_back( normal );
+				mesh.positions.push_back( position );
 
 				// indices.push_back( vertexCount++ );
-				indices[indexOffset + v] = vertexCount++;
+				mesh.indices[indexOffset + v] = vertexCount++;
 			}
 
 			subset.indexCount += size;
@@ -278,7 +275,7 @@ namespace Donya
 		{
 			float x = scast<float>( uvs[i].mData[0] );
 			float y = 1.0f - scast<float>( uvs[i].mData[1] );
-			texCoords.push_back( Donya::Vector2{ x, y } );
+			mesh.texCoords.push_back( Donya::Vector2{ x, y } );
 		}
 	}
 
@@ -456,74 +453,75 @@ namespace Donya
 	#if USE_IMGUI
 	void Loader::EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const
 	{
-		// ImVec2 childFrameSize( 512.0f, 256.0f );
+		ImVec2 childFrameSize( 0.0f, 0.0f );
 
-		if ( ImGui::TreeNode( "Positions" ) )
+		size_t meshCount = meshes.size();
+		for ( size_t i = 0; i < meshCount; ++i )
 		{
-			auto &ref = positions;
-
-			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-			size_t end = ref.size();
-			for ( size_t i = 0; i < end; ++i )
+			const auto &mesh = meshes[i];
+			std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
+			if ( ImGui::TreeNode( meshCaption.c_str() ) )
 			{
-				ImGui::Text ( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
-			}
-			// ImGui::EndChild();
+				if ( ImGui::TreeNode( "Positions" ) )
+				{
+					auto &ref = mesh.positions;
 
-			ImGui::TreePop();
-		}
+					ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+					size_t end = ref.size();
+					for ( size_t i = 0; i < end; ++i )
+					{
+						ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
+					}
+					ImGui::EndChild();
 
-		if ( ImGui::TreeNode( "Normals" ) )
-		{
-			auto &ref = normals;
+					ImGui::TreePop();
+				}
 
-			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-			size_t end = ref.size();
-			for ( size_t i = 0; i < end; ++i )
-			{
-				ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
-			}
-			// ImGui::EndChild();
+				if ( ImGui::TreeNode( "Normals" ) )
+				{
+					auto &ref = mesh.normals;
 
-			ImGui::TreePop();
-		}
+					ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+					size_t end = ref.size();
+					for ( size_t i = 0; i < end; ++i )
+					{
+						ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
+					}
+					ImGui::EndChild();
 
-		if ( ImGui::TreeNode( "Indices" ) )
-		{
-			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-			size_t end = indices.size();
-			for ( size_t i = 0; i < end; ++i )
-			{
-				ImGui::Text( "[No:%d][%d]", i, indices[i] );
-			}
-			// ImGui::EndChild();
+					ImGui::TreePop();
+				}
 
-			ImGui::TreePop();
-		}
+				if ( ImGui::TreeNode( "Indices" ) )
+				{
+					ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+					size_t end = mesh.indices.size();
+					for ( size_t i = 0; i < end; ++i )
+					{
+						ImGui::Text( "[No:%d][%d]", i, mesh.indices[i] );
+					}
+					ImGui::EndChild();
 
-		if ( ImGui::TreeNode( "TexCoords" ) )
-		{
-			auto &ref = texCoords;
+					ImGui::TreePop();
+				}
 
-			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-			size_t end = ref.size();
-			for ( size_t i = 0; i < end; ++i )
-			{
-				ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f]", i, ref[i].x, ref[i].y );
-			}
-			// ImGui::EndChild();
+				if ( ImGui::TreeNode( "TexCoords" ) )
+				{
+					auto &ref = mesh.texCoords;
 
-			ImGui::TreePop();
-		}
+					ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+					size_t end = ref.size();
+					for ( size_t i = 0; i < end; ++i )
+					{
+						ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f]", i, ref[i].x, ref[i].y );
+					
+					}
+					ImGui::EndChild();
 
-		if ( ImGui::TreeNode( "Materials" ) )
-		{
-			size_t meshCount = meshes.size();
-			for ( size_t i = 0; i < meshCount; ++i )
-			{
-				const auto &mesh = meshes[i];
-				std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
-				if ( ImGui::TreeNode( meshCaption.c_str() ) )
+					ImGui::TreePop();
+				}
+
+				if ( ImGui::TreeNode( "Materials" ) )
 				{
 					size_t subsetCount = mesh.subsets.size();
 					for ( size_t j = 0; j < subsetCount; ++j )
@@ -597,10 +595,10 @@ namespace Donya
 
 					ImGui::TreePop();
 				}
-			} // meshes loop.
 
-			ImGui::TreePop();
-		}
+				ImGui::TreePop();
+			}
+		} // meshes loop.
 	}
 	#endif // USE_IMGUI
 }

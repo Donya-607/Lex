@@ -69,8 +69,12 @@ namespace Donya
 
 		struct Mesh
 		{
-			DirectX::XMFLOAT4X4 globalTransform;
-			std::vector<Subset> subsets;
+			DirectX::XMFLOAT4X4			globalTransform;
+			std::vector<Subset>			subsets;
+			std::vector<size_t>			indices;
+			std::vector<Donya::Vector3>	normals;
+			std::vector<Donya::Vector3>	positions;
+			std::vector<Donya::Vector2>	texCoords;
 		public:
 			Mesh() : globalTransform
 			(
@@ -81,19 +85,15 @@ namespace Donya
 					0, 0, 0, 1
 				}
 			),
-			subsets()
+			subsets(), indices(), normals(), positions(), texCoords()
 			{}
 			Mesh( const Mesh & ) = default;
 		};
 	private:
-		size_t						vertexCount;	// 0 based.
-		std::string					fileName;
-		std::string					fileDirectory;	// '/' terminated.
-		std::vector<size_t>			indices;
-		std::vector<Donya::Vector3>	normals;
-		std::vector<Donya::Vector3>	positions;
-		std::vector<Donya::Vector2>	texCoords;
-		std::vector<Mesh>			meshes;
+		size_t				vertexCount;	// 0 based.
+		std::string			fileName;
+		std::string			fileDirectory;	// '/' terminated.
+		std::vector<Mesh>	meshes;
 	public:
 		Loader();
 		~Loader();
@@ -104,11 +104,7 @@ namespace Donya
 		bool Load( const std::string &filePath, std::string *outputErrorString );
 	public:
 		std::string GetFileName() const { return fileName; }
-		const std::vector<size_t>			*GetIndices() const { return &indices; }
-		const std::vector<Donya::Vector3>	*GetNormals() const { return &normals; }
-		const std::vector<Donya::Vector3>	*GetPositions() const { return &positions; }
-		const std::vector<Donya::Vector2>	*GetTexCoords() const { return &texCoords; }
-		const std::vector<Mesh>				*GetMeshes() const { return &meshes; }
+		const std::vector<Mesh> *GetMeshes() const { return &meshes; }
 	private:
 		void MakeFileName( const std::string &filePath );
 

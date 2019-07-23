@@ -397,6 +397,17 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
 		}
 	}
+	if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( 'F' ) && meshes.empty() )
+	{
+		constexpr const char *BLUE_FALCON = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\BLue Falcon\\Blue Falcon.FBX";
+
+		meshes.push_back( {} );
+		bool result = meshes.back().loader.Load( BLUE_FALCON, nullptr );
+		if ( result )
+		{
+			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+		}
+	}
 	if ( Donya::Keyboard::Trigger( 'Q' ) && !meshes.empty() )
 	{
 		meshes.pop_back();

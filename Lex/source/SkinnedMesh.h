@@ -90,8 +90,8 @@ namespace Donya
 		struct Mesh
 		{
 			DirectX::XMFLOAT4X4 globalTransform;
-			Microsoft::WRL::ComPtr<ID3D11Buffer> iVertexBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> iIndexBuffer;
+			Microsoft::WRL::ComPtr<ID3D11Buffer> iVertexBuffer;
 			std::vector<Subset> subsets;
 		public:
 			Mesh() : globalTransform
@@ -108,7 +108,6 @@ namespace Donya
 			Mesh( const Mesh & ) = default;
 		};
 	private:
-		size_t vertexCount;
 	#define	COM_PTR Microsoft::WRL::ComPtr
 		COM_PTR<ID3D11Buffer>				iConstantBuffer;
 		COM_PTR<ID3D11Buffer>				iMaterialConstantBuffer;
@@ -121,7 +120,7 @@ namespace Donya
 	#undef	COM_PTR
 		std::vector<Mesh> meshes;
 	public:
-		SkinnedMesh( const std::vector<size_t> &indices, const std::vector<SkinnedMesh::Vertex> &vertices, const std::vector<SkinnedMesh::Mesh> &loadedMeshes );
+		SkinnedMesh( const std::vector<std::vector<size_t>> &allMeshesIndex, const std::vector<std::vector<SkinnedMesh::Vertex>> &allMeshesVertices, const std::vector<SkinnedMesh::Mesh> &loadedMeshes );
 		~SkinnedMesh();
 	public:
 		void Render

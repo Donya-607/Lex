@@ -20,42 +20,46 @@ namespace Donya
 		if ( !loader || !ppOutput ) { return false; }
 		// else
 
-		const std::vector<size_t> *pIndices = loader->GetIndices();
-		std::vector<Vertex> vertices{};
-		{
-			const std::vector<Donya::Vector3> *normals   = loader->GetNormals();
-			const std::vector<Donya::Vector3> *positions = loader->GetPositions();
-			const std::vector<Donya::Vector2> *texCoords = loader->GetTexCoords();
+		const std::vector<Loader::Mesh> *pLoadedMeshes = loader->GetMeshes();
+		size_t loadedMeshCount = pLoadedMeshes->size();
 
-			vertices.resize( max( normals->size(), positions->size() ) );
-			size_t end = vertices.size();
-			for ( size_t i = 0; i < end; ++i )
-			{
-				vertices[i].normal		= scast<DirectX::XMFLOAT3>( ( *normals   )[i] );
-				vertices[i].pos			= scast<DirectX::XMFLOAT3>( ( *positions )[i] );
-
-				if ( i < texCoords->size() )
-				{
-					vertices[i].texCoord = scast<DirectX::XMFLOAT2>( ( *texCoords )[i] );
-				}
-				else
-				{
-					vertices[i].texCoord = { 0, 0 };
-				}
-			}
-		}
-
-		auto *loadedMeshes = loader->GetMeshes();
-		size_t meshCount = loadedMeshes->size();
+		std::vector<std::vector<size_t>> argIndices{};
+		std::vector<std::vector<Vertex>> argVertices{};
 
 		std::vector<SkinnedMesh::Mesh> meshes{};
-		meshes.resize( meshCount );
-		for ( size_t i = 0; i < meshCount; ++i )
+		meshes.resize( loadedMeshCount );
+		for ( size_t i = 0; i < loadedMeshCount; ++i )
 		{
-			auto &loadedMesh = ( *loadedMeshes )[i];
+			auto &loadedMesh = ( *pLoadedMeshes )[i];
 
 			meshes[i].globalTransform = loadedMesh.globalTransform;
 
+			std::vector<Vertex> vertices{};
+			{
+				const std::vector<Donya::Vector3> *normals   = &loadedMesh.normals;
+				const std::vector<Donya::Vector3> *positions = &loadedMesh.positions;
+				const std::vector<Donya::Vector2> *texCoords = &loadedMesh.texCoords;
+
+				vertices.resize( max( normals->size(), positions->size() ) );
+				size_t end = vertices.size();
+				for ( size_t j = 0; j < end; ++j )
+				{
+					vertices[j].normal		= ( *normals   )[j];
+					vertices[j].pos			= ( *positions )[j];
+
+					if ( j < texCoords->size() )
+					{
+						vertices[j].texCoord = ( *texCoords )[j];
+					}
+					else
+					{
+						vertices[j].texCoord = { 0, 0 };
+					}
+				}
+			}
+			argVertices.emplace_back( vertices );
+			argIndices.emplace_back( loadedMesh.indices );
+			
 			size_t subsetCount = loadedMesh.subsets.size();
 			meshes[i].subsets.resize( subsetCount );
 			for ( size_t j = 0; j < subsetCount; ++j )
@@ -89,13 +93,13 @@ namespace Donya
 				FetchMaterialContain( &mySubset.emissive,	loadedSubset.emissive	);
 				FetchMaterialContain( &mySubset.specular,	loadedSubset.specular	);
 			}
-		}
+		} // meshs loop
 
 		*ppOutput =
 		std::make_unique<SkinnedMesh>
 		(
-			*pIndices,
-			vertices,
+			argIndices,
+			argVertices,
 			meshes
 		);
 
@@ -104,8 +108,8 @@ namespace Donya
 
 #endif // IS_SUPPORT_LEX_LOADER
 
-	SkinnedMesh::SkinnedMesh( const std::vector<size_t> &indices, const std::vector<Vertex> &vertices, const std::vector<Mesh> &loadedMeshes )
-		: vertexCount( vertexCount ), meshes()
+	SkinnedMesh::SkinnedMesh( const std::vector<std::vector<size_t>> &allIndices, const std::vector<std::vector<Vertex>> &allVertices, const std::vector<Mesh> &loadedMeshes )
+		: meshes()
 	{
 		HRESULT hr = S_OK;
 		ID3D11Device *pDevice = Donya::GetDevice();
@@ -117,7 +121,7 @@ namespace Donya
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
 			D3D11_BUFFER_DESC bufferDesc{};
-			bufferDesc.ByteWidth			= sizeof( Vertex ) * vertices.size();
+			bufferDesc.ByteWidth			= sizeof( Vertex ) * allVertices[i].size();
 			bufferDesc.Usage				= D3D11_USAGE_IMMUTABLE;
 			bufferDesc.BindFlags			= D3D11_BIND_VERTEX_BUFFER;
 			bufferDesc.CPUAccessFlags		= 0;
@@ -125,7 +129,7 @@ namespace Donya
 			bufferDesc.StructureByteStride	= 0;
 
 			D3D11_SUBRESOURCE_DATA subResource{};
-			subResource.pSysMem				= vertices.data();
+			subResource.pSysMem				= allVertices[i].data();
 			subResource.SysMemPitch			= 0;
 			subResource.SysMemSlicePitch	= 0;
 
@@ -141,7 +145,7 @@ namespace Donya
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
 			D3D11_BUFFER_DESC bufferDesc{};
-			bufferDesc.ByteWidth			= sizeof( size_t ) * indices.size();
+			bufferDesc.ByteWidth			= sizeof( size_t ) * allIndices[i].size();
 			bufferDesc.Usage				= D3D11_USAGE_IMMUTABLE;
 			bufferDesc.BindFlags			= D3D11_BIND_INDEX_BUFFER;
 			bufferDesc.CPUAccessFlags		= 0;
@@ -149,11 +153,9 @@ namespace Donya
 			bufferDesc.StructureByteStride	= 0;
 
 			D3D11_SUBRESOURCE_DATA subResource{};
-			subResource.pSysMem				= indices.data();
+			subResource.pSysMem				= allIndices[i].data();
 			subResource.SysMemPitch			= 0;
 			subResource.SysMemSlicePitch	= 0;
-
-			vertexCount = indices.size();
 
 			hr = pDevice->CreateBuffer
 			(
@@ -376,7 +378,6 @@ namespace Donya
 
 			pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xffffffff );
 		}
-
 
 		size_t meshCount = meshes.size();
 		for ( size_t i = 0; i < meshCount; ++i )
