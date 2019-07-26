@@ -15,6 +15,7 @@
 namespace Donya
 {
 	void SetShowStateOfImGui( bool isAllow );
+	void TogguleShowStateOfImGui();
 
 	/// <summary>
 	/// In release build, returns false.

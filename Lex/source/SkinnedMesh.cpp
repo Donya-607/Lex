@@ -36,20 +36,20 @@ namespace Donya
 
 			std::vector<Vertex> vertices{};
 			{
-				const std::vector<Donya::Vector3> *normals   = &loadedMesh.normals;
-				const std::vector<Donya::Vector3> *positions = &loadedMesh.positions;
-				const std::vector<Donya::Vector2> *texCoords = &loadedMesh.texCoords;
+				const std::vector<Donya::Vector3> &normals   = loadedMesh.normals;
+				const std::vector<Donya::Vector3> &positions = loadedMesh.positions;
+				const std::vector<Donya::Vector2> &texCoords = loadedMesh.texCoords;
 
-				vertices.resize( max( normals->size(), positions->size() ) );
+				vertices.resize( max( normals.size(), positions.size() ) );
 				size_t end = vertices.size();
 				for ( size_t j = 0; j < end; ++j )
 				{
-					vertices[j].normal		= ( *normals   )[j];
-					vertices[j].pos			= ( *positions )[j];
+					vertices[j].normal		= normals[j];
+					vertices[j].pos			= positions[j];
 
-					if ( j < texCoords->size() )
+					if ( j < texCoords.size() )
 					{
-						vertices[j].texCoord = ( *texCoords )[j];
+						vertices[j].texCoord = texCoords[j];
 					}
 					else
 					{
@@ -92,6 +92,7 @@ namespace Donya
 				FetchMaterialContain( &mySubset.diffuse,	loadedSubset.diffuse	);
 				FetchMaterialContain( &mySubset.emissive,	loadedSubset.emissive	);
 				FetchMaterialContain( &mySubset.specular,	loadedSubset.specular	);
+				mySubset.specular.color.w = loadedSubset.specular.color.w;
 			}
 		} // meshs loop
 
@@ -109,7 +110,7 @@ namespace Donya
 #endif // IS_SUPPORT_LEX_LOADER
 
 	SkinnedMesh::SkinnedMesh( const std::vector<std::vector<size_t>> &allIndices, const std::vector<std::vector<Vertex>> &allVertices, const std::vector<Mesh> &loadedMeshes )
-		: meshes()
+		: meshes(), iConstantBuffer(), iMaterialConstantBuffer(), iInputLayout(), iVertexShader(), iPixelShader(), iRasterizerStateWire(), iRasterizerStateSurface(), iDepthStencilState()
 	{
 		HRESULT hr = S_OK;
 		ID3D11Device *pDevice = Donya::GetDevice();
@@ -340,7 +341,7 @@ namespace Donya
 			pImmediateContext->OMGetDepthStencilState( prevDepthStencilState.ReleaseAndGetAddressOf(), 0 );
 		}
 
-		// Settings
+		// Commmon Settings
 		{
 			/*
 			IA...InputAssembler
@@ -356,16 +357,9 @@ namespace Donya
 			CS...ComputeShader
 			*/
 
-			/* moved to under.
-			UINT stride = sizeof( Vertex );
-			UINT offset = 0;
-			pImmediateContext->IASetVertexBuffers( 0, 1, iVertexBuffer.GetAddressOf(), &stride, &offset );
-			pImmediateContext->IASetIndexBuffer( iIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
-			*/
-
 			pImmediateContext->IASetInputLayout( iInputLayout.Get() );
 			pImmediateContext->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
-
+			
 			pImmediateContext->VSSetShader( iVertexShader.Get(), nullptr, 0 );
 
 			ID3D11RasterizerState	*ppRasterizerState
@@ -441,7 +435,7 @@ namespace Donya
 				for ( size_t j = 0; j < texCount; ++j )
 				{
 					pImmediateContext->PSSetShaderResources( 0, 1, subset.diffuse.textures[j].iSRV.GetAddressOf() );
-
+					
 					pImmediateContext->DrawIndexed( subset.indexCount, subset.indexStart, 0 );
 				}
 			}

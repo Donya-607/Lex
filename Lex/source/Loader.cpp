@@ -66,7 +66,8 @@ namespace Donya
 		FBX::FbxNodeAttribute *pNodeAttr = pNode->GetNodeAttribute();
 		if ( pNodeAttr )
 		{
-			switch ( pNodeAttr->GetAttributeType() )
+			auto eType = pNodeAttr->GetAttributeType();
+			switch ( eType )
 			{
 			case FBX::FbxNodeAttribute::eMesh:
 				{
@@ -78,7 +79,8 @@ namespace Donya
 			}
 		}
 
-		for ( int i = 0; i < pNode->GetChildCount(); ++i )
+		int end = pNode->GetChildCount();
+		for ( int i = 0; i < end; ++i )
 		{
 			Traverse( pNode->GetChild( i ), pFetchedMeshes );
 		}
@@ -203,6 +205,8 @@ namespace Donya
 
 		auto &mesh = meshes[meshIndex];
 
+		vertexCount = 0;
+
 		mesh.subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
 
 		// Calculate subsets start index(not optimized).
@@ -226,7 +230,7 @@ namespace Donya
 			}
 		}
 
-		mesh.indices.resize( ( polygonCount * 3 ) );
+		mesh.indices.resize( polygonCount * 3 );
 		for ( int polyIndex = 0; polyIndex < polygonCount; ++polyIndex )
 		{
 			// The material for current face.
@@ -243,6 +247,7 @@ namespace Donya
 			FBX::FbxVector4	fbxNormal;
 			Donya::Vector3	normal;
 			Donya::Vector3	position;
+
 			size_t size = pMesh->GetPolygonSize( polyIndex );
 			for ( size_t v = 0; v < size; ++v )
 			{
@@ -259,10 +264,9 @@ namespace Donya
 				mesh.normals.push_back( normal );
 				mesh.positions.push_back( position );
 
-				// indices.push_back( vertexCount++ );
-				mesh.indices[indexOffset + v] = vertexCount++;
+				mesh.indices[indexOffset + v] = vertexCount;
+				vertexCount++;
 			}
-
 			subset.indexCount += size;
 		}
 
@@ -526,12 +530,12 @@ namespace Donya
 					size_t subsetCount = mesh.subsets.size();
 					for ( size_t j = 0; j < subsetCount; ++j )
 					{
-						const Subset &subset = mesh.subsets[j];
+						const auto &subset = mesh.subsets[j];
 						std::string subsetCaption = "Subset[" + std::to_string( j ) + "]";
 						if ( ImGui::TreeNode( subsetCaption.c_str() ) )
 						{
 							auto ShowMaterialContain =
-							[]( const Loader::Material &mtl )
+							[this]( const Loader::Material &mtl )
 							{
 								ImGui::Text
 								(
@@ -539,13 +543,25 @@ namespace Donya
 									mtl.color.x, mtl.color.y, mtl.color.z, mtl.color.w
 								);
 
-								size_t end = mtl.textureNames.size();
-								for ( size_t i = 0; i < end; ++i )
+								size_t texCount = mtl.textureNames.size();
+								if ( !texCount )
 								{
+									ImGui::Text( "This material don't have texture." );
+									return;
+								}
+								// else
+								std::string onlyFileName{};
+								for ( size_t i = 0; i < texCount; ++i )
+								{
+									onlyFileName =
+									( mtl.textureNames[i].size() <= fileDirectory.size() )
+									? mtl.textureNames[i]
+									: mtl.textureNames[i].substr( fileDirectory.size() );
+
 									ImGui::Text
 									(
 										"Texture No.%d:[%s]",
-										i, mtl.textureNames[i].c_str()
+										i, onlyFileName.c_str()
 									);
 								}
 							};

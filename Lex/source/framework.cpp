@@ -165,14 +165,14 @@ int Framework::Run()
 
 	ImGui_ImplWin32_Init( hWnd );
 	ImGui_ImplDX11_Init( Donya::GetDevice(), Donya::GetImmediateContext() );
-	//ImGui::StyleColorsClassic();
-	//ImGui::StyleColorsLight();
+	// ImGui::StyleColorsClassic();
+	// ImGui::StyleColorsLight();
 	ImGui::StyleColorsDark();
 
 	ImGuiIO &io = ImGui::GetIO();
-	//io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\meiryo.ttc", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-	io.Fonts->AddFontFromFileTTF( "c:\\Windows\\Fonts\\consolab.ttf", 10.0f, NULL, io.Fonts->GetGlyphRangesJapanese() );
-	//io.Fonts->AddFontFromFileTTF(".\\Inconsolata-Bold.ttf", 12.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+	io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\meiryo.ttc", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+	// io.Fonts->AddFontFromFileTTF( "c:\\Windows\\Fonts\\consolab.ttf", 10.0f, NULL, io.Fonts->GetGlyphRangesJapanese() );
+	// io.Fonts->AddFontFromFileTTF(".\\Inconsolata-Bold.ttf", 12.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
 
 #endif
 
@@ -375,6 +375,11 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		bool breakPoint{};
 	}
 
+	if ( Donya::Keyboard::Trigger( 'T' ) )
+	{
+		Donya::TogguleShowStateOfImGui();
+	}
+
 	if ( Donya::Keyboard::Trigger( '2' ) && meshes.empty() )
 	{
 		constexpr const char *CUBE_02 = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\002_cube.fbx";
@@ -408,6 +413,17 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
 		}
 	}
+	if ( Donya::Keyboard::Press( 'J' ) && Donya::Keyboard::Press( 'I' ) && Donya::Keyboard::Trigger( 'G' ) && meshes.empty() )
+	{
+		constexpr const char *JIGGLYPUFF = "D:\\D-Download\\ASSET_Models\\Free\\Jigglypuff\\Pokemon XY\\Jigglypuff\\Jigglypuff.FBX";
+
+		meshes.push_back( {} );
+		bool result = meshes.back().loader.Load( JIGGLYPUFF, nullptr );
+		if ( result )
+		{
+			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+		}
+	}
 	if ( Donya::Keyboard::Trigger( 'Q' ) && !meshes.empty() )
 	{
 		meshes.pop_back();
@@ -415,7 +431,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 #endif // DEBUG_MODE
 
-	if ( Donya::Keyboard::Trigger( 'F' ) )
+	if ( Donya::Keyboard::Trigger( 'F' ) && !Donya::Keyboard::Press( 'B' ) )
 	{
 		isFillDraw = !isFillDraw;
 	}

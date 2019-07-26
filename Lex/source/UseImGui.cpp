@@ -7,6 +7,11 @@ namespace Donya
 	{
 		isAllowShowingImGui = isAllow;
 	}
+	void TogguleShowStateOfImGui()
+	{
+		isAllowShowingImGui = !isAllowShowingImGui;
+	}
+
 	bool IsAllowShowImGui()
 	{
 		return isAllowShowingImGui;
