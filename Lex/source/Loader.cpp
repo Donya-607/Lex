@@ -18,7 +18,6 @@ namespace FBX = fbxsdk;
 namespace Donya
 {
 	Loader::Loader() :
-		vertexCount( 0 ),
 		fileName(), fileDirectory(),
 		meshes()
 	{
@@ -101,6 +100,48 @@ namespace Donya
 		return std::string{ directory.get() };
 	}
 
+	void FetchBoneInfluences( const fbxsdk::FbxMesh *pMesh, std::vector<Loader::BoneInfluencesPerControlPoint> &influences )
+	{
+		const int ctrlPointCount = pMesh->GetControlPointsCount();
+		influences.resize( ctrlPointCount );
+
+		auto FetchInfluenceFromCluster =
+		[]( std::vector<Loader::BoneInfluencesPerControlPoint> &influences, const FBX::FbxCluster *pCluster, int clustersIndex )
+		{
+			const int		ctrlPointIndicesSize	= pCluster->GetControlPointIndicesCount();
+			const int		*ctrlPointIndices		= pCluster->GetControlPointIndices();
+			const double	*ctrlPointWeights		= pCluster->GetControlPointWeights();
+
+			if ( !ctrlPointIndicesSize || !ctrlPointIndices || !ctrlPointWeights ) { return; }
+			// else
+
+			for ( int i = 0; i < ctrlPointIndicesSize; ++i )
+			{
+				auto	&data	= influences[ctrlPointIndices[i]].cluster;
+				float	weight	= scast<float>( ctrlPointWeights[i] );
+				data.emplace_back( clustersIndex, weight );
+			}
+		};
+		auto FetchClusterFromSkin =
+		[&FetchInfluenceFromCluster]( std::vector<Loader::BoneInfluencesPerControlPoint> &influences, const FBX::FbxSkin *pSkin )
+		{
+			const int clusterCount = pSkin->GetClusterCount();
+			for ( int i = 0; i < clusterCount; ++i )
+			{
+				const FBX::FbxCluster *pCluster = pSkin->GetCluster( i );
+				FetchInfluenceFromCluster( influences, pCluster, i );
+			}
+		};
+
+		const int deformersCount = pMesh->GetDeformerCount( FBX::FbxDeformer::eSkin );
+		for ( int i = 0; i < deformersCount; ++i )
+		{
+			FBX::FbxSkin *pSkin = scast<FBX::FbxSkin *>( pMesh->GetDeformer( i, FBX::FbxDeformer::eSkin ) );
+			
+			FetchClusterFromSkin( influences, pSkin );
+		}
+	}
+
 	bool Loader::Load( const std::string &filePath, std::string *outputErrorString )
 	{
 		fileDirectory = filePath;
@@ -152,12 +193,13 @@ namespace Donya
 		}
 		#pragma endregion
 
-
 		FBX::FbxGeometryConverter geometryConverter( pManager );
 		geometryConverter.Triangulate( pScene, /* replace = */ true );
 
 		std::vector<FBX::FbxNode *> fetchedMeshes{};
 		Traverse( pScene->GetRootNode(), &fetchedMeshes );
+
+		std::vector<BoneInfluencesPerControlPoint> influencesPerCtrlPoints{};
 
 		size_t meshCount = fetchedMeshes.size();
 		meshes.resize( meshCount );
@@ -165,7 +207,10 @@ namespace Donya
 		{
 			FBX::FbxMesh *pMesh = fetchedMeshes[i]->GetMesh();
 
-			FetchVertices( i, pMesh );
+			influencesPerCtrlPoints.clear();
+			FetchBoneInfluences( pMesh, influencesPerCtrlPoints );
+
+			FetchVertices( i, pMesh, influencesPerCtrlPoints );
 			FetchMaterial( i, pMesh );
 			FetchGlobalTransform( i, pMesh );
 		}
@@ -197,15 +242,13 @@ namespace Donya
 		fileName = GetUTF8FullPath( filePath, FILE_PATH_LENGTH );
 	}
 
-	void Loader::FetchVertices( size_t meshIndex, const FBX::FbxMesh *pMesh )
+	void Loader::FetchVertices( size_t meshIndex, const FBX::FbxMesh *pMesh, const std::vector<BoneInfluencesPerControlPoint> &fetchedInfluences )
 	{
 		const FBX::FbxVector4 *pControlPointsArray = pMesh->GetControlPoints();
 		const int mtlCount = pMesh->GetNode()->GetMaterialCount();
 		const int polygonCount = pMesh->GetPolygonCount();
 
 		auto &mesh = meshes[meshIndex];
-
-		vertexCount = 0;
 
 		mesh.subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
 
@@ -230,6 +273,8 @@ namespace Donya
 			}
 		}
 
+		size_t vertexCount = 0;
+
 		mesh.indices.resize( polygonCount * 3 );
 		for ( int polyIndex = 0; polyIndex < polygonCount; ++polyIndex )
 		{
@@ -247,6 +292,7 @@ namespace Donya
 			FBX::FbxVector4	fbxNormal;
 			Donya::Vector3	normal;
 			Donya::Vector3	position;
+			BoneInfluencesPerControlPoint boneInfluences{};
 
 			size_t size = pMesh->GetPolygonSize( polyIndex );
 			for ( size_t v = 0; v < size; ++v )
@@ -260,6 +306,18 @@ namespace Donya
 				position.x = scast<float>( pControlPointsArray[ctrlPointIndex][0] );
 				position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
 				position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
+
+				boneInfluences.cluster.clear();
+				boneInfluences.cluster = fetchedInfluences[ctrlPointIndex].cluster;
+				/*
+				size_t influencesCount = fetchedInfluences[ctrlPointIndex].cluster.size();
+				boneInfluences.cluster.resize( influencesCount );
+				for ( size_t i = 0; i < influencesCount; ++i )
+				{
+					boneInfluences.cluster[i] = fetchedInfluences[ctrlPointIndex].cluster[i];
+				}
+				*/
+				mesh.influences.push_back( boneInfluences );
 
 				mesh.normals.push_back( normal );
 				mesh.positions.push_back( position );
@@ -608,6 +666,36 @@ namespace Donya
 							ImGui::TreePop();
 						}
 					} // subsets loop.
+
+					ImGui::TreePop();
+				}
+
+				if ( ImGui::TreeNode( "Bone" ) )
+				{
+					if ( ImGui::TreeNode( "Influences" ) )
+					{
+						ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+						size_t boneInfluencesCount = mesh.influences.size();
+						for ( size_t v = 0; v < boneInfluencesCount; ++v )
+						{
+							ImGui::Text( "Vertex No[%d]", v );
+
+							auto &data = mesh.influences[v].cluster;
+							size_t containCount = data.size();
+							for ( size_t c = 0; c < containCount; ++c )
+							{
+								ImGui::Text
+								(
+									"\t[Index:%d][Weight[%6.4f]",
+									data[c].index,
+									data[c].weight
+								);
+							}
+						}
+						ImGui::EndChild();
+
+						ImGui::TreePop();
+					}
 
 					ImGui::TreePop();
 				}

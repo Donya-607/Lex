@@ -67,16 +67,44 @@ namespace Donya
 			{}
 		};
 
+		struct BoneInfluence
+		{
+			int		index{};
+			float	weight{};
+		public:
+			BoneInfluence() : index(), weight() {}
+			BoneInfluence( int index, float weight ) : index( index ), weight( weight ) {}
+		};
+		
+		struct BoneInfluencesPerControlPoint
+		{
+			std::vector<BoneInfluence> cluster{};
+		public:
+			BoneInfluencesPerControlPoint() : cluster() {}
+			BoneInfluencesPerControlPoint( const BoneInfluencesPerControlPoint &ref ) : cluster( ref.cluster ) {}
+		};
+
 		struct Mesh
 		{
+			DirectX::XMFLOAT4X4			coordinateConversion;
 			DirectX::XMFLOAT4X4			globalTransform;
 			std::vector<Subset>			subsets;
 			std::vector<size_t>			indices;
 			std::vector<Donya::Vector3>	normals;
 			std::vector<Donya::Vector3>	positions;
 			std::vector<Donya::Vector2>	texCoords;
+			std::vector<BoneInfluencesPerControlPoint>	influences;
 		public:
-			Mesh() : globalTransform
+			Mesh() : coordinateConversion
+			(
+				{
+					1, 0, 0, 0,
+					0, 1, 0, 0,
+					0, 0, 1, 0,
+					0, 0, 0, 1
+				}
+			),
+			globalTransform
 			(
 				{
 					1, 0, 0, 0,
@@ -90,7 +118,6 @@ namespace Donya
 			Mesh( const Mesh & ) = default;
 		};
 	private:
-		size_t				vertexCount;	// 0 based.
 		std::string			fileName;
 		std::string			fileDirectory;	// '/' terminated.
 		std::vector<Mesh>	meshes;
@@ -108,11 +135,11 @@ namespace Donya
 	private:
 		void MakeFileName( const std::string &filePath );
 
-		void FetchVertices( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
+		void FetchVertices( size_t meshIndex, const fbxsdk::FbxMesh *pMesh, const std::vector<BoneInfluencesPerControlPoint> &fetchedInfluencesPerControlPoints );
 		void FetchMaterial( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
 		void AnalyseProperty( size_t meshIndex, int mtlIndex, fbxsdk::FbxSurfaceMaterial *pMaterial );
 		void FetchGlobalTransform( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
-
+		
 	#if USE_IMGUI
 	public:
 		/// <summary>

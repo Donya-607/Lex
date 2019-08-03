@@ -380,26 +380,27 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		Donya::TogguleShowStateOfImGui();
 	}
 
-	if ( Donya::Keyboard::Trigger( '2' ) && meshes.empty() )
+	if ( meshes.empty() )
 	{
-		constexpr const char *CUBE_02 = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\002_cube.fbx";
+		std::string prePath  = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\";
+		std::string number{};
+		if ( Donya::Keyboard::Trigger( '1' ) ) { number = "001"; }
+		if ( Donya::Keyboard::Trigger( '2' ) ) { number = "002"; }
+		if ( Donya::Keyboard::Trigger( '3' ) ) { number = "003"; }
+		if ( Donya::Keyboard::Trigger( '4' ) ) { number = "004"; }
+		if ( Donya::Keyboard::Trigger( '5' ) ) { number = "005"; }
+		std::string postPath = "_cube.fbx";
 
-		meshes.push_back( {} );
-		bool result = meshes.back().loader.Load( CUBE_02, nullptr );
-		if ( result )
+		if ( number != "" )
 		{
-			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
-		}
-	}
-	if ( Donya::Keyboard::Trigger( '3' ) && meshes.empty() )
-	{
-		constexpr const char *CUBE_03 = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\003_cube.fbx";
+			std::string filePath = prePath + number + postPath;
 
-		meshes.push_back( {} );
-		bool result = meshes.back().loader.Load( CUBE_03, nullptr );
-		if ( result )
-		{
-			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+			meshes.push_back( {} );
+			bool result = meshes.back().loader.Load( filePath, nullptr );
+			if ( result )
+			{
+				Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+			}
 		}
 	}
 	if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( 'F' ) && meshes.empty() )
@@ -585,7 +586,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		XMStoreFloat4x4( &world, matWorld );
 
 		static XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-		static XMFLOAT4 lightDirection{ 0.0f, -1.0f, 1.0f, 0.0f };
+		static XMFLOAT4 lightDirection{ 0.0f, 2.0f, -2.0f, 0.0f };
 		XMFLOAT4 cameraPos{};
 		{
 			XMFLOAT3 ref = pCamera->GetPosition();
@@ -598,7 +599,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
 		{
 			ImGui::ColorEdit4( "Light Color", &lightColor.x );
-			ImGui::SliderFloat3( "Light Direction", &lightDirection.x, -2.0f, 2.0f );
+			ImGui::SliderFloat3( "Light Direction", &lightDirection.x, -8.0f, 8.0f );
 
 			ImGui::End();
 		}

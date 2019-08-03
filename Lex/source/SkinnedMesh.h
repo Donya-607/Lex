@@ -1,6 +1,6 @@
-#ifndef _INCLUDED_SKINNED_MESH_H_
-#define _INCLUDED_SKINNED_MESH_H_
+#pragma once
 
+#include <array>
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include <memory>
@@ -13,7 +13,9 @@
 
 namespace Donya
 {
+#if IS_SUPPORT_LEX_LOADER
 	class Loader;
+#endif // IS_SUPPORT_LEX_LOADER
 
 	class SkinnedMesh
 	{
@@ -26,11 +28,14 @@ namespace Donya
 		static bool Create( const Loader *loader, std::unique_ptr<SkinnedMesh> *ppOutput );
 	#endif // IS_SUPPORT_LEX_LOADER
 	public:
+		static constexpr const int MAX_BONE_INFLUENCES = 4;
 		struct Vertex
 		{
-			DirectX::XMFLOAT3	pos;
-			DirectX::XMFLOAT3	normal;
-			DirectX::XMFLOAT2	texCoord;
+			DirectX::XMFLOAT3	pos{};
+			DirectX::XMFLOAT3	normal{};
+			DirectX::XMFLOAT2	texCoord{};
+			std::array<int,		MAX_BONE_INFLUENCES> boneIndices{};
+			std::array<float,	MAX_BONE_INFLUENCES> boneWeights{};
 		};
 
 		struct ConstantBuffer
@@ -89,12 +94,22 @@ namespace Donya
 
 		struct Mesh
 		{
+			DirectX::XMFLOAT4X4 coordinateConversion;
 			DirectX::XMFLOAT4X4 globalTransform;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> iIndexBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> iVertexBuffer;
 			std::vector<Subset> subsets;
 		public:
-			Mesh() : globalTransform
+			Mesh() : coordinateConversion
+			(
+				{
+					1, 0, 0, 0,
+					0, 1, 0, 0,
+					0, 0, 1, 0,
+					0, 0, 0, 1
+				}
+			),
+			globalTransform
 			(
 				{
 					1, 0, 0, 0,
@@ -134,5 +149,3 @@ namespace Donya
 		);
 	};
 }
-
-#endif // _INCLUDED_SKINNED_MESH_H_

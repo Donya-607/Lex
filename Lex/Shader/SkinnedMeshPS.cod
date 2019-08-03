@@ -9,7 +9,7 @@
 //
 //   row_major float4x4 worldViewProjection;// Offset:    0 Size:    64 [unused]
 //   row_major float4x4 world;          // Offset:   64 Size:    64 [unused]
-//   float4 lightColor;                 // Offset:  128 Size:    16
+//   float4 lightColor;                 // Offset:  128 Size:    16 [unused]
 //   float4 lightDir;                   // Offset:  144 Size:    16
 //
 // }
@@ -42,8 +42,8 @@
 // Name                 Index   Mask Register SysValue  Format   Used
 // -------------------- ----- ------ -------- -------- ------- ------
 // SV_POSITION              0   xyzw        0      POS   float       
-// COLOR                    0   xyzw        1     NONE   float       
-// TEXCOORD                 0   xyzw        2     NONE   float   xyzw
+// COLOR                    0   xyzw        1     NONE   float   xyzw
+// NORMAL                   0   xyzw        2     NONE   float   xyz 
 // TEXCOORD                 1   xy          3     NONE   float   xy  
 //
 //
@@ -58,8 +58,8 @@
 //
 // Target Reg Buffer  Start Reg # of Regs        Data Conversion
 // ---------- ------- --------- --------- ----------------------
-// c0         cb0             8         2  ( FLT, FLT, FLT, FLT)
-// c2         cb1             2         1  ( FLT, FLT, FLT, FLT)
+// c0         cb0             9         1  ( FLT, FLT, FLT, FLT)
+// c1         cb1             2         1  ( FLT, FLT, FLT, FLT)
 //
 //
 // Sampler/Resource to DX9 shader sampler mappings:
@@ -72,28 +72,36 @@
 // Level9 shader bytecode:
 //
     ps_2_x
-    def c3, -0, 0, -1, 1
+    def c2, 0, 0.318309873, 0, 0
+    dcl t0  // pin<4,5,6,7>
     dcl t1  // pin<8,9,10,11>
     dcl t2.xy  // pin<12,13>
     dcl_2d s0
 
-#line 27 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshPS.hlsl"
-    mov r0, -c1
-    dp4 r1.w, r0, r0
-    rsq r1.x, r1.w
-    mul r0, r0, r1.x
-    dp4 r0.x, t1, r0
-    add r0.y, r0.x, c3.x
-    cmp r0.x, r0.y, r0.x, c3.y
-    add r0.y, r0.x, c3.z
-    cmp r0.x, r0.y, c3.w, r0.x  // ::lightPower<0>
-    texld r1, t2, s0
-    mul r1, r1, c0
-    mul r1, r1, c2  // ::surfaceColor<0,1,2,3>
-    mul r0, r0.x, r1  // ::output<0,1,2,3>
-    mov r0, r0  // ::main<0,1,2,3>
+#line 17 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshPS.hlsl"
+    texld r0, t2, s0  // ::diffuseColor<0,1,2,3>
+    nop
+    mul r1.xyz, r0, c1  // NormalizedLambert::diffuse<0,1,2>
+    mov r2.xyz, t1  // NormalizedLambert::normal<0,1,2>
+    mov r3.xyz, c0  // NormalizedLambert::lightDir<0,1,2>
 
-#line 6
+#line 9
+    dp3 r1.w, r2, r3
+    mov r2.x, -r1.w
+    add r2.x, r2.x, c2.x
+    cmp r1.w, r2.x, c2.x, r1.w
+    mul r1.xyz, r1.w, r1
+    mul r0.xyz, r1, c2.y  // ::NormalizedLambert<0,1,2>
+
+#line 18
+    mov r0.xyz, r0  // ::color<0,1,2>
+
+#line 21
+    mov r0.xyz, r0  // ::output<0,1,2>
+    mov r0.w, r0.w  // ::output<3>
+    mul r0, r0, t0  // ::main<0,1,2,3>
+
+#line 15
     mov oC0, r0  // ::main<0,1,2,3>
 
 // approximately 15 instruction slots used (1 texture, 14 arithmetic)
@@ -102,10 +110,11 @@ dcl_constantbuffer CB0[10], immediateIndexed
 dcl_constantbuffer CB1[3], immediateIndexed
 dcl_sampler s0, mode_default
 dcl_resource_texture2d (float,float,float,float) t0
-dcl_input_ps linear v2.xyzw
+dcl_input_ps linear v1.xyzw
+dcl_input_ps linear v2.xyz
 dcl_input_ps linear v3.xy
 dcl_output o0.xyzw
-dcl_temps 2
+dcl_temps 4
 //
 // Initial variable locations:
 //   v0.x <- pin.pos.x; v0.y <- pin.pos.y; v0.z <- pin.pos.z; v0.w <- pin.pos.w; 
@@ -114,24 +123,31 @@ dcl_temps 2
 //   v3.x <- pin.texCoord.x; v3.y <- pin.texCoord.y; 
 //   o0.x <- <main return value>.x; o0.y <- <main return value>.y; o0.z <- <main return value>.z; o0.w <- <main return value>.w
 //
-#line 26 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshPS.hlsl"
-mov r0.xyzw, -cb0[9].xyzw
-dp4 r1.x, r0.xyzw, r0.xyzw
-rsq r1.x, r1.x
-mul r0.xyzw, r0.xyzw, r1.xxxx
-dp4 r0.x, v2.xyzw, r0.xyzw
-max r0.x, r0.x, l(0.000000)
-min r0.x, r0.x, l(1.000000)  // r0.x <- lightPower
+#line 17 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshPS.hlsl"
+sample r0.xyzw, v3.xyxx, t0.xyzw, s0  // r0.x <- diffuseColor.x; r0.y <- diffuseColor.y; r0.z <- diffuseColor.z; r0.w <- diffuseColor.w
 
-#line 28
-sample r1.xyzw, v3.xyxx, t0.xyzw, s0
-mul r1.xyzw, r1.xyzw, cb0[8].xyzw
-mul r1.xyzw, r1.xyzw, cb1[2].xyzw  // r1.x <- surfaceColor.x; r1.y <- surfaceColor.y; r1.z <- surfaceColor.z; r1.w <- surfaceColor.w
+#line 18
+nop 
+mul r1.xyz, r0.xyzx, cb1[2].xyzx
+mov r2.xyz, v2.xyzx
+mov r3.xyz, cb0[9].xyzx
 
-#line 31
-mul r0.xyzw, r0.xxxx, r1.xyzw  // r0.x <- output.x; r0.y <- output.y; r0.z <- output.z; r0.w <- output.w
+#line 9
+dp3 r1.w, r2.xyzx, r3.xyzx
+max r1.w, r1.w, l(0.000000)
+mul r1.xyz, r1.wwww, r1.xyzx
+mul r0.xyz, r1.xyzx, l(0.318310, 0.318310, 0.318310, 0.000000)  // r0.x <- <NormalizedLambert return value>.x; r0.y <- <NormalizedLambert return value>.y; r0.z <- <NormalizedLambert return value>.z
 
-#line 32
-mov o0.xyzw, r0.xyzw
+#line 18
+mov r0.xyz, r0.xyzx  // r0.x <- color.x; r0.y <- color.y; r0.z <- color.z
+
+#line 21
+mov r0.xyz, r0.xyzx  // r0.x <- output.x; r0.y <- output.y; r0.z <- output.z
+
+#line 22
+mov r0.w, r0.w  // r0.w <- output.w
+
+#line 24
+mul o0.xyzw, r0.xyzw, v1.xyzw
 ret 
-// Approximately 13 instruction slots used
+// Approximately 14 instruction slots used
