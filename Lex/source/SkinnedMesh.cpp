@@ -362,7 +362,7 @@ namespace Donya
 
 			for ( auto &it : meshes )
 			{
-				it.globalTransform = coordConversion;
+				it.coordinateConversion = coordConversion;
 			}
 		}
 
