@@ -19,13 +19,11 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler( HWND hWnd, UINT msg, WPARAM wpara
 
 using namespace DirectX;
 
-namespace Do = Donya;
-
-constexpr char *ImGuiWindowName = "File Information";
+static constexpr char *ImGuiWindowName = "File Information";
 
 Framework::Framework( HWND hwnd ) :
 	hWnd( hwnd ),
-	pCamera( nullptr ), meshes(),
+	camera(), meshes(),
 	isFillDraw( true )
 {
 	DragAcceptFiles( hWnd, TRUE );
@@ -348,12 +346,8 @@ bool Framework::Init()
 
 	#pragma endregion
 
-	// std::string projectDir = "./";
-	std::string projectDir = "D:\\äwçZä÷òA\\VS_Projects\\FBXLex\\Lex\\Lex\\";
-	Donya::Resource::RegisterDirectoryOfVertexShader( ( projectDir + "Shader/" ).c_str() );
-	Donya::Resource::RegisterDirectoryOfPixelShader ( ( projectDir + "Shader/" ).c_str() );
-
-	pCamera = std::make_unique<Do::Camera>();
+	camera.SetHomePosition();
+	camera.SetPerspectiveProjectionMatrix( Common::ScreenWidthF() / Common::ScreenHeightF() );
 
 	return true;
 }
@@ -437,7 +431,8 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		isFillDraw = !isFillDraw;
 	}
 
-	pCamera->Update();
+	Donya::Vector3 origin{ 0.0f, 0.0f, 0.0f };
+	camera.Update( origin );
 
 #if USE_IMGUI
 
@@ -551,34 +546,16 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 			matWorld = scaling * rotation * translation;
 		}
-		XMMATRIX matView = pCamera->CalcViewMatrix();
+		XMMATRIX matView = camera.GetViewMatrix();
 
 		XMFLOAT4X4 worldViewProjection{};
 		{
-			XMMATRIX matProjPerspective{};
-			XMMATRIX matProjOrthographic{};
-			{
-				constexpr float FOV = ToRadian( 30.0f );
-				float width		= Common::ScreenWidthF();
-				float height	= Common::ScreenHeightF();
-				float aspect	= width / height;
-				float zNear		= 0.01f;
-				float zFar		= 1000.0f;
-			
-				XMFLOAT4X4 projection{};
-				projection = pCamera->AssignPerspectiveProjection( FOV, aspect, zNear, zFar );
-				matProjPerspective = XMLoadFloat4x4( &projection );
-
-				projection = pCamera->AssignOrthographicProjection( 16.0f, 9.0f, zNear, zFar );
-				matProjOrthographic = XMLoadFloat4x4( &projection );
-			}
-
-			XMMATRIX &useProjection = matProjOrthographic;
+			XMMATRIX projPerspective = camera.GetProjectionMatrix();
 
 			XMStoreFloat4x4
 			(
 				&worldViewProjection,
-				DirectX::XMMatrixMultiply( matWorld, DirectX::XMMatrixMultiply( matView, useProjection ) )
+				DirectX::XMMatrixMultiply( matWorld, DirectX::XMMatrixMultiply( matView, projPerspective ) )
 			);
 		}
 
@@ -589,12 +566,14 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		static XMFLOAT4 lightDirection{ 0.0f, 2.0f, -2.0f, 0.0f };
 		XMFLOAT4 cameraPos{};
 		{
-			XMFLOAT3 ref = pCamera->GetPosition();
+			XMFLOAT3 ref = camera.GetPos();
 			cameraPos.x = ref.x;
 			cameraPos.y = ref.y;
 			cameraPos.z = ref.z;
 			cameraPos.w = 1.0f;
 		}
+
+	#if USE_IMGUI
 
 		if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
 		{
@@ -604,6 +583,8 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 			ImGui::End();
 		}
 
+	#endif // USE_IMGUI
+
 		for ( auto &it : meshes )
 		{
 			if ( it.pMesh )
@@ -611,33 +592,9 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 				it.pMesh->Render( worldViewProjection, world, cameraPos, lightColor, lightDirection, isFillDraw );
 			}
 		}
-
-		/*
-		if ( 0 )
-		{
-			pGeomtrPrimitive->Render
-			(
-				worldViewProjection,
-				world,
-				lightDirection, materialColor,
-				isFillDraw
-			);
-		}
-		if ( 1 )
-		{
-			pStaticMesh->Render
-			(
-				worldViewProjection,
-				world,
-				lightDirection, materialColor,
-				cameraPos,
-				isFillDraw
-			);
-		}
-		*/
 	}
 
-#ifdef USE_IMGUI
+#if USE_IMGUI
 
 	ImGui::Render();
 

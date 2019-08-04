@@ -12,6 +12,7 @@ struct VS_IN
 float4 VisualizeBoneInfluence( uint4 boneIndices, float4 weights )
 {
 	float4 influence = { 0.0f, 0.0f, 0.0f, 1.0f };
+
 	for ( int i = 0; i < 4; ++i )
 	{
 		float weight = weights[i];

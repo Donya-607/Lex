@@ -53,21 +53,13 @@ namespace Donya
 			}
 		};
 
-		static std::unordered_map<const char *, VertexShaderCacheContents> vertexShaderCache{};
-		static std::string vertexShaderDirectory{};
-
-		void RegisterDirectoryOfVertexShader( const char *fileDirectory )
-		{
-			vertexShaderDirectory = fileDirectory;
-		}
-
-		void CreateVertexShaderFromCso( ID3D11Device *d3dDevice, const char *csoname, const char *openMode, ID3D11VertexShader **d3dVertexShader, ID3D11InputLayout **d3dInputLayout, D3D11_INPUT_ELEMENT_DESC *d3dInputElementsDesc, size_t inputElementDescSize, bool enableCache )
+		static std::unordered_map<std::string, VertexShaderCacheContents> vertexShaderCache{};
+		
+		void CreateVertexShaderFromCso( ID3D11Device *d3dDevice, std::string csoName, const char *openMode, ID3D11VertexShader **d3dVertexShader, ID3D11InputLayout **d3dInputLayout, D3D11_INPUT_ELEMENT_DESC *d3dInputElementsDesc, size_t inputElementDescSize, bool enableCache )
 		{
 			HRESULT hr = S_OK;
-
-			std::string combinedCsoname = vertexShaderDirectory + csoname;
-
-			auto it = vertexShaderCache.find( combinedCsoname.c_str() );
+			
+			auto it = vertexShaderCache.find( csoName );
 			if ( it != vertexShaderCache.end() )
 			{
 				*d3dVertexShader = it->second.d3dVertexShader.Get();
@@ -85,7 +77,7 @@ namespace Donya
 			// else
 
 			FILE *fp = nullptr;
-			fopen_s( &fp, combinedCsoname.c_str(), openMode );
+			fopen_s( &fp, csoName.c_str(), openMode );
 			if ( !fp ) { _ASSERT_EXPR( 0, L"vs cso file not found" ); }
 
 			fseek( fp, 0, SEEK_END );
@@ -125,7 +117,7 @@ namespace Donya
 			(
 				std::make_pair
 				(
-					combinedCsoname.c_str(),
+					csoName,
 					VertexShaderCacheContents
 					{
 						*d3dVertexShader,
@@ -144,21 +136,13 @@ namespace Donya
 
 	#pragma region PixelShaderCache
 
-		static std::unordered_map<const char *, Microsoft::WRL::ComPtr<ID3D11PixelShader>> pixelShaderCache{};
-		static std::string pixelShaderDirectory{};
-
-		void RegisterDirectoryOfPixelShader( const char *fileDirectory )
-		{
-			pixelShaderDirectory = fileDirectory;
-		}
-
-		void CreatePixelShaderFromCso( ID3D11Device *d3dDevice, const char *csoname, const char *openMode, ID3D11PixelShader **d3dPixelShader, bool enableCache )
+		static std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11PixelShader>> pixelShaderCache{};
+		
+		void CreatePixelShaderFromCso( ID3D11Device *d3dDevice, std::string csoName, const char *openMode, ID3D11PixelShader **d3dPixelShader, bool enableCache )
 		{
 			HRESULT hr = S_OK;
 
-			std::string combinedCsoname = pixelShaderDirectory + csoname;
-
-			auto it = pixelShaderCache.find( combinedCsoname.c_str() );
+			auto it = pixelShaderCache.find( csoName );
 			if ( it != pixelShaderCache.end() )
 			{
 				*d3dPixelShader = it->second.Get();
@@ -169,7 +153,7 @@ namespace Donya
 			// else
 
 			FILE *fp = nullptr;
-			fopen_s( &fp, combinedCsoname.c_str(), openMode );
+			fopen_s( &fp, csoName.c_str(), openMode );
 			if ( !fp ) { _ASSERT_EXPR( 0, L"ps cso file not found" ); }
 
 			fseek( fp, 0, SEEK_END );
@@ -196,7 +180,7 @@ namespace Donya
 			(
 				std::make_pair
 				(
-					combinedCsoname.c_str(),
+					csoName,
 					*d3dPixelShader
 				)
 			);
@@ -228,20 +212,12 @@ namespace Donya
 		};
 
 		static std::unordered_map<std::wstring, SpriteCacheContents> spriteCache{};
-		static std::wstring spriteDirectory{};
-
-		void RegisterDirectoryOfTexture( const wchar_t *fileDirectory )
-		{
-			spriteDirectory = fileDirectory;
-		}
-
-		void CreateTexture2DFromFile( ID3D11Device *d3dDevice, const std::wstring &filename, ID3D11ShaderResourceView **d3dShaderResourceView, D3D11_TEXTURE2D_DESC *d3dTexture2DDesc, bool isEnableCache )
+		
+		void CreateTexture2DFromFile( ID3D11Device *d3dDevice, const std::wstring &fileName, ID3D11ShaderResourceView **d3dShaderResourceView, D3D11_TEXTURE2D_DESC *d3dTexture2DDesc, bool isEnableCache )
 		{
 			HRESULT hr = S_OK;
 
-			std::wstring combinedFilename = spriteDirectory + filename;
-
-			auto it = spriteCache.find( combinedFilename );
+			auto it = spriteCache.find( fileName );
 			if ( it != spriteCache.end() )
 			{
 				*d3dShaderResourceView = it->second.d3dShaderResourceView.Get();
@@ -254,11 +230,11 @@ namespace Donya
 			// else
 
 			Microsoft::WRL::ComPtr<ID3D11Resource> d3dResource;
-			if ( combinedFilename.find( L".dds" ) != std::wstring::npos )
+			if ( fileName.find( L".dds" ) != std::wstring::npos )
 			{
 				hr = CreateDDSTextureFromFile
 				(
-					d3dDevice, combinedFilename.c_str(),
+					d3dDevice, fileName.c_str(),
 					d3dResource.GetAddressOf(),
 					d3dShaderResourceView
 				);
@@ -267,7 +243,7 @@ namespace Donya
 			{
 				hr = CreateWICTextureFromFile	// This is create two of ID3D11Resource, ID3D11ShaderResourceView.
 				(
-					d3dDevice, combinedFilename.c_str(),
+					d3dDevice, fileName.c_str(),
 					d3dResource.GetAddressOf(),
 					d3dShaderResourceView
 				);
@@ -286,7 +262,7 @@ namespace Donya
 				(
 					std::make_pair
 					(
-						combinedFilename,
+						fileName,
 						SpriteCacheContents
 						{
 							*d3dShaderResourceView,

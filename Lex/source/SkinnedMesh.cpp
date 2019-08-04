@@ -49,14 +49,9 @@ namespace Donya
 					vertices[j].normal		= normals[j];
 					vertices[j].pos			= positions[j];
 					
-					if ( j < texCoords.size() )
-					{
-						vertices[j].texCoord = texCoords[j];
-					}
-					else
-					{
-						vertices[j].texCoord = { 0, 0 };
-					}
+					vertices[j].texCoord	= ( j < texCoords.size() )
+											? texCoords[j]
+											: Donya::Vector2{};
 
 					size_t influenceCount = boneInfluences[j].cluster.size();
 					for ( size_t k = 0; k < influenceCount; ++k )
@@ -207,7 +202,7 @@ namespace Donya
 			Resource::CreateVertexShaderFromCso
 			(
 				pDevice,
-				"SkinnedMeshVS.cso", "rb",
+				"./Shader/SkinnedMeshVS.cso", "rb",
 				iVertexShader.GetAddressOf(),
 				iInputLayout.GetAddressOf(),
 				d3d11InputElementsDesc,
@@ -220,7 +215,7 @@ namespace Donya
 			Resource::CreatePixelShaderFromCso
 			(
 				pDevice,
-				"SkinnedMeshPS.cso", "rb",
+				"./Shader/SkinnedMeshPS.cso", "rb",
 				iPixelShader.GetAddressOf(),
 				/* enableCache = */ true
 			);

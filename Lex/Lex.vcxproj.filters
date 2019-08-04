@@ -24,9 +24,6 @@
     <ClInclude Include="Source\Benchmark.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Camera.h">
-      <Filter>Header</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Common.h">
       <Filter>Header</Filter>
     </ClInclude>
@@ -87,11 +84,11 @@
     <ClInclude Include="Source\SkinnedMesh.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="source\Camera.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\Camera.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Common.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -144,6 +141,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\SkinnedMesh.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Camera.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

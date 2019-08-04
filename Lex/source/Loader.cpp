@@ -292,7 +292,6 @@ namespace Donya
 			FBX::FbxVector4	fbxNormal;
 			Donya::Vector3	normal;
 			Donya::Vector3	position;
-			BoneInfluencesPerControlPoint boneInfluences{};
 
 			size_t size = pMesh->GetPolygonSize( polyIndex );
 			for ( size_t v = 0; v < size; ++v )
@@ -307,17 +306,7 @@ namespace Donya
 				position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
 				position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
 
-				boneInfluences.cluster.clear();
-				boneInfluences.cluster = fetchedInfluences[ctrlPointIndex].cluster;
-				/*
-				size_t influencesCount = fetchedInfluences[ctrlPointIndex].cluster.size();
-				boneInfluences.cluster.resize( influencesCount );
-				for ( size_t i = 0; i < influencesCount; ++i )
-				{
-					boneInfluences.cluster[i] = fetchedInfluences[ctrlPointIndex].cluster[i];
-				}
-				*/
-				mesh.influences.push_back( boneInfluences );
+				mesh.influences.push_back( fetchedInfluences[ctrlPointIndex] );
 
 				mesh.normals.push_back( normal );
 				mesh.positions.push_back( position );

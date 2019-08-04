@@ -35,7 +35,7 @@ namespace Donya
 			DirectX::XMFLOAT3	normal{};
 			DirectX::XMFLOAT2	texCoord{};
 			std::array<int,		MAX_BONE_INFLUENCES> boneIndices{};
-			std::array<float,	MAX_BONE_INFLUENCES> boneWeights{};
+			std::array<float,	MAX_BONE_INFLUENCES> boneWeights{ 1.0f, 0.0f, 0.0f, 0.0f };
 		};
 
 		struct ConstantBuffer

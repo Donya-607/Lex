@@ -1,41 +1,42 @@
-#ifndef INCLUDED_CAMERA_H_
-#define INCLUDED_CAMERA_H_
+#pragma once
 
-#include <memory>
+#include "Vector.h"
 
-namespace DirectX
+class Camera
 {
-	struct XMFLOAT4X4;
-	struct XMFLOAT3;
-	struct XMMATRIX;
-}
+private:
+	float scopeAngle; // 0-based, Radian
+	Donya::Vector3 pos;
+	Donya::Vector3 focus;
+	DirectX::XMFLOAT4X4 projection;
+public:
+	Camera();
+	Camera( float scopeAngle );
+	~Camera() {}
+public:
+	/// <summary>
+	/// The position are setting to { 0.0f, 0.0f, 0.0f }.<para></para>
+	/// The focus are setting to { 0.0f, 0.0f, 1.0f }.
+	/// </summary>
+	void SetHomePosition( Donya::Vector3 homePosition = { 0.0f, 0.0f, 0.0f }, Donya::Vector3 homeFocus = { 0.0f, 0.0f, 1.0f } );
+	/// <summary>
+	/// "scopeAngle" is 0-based, radian.
+	/// </summary>
+	void SetScopeAngle( float scopeAngle );
 
-namespace Donya
-{
-
-	class Camera
-	{
-	private:
-		struct Impl;
-		std::unique_ptr<Camera::Impl> pImpl;
-	public:
-		Camera();
-		virtual ~Camera();
-		Camera( const Camera & )				= delete;
-		Camera( Camera && )						= delete;
-		Camera & operator = ( const Camera & )	= delete;
-		Camera & operator = ( Camera && )		= delete;
-	public:
-		void Update();
-	public:
-		const DirectX::XMFLOAT4X4 &AssignOrthographicProjection( float width, float height, float zNear = 0.1f, float zFar = 100.0f );
-		const DirectX::XMFLOAT4X4 &AssignPerspectiveProjection( float FOV, float aspect, float zNear = 0.1f, float zFar = 100.0f );
-	public:
-		const DirectX::XMFLOAT4X4 &GetProjection() const;
-		const DirectX::XMFLOAT3   &GetPosition()   const;
-		const DirectX::XMMATRIX   CalcViewMatrix() const;
-	};
-
-}
-
-#endif //INCLUDED_CAMERA_H_
+	DirectX::XMMATRIX SetOrthographicProjectionMatrix( float width, float height, float mostNear, float mostFar );
+	/// <summary>
+	/// ScopeAngle, Near, Far are used to default.
+	/// </summary>
+	DirectX::XMMATRIX SetPerspectiveProjectionMatrix( float aspectRatio );
+	DirectX::XMMATRIX SetPerspectiveProjectionMatrix( float scopeAngle, float aspectRatio, float mostNear, float mostFar );
+	DirectX::XMMATRIX GetViewMatrix() const;
+	DirectX::XMMATRIX GetProjectionMatrix() const;
+	Donya::Vector3 GetPos() const { return pos; }
+public:
+	void Update( const Donya::Vector3 &targetPos );	// You can set nullptr.
+private:
+	void Move( const Donya::Vector3 &targetPos );
+	void ResetOrthographicProjection();
+	void ResetPerspectiveProjection();
+};

@@ -157,7 +157,7 @@
     <ClInclude Include="..\External\ImGui\imstb_textedit.h" />
     <ClInclude Include="..\External\ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Benchmark.h" />
-    <ClInclude Include="Source\Camera.h" />
+    <ClInclude Include="source\Camera.h" />
     <ClInclude Include="Source\Common.h" />
     <ClInclude Include="Source\Donya.h" />
     <ClInclude Include="Source\framework.h" />
@@ -178,7 +178,7 @@
     <ClCompile Include="..\External\ImGui\imgui_impl_dx11.cpp" />
     <ClCompile Include="..\External\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="..\External\ImGui\imgui_widgets.cpp" />
-    <ClCompile Include="Source\Camera.cpp" />
+    <ClCompile Include="source\Camera.cpp" />
     <ClCompile Include="Source\Common.cpp" />
     <ClCompile Include="Source\Donya.cpp" />
     <ClCompile Include="Source\framework.cpp" />

@@ -66,7 +66,7 @@
     dcl_texcoord1 v1  // vin<4,5,6,7>
     dcl_texcoord2 v2  // vin<8,9>
 
-#line 35 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshVS.hlsl"
+#line 36 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshVS.hlsl"
     mul r0, v1.x, c5
     mul r1, v1.y, c6
     add r0, r0, r1
@@ -77,7 +77,7 @@
     rsq r1.x, r1.x
     mul r0, r0, r1.x  // ::nNorm<0,1,2,3>
 
-#line 39
+#line 40
     mul r1, v0.x, c1
     mul r2, v0.y, c2
     add r1, r1, r2
@@ -86,17 +86,17 @@
     mul r2, v0.w, c4
     add r1, r1, r2  // ::vout<0,1,2,3>
 
-#line 46
+#line 47
     mov r0, r0  // ::vout<8,9,10,11>
     mov r2.xy, v2  // ::vout<12,13>
 
-#line 53
+#line 54
     mov oT1, r0  // ::main<8,9,10,11>
     mov r1.xy, r1  // ::main<0,1>
     mov r1.zw, r1  // ::main<2,3>
     mov oT2.xy, r2  // ::main<12,13>
 
-#line 32
+#line 33
     mul r0.xy, r1.w, c0
     add oPos.xy, r0, r1  // ::main<0,1>
     mov oPos.zw, r1  // ::main<2,3>
@@ -125,10 +125,10 @@ dcl_temps 4
 //   o1.x <- <main return value>.color.x; o1.y <- <main return value>.color.y; o1.z <- <main return value>.color.z; o1.w <- <main return value>.color.w; 
 //   o0.x <- <main return value>.pos.x; o0.y <- <main return value>.pos.y; o0.z <- <main return value>.pos.z; o0.w <- <main return value>.pos.w
 //
-#line 34 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshVS.hlsl"
+#line 35 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshVS.hlsl"
 itof r0.x, l(0)  // r0.x <- vin.normal.w
 
-#line 35
+#line 36
 mul r1.xyzw, v1.xxxx, cb0[4].xyzw
 mul r2.xyzw, v1.yyyy, cb0[5].xyzw
 add r1.xyzw, r1.xyzw, r2.xyzw
@@ -140,7 +140,7 @@ dp4 r1.x, r0.xyzw, r0.xyzw
 rsq r1.x, r1.x
 mul r0.xyzw, r0.xyzw, r1.xxxx  // r0.x <- nNorm.x; r0.y <- nNorm.y; r0.z <- nNorm.z; r0.w <- nNorm.w
 
-#line 39
+#line 40
 mul r1.xyzw, v0.xxxx, cb0[0].xyzw
 mul r2.xyzw, v0.yyyy, cb0[1].xyzw
 add r1.xyzw, r1.xyzw, r2.xyzw
@@ -149,16 +149,16 @@ add r1.xyzw, r1.xyzw, r2.xyzw
 mul r2.xyzw, v0.wwww, cb0[3].xyzw
 add r1.xyzw, r1.xyzw, r2.xyzw  // r1.x <- vout.pos.x; r1.y <- vout.pos.y; r1.z <- vout.pos.z; r1.w <- vout.pos.w
 
-#line 46
+#line 47
 mov r0.xyzw, r0.xyzw  // r0.x <- vout.normal.x; r0.y <- vout.normal.y; r0.z <- vout.normal.z; r0.w <- vout.normal.w
 
-#line 48
+#line 49
 mov r2.xy, v2.xyxx  // r2.x <- vout.texCoord.x; r2.y <- vout.texCoord.y
 
-#line 51
+#line 52
 mov r3.xyzw, l(1.000000,1.000000,1.000000,1.000000)  // r3.x <- vout.color.x; r3.y <- vout.color.y; r3.z <- vout.color.z; r3.w <- vout.color.w
 
-#line 53
+#line 54
 mov o0.xyzw, r1.xyzw
 mov o1.xyzw, r3.xyzw
 mov o2.xyzw, r0.xyzw
