@@ -346,7 +346,7 @@ bool Framework::Init()
 
 	#pragma endregion
 
-	camera.SetHomePosition();
+	camera.SetHomePosition( { 0.0f, 0.0f, -16.0f} );
 	camera.SetPerspectiveProjectionMatrix( Common::ScreenWidthF() / Common::ScreenHeightF() );
 
 	return true;

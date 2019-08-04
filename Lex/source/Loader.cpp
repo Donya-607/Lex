@@ -306,13 +306,13 @@ namespace Donya
 				position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
 				position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
 
-				mesh.influences.push_back( fetchedInfluences[ctrlPointIndex] );
-
 				mesh.normals.push_back( normal );
 				mesh.positions.push_back( position );
 
 				mesh.indices[indexOffset + v] = vertexCount;
 				vertexCount++;
+
+				mesh.influences.push_back( fetchedInfluences[ctrlPointIndex] );
 			}
 			subset.indexCount += size;
 		}

@@ -169,11 +169,11 @@ void Camera::Move( const Donya::Vector3 &targetPos )
 
 	if ( Donya::Keyboard::Press( 'Z' ) )
 	{
-		velo.z = -speed;
+		velo.z = speed;
 	}
 	if ( Donya::Keyboard::Press( 'X' ) )
 	{
-		velo.z = speed;
+		velo.z = -speed;
 	}
 
 	pos += velo;
