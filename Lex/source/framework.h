@@ -36,7 +36,9 @@ private:
 	};
 	std::vector<MeshAndInfo> meshes;
 private:
-	bool isFillDraw;
+	int pressMouseButton; // contain value is: None:0, Left:VK_LBUTTON, Middle:VK_MBUTTON, Right:VK_RBUTTON.
+	bool isCaptureWindow;
+	bool isSolidState;
 public:
 	Framework( HWND hwnd );
 	~Framework();
@@ -56,5 +58,8 @@ private:
 	void CalcFrameStats();
 private:
 	bool OpenCommonDialogAndFile();
+	void SetMouseCapture();
+	void ReleaseMouseCapture();
+	void PutLimitMouseMoveArea();
 };
 

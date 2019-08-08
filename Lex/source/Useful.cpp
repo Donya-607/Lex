@@ -78,7 +78,7 @@ namespace Donya
 		return true;
 	}
 
-	inline bool Equal( float L, float R, float maxRelativeDiff = FLT_EPSILON )
+	bool Equal( float L, float R, float maxRelativeDiff )
 	{
 	#if		0 // reference is https://marycore.jp/prog/c-lang/compare-floating-point-number/
 

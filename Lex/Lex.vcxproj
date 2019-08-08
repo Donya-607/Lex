@@ -165,6 +165,7 @@
     <ClInclude Include="Source\Keyboard.h" />
     <ClInclude Include="Source\Loader.h" />
     <ClInclude Include="Source\Mouse.h" />
+    <ClInclude Include="source\Quaternion.h" />
     <ClInclude Include="Source\Resource.h" />
     <ClInclude Include="Source\SkinnedMesh.h" />
     <ClInclude Include="Source\Useful.h" />
@@ -186,6 +187,7 @@
     <ClCompile Include="Source\Loader.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Mouse.cpp" />
+    <ClCompile Include="source\Quaternion.cpp" />
     <ClCompile Include="Source\Resource.cpp" />
     <ClCompile Include="Source\SkinnedMesh.cpp" />
     <ClCompile Include="Source\Useful.cpp" />

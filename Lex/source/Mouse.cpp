@@ -36,11 +36,11 @@ namespace Donya
 			int  notch = delta / WHEEL_DELTA;
 			if ( notch < 0 )
 			{
-				*rotation--;
+				( *rotation )--;
 			}
 			else if ( 0 < notch )
 			{
-				*rotation++;
+				( *rotation )++;
 			}
 			else
 			{
@@ -77,7 +77,7 @@ namespace Donya
 			case Right:		vKey = VK_RBUTTON;	break;
 			}
 
-			Donya::Keyboard::Mode mode;
+			Donya::Keyboard::Mode mode = Donya::Keyboard::Mode::PRESS;
 			switch ( checkState )
 			{
 			case PRESS:		mode = Donya::Keyboard::Mode::PRESS;	break;

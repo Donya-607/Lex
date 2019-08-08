@@ -18,12 +18,14 @@ public:
 	/// The position are setting to { 0.0f, 0.0f, 0.0f }.<para></para>
 	/// The focus are setting to { 0.0f, 0.0f, 1.0f }.
 	/// </summary>
-	void SetHomePosition( Donya::Vector3 homePosition = { 0.0f, 0.0f, 0.0f }, Donya::Vector3 homeFocus = { 0.0f, 0.0f, 1.0f } );
+	void SetToHomePosition( Donya::Vector3 homePosition = { 0.0f, 0.0f, 0.0f }, Donya::Vector3 homeFocus = { 0.0f, 0.0f, 1.0f } );
 	/// <summary>
 	/// "scopeAngle" is 0-based, radian.
 	/// </summary>
 	void SetScopeAngle( float scopeAngle );
 
+	void ResetOrthographicProjection();
+	void ResetPerspectiveProjection();
 	DirectX::XMMATRIX SetOrthographicProjectionMatrix( float width, float height, float mostNear, float mostFar );
 	/// <summary>
 	/// ScopeAngle, Near, Far are used to default.
@@ -37,6 +39,7 @@ public:
 	void Update( const Donya::Vector3 &targetPos );	// You can set nullptr.
 private:
 	void Move( const Donya::Vector3 &targetPos );
-	void ResetOrthographicProjection();
-	void ResetPerspectiveProjection();
+	void SetXMoveSpeed( Donya::Vector3 *pVelocity );
+	void SetYMoveSpeed( Donya::Vector3 *pVelocity );
+	void SetZMoveSpeed( Donya::Vector3 *pVelocity );
 };

@@ -1,5 +1,7 @@
 #include "Framework.h"
 
+#include <array>
+
 #include "Benchmark.h"
 #include "Camera.h"
 #include "Common.h"
@@ -24,7 +26,9 @@ static constexpr char *ImGuiWindowName = "File Information";
 Framework::Framework( HWND hwnd ) :
 	hWnd( hwnd ),
 	camera(), meshes(),
-	isFillDraw( true )
+	pressMouseButton( NULL ),
+	isCaptureWindow( false ),
+	isSolidState( true )
 {
 	DragAcceptFiles( hWnd, TRUE );
 }
@@ -100,8 +104,13 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 			}
 		}
 		break;
+	#pragma region Mouse Process
 	case WM_MOUSEMOVE:
 		Donya::Mouse::UpdateMouseCoordinate( lParam );
+		if ( isCaptureWindow )
+		{
+			PutLimitMouseMoveArea();
+		}
 		break;
 	case WM_MOUSEWHEEL:
 		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
@@ -109,6 +118,61 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 	case WM_MOUSEHWHEEL:
 		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ true, wParam, lParam );
 		break;
+	case WM_LBUTTONDOWN:
+		if ( !pressMouseButton )
+		{
+			pressMouseButton = VK_LBUTTON;
+			SetMouseCapture();
+		}
+		break;
+	case WM_MBUTTONDOWN:
+		if ( !pressMouseButton )
+		{
+			pressMouseButton = VK_MBUTTON;
+			SetMouseCapture();
+		}
+		break;
+	case WM_RBUTTONDOWN:
+		if ( !pressMouseButton )
+		{
+			pressMouseButton = VK_RBUTTON;
+			SetMouseCapture();
+		}
+		break;
+	case WM_LBUTTONUP:
+		if ( isCaptureWindow )
+		{
+			if ( pressMouseButton == VK_LBUTTON || !pressMouseButton )
+			{
+				ReleaseMouseCapture();
+			}
+
+			pressMouseButton = NULL;
+		}
+		break;
+	case WM_MBUTTONUP:
+		if ( isCaptureWindow )
+		{
+			if ( pressMouseButton == VK_MBUTTON || !pressMouseButton )
+			{
+				ReleaseMouseCapture();
+			}
+
+			pressMouseButton = NULL;
+		}
+		break;
+	case WM_RBUTTONUP:
+		if ( isCaptureWindow )
+		{
+			if ( pressMouseButton == VK_RBUTTON || !pressMouseButton )
+			{
+				ReleaseMouseCapture();
+			}
+
+			pressMouseButton = NULL;
+		}
+		break;
+	#pragma endregion
 	case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
@@ -346,7 +410,7 @@ bool Framework::Init()
 
 	#pragma endregion
 
-	camera.SetHomePosition( { 0.0f, 0.0f, -16.0f} );
+	camera.SetToHomePosition( { 0.0f, 0.0f, -16.0f} );
 	camera.SetPerspectiveProjectionMatrix( Common::ScreenWidthF() / Common::ScreenHeightF() );
 
 	return true;
@@ -428,7 +492,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	if ( Donya::Keyboard::Trigger( 'F' ) && !Donya::Keyboard::Press( 'B' ) )
 	{
-		isFillDraw = !isFillDraw;
+		isSolidState = !isSolidState;
 	}
 
 	Donya::Vector3 origin{ 0.0f, 0.0f, 0.0f };
@@ -438,6 +502,14 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
 	{
+		{
+			int x{}, y{};
+			Donya::Mouse::GetMouseCoord( &x, &y );
+
+			ImGui::Text( "Mouse[X:%d][Y%d]", x, y );
+			ImGui::Text( "" );
+		}
+
 		if ( ImGui::Button( "Open FBX File" ) )
 		{
 			OpenCommonDialogAndFile();
@@ -589,7 +661,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		{
 			if ( it.pMesh )
 			{
-				it.pMesh->Render( worldViewProjection, world, cameraPos, lightColor, lightDirection, isFillDraw );
+				it.pMesh->Render( worldViewProjection, world, cameraPos, lightColor, lightDirection, isSolidState );
 			}
 		}
 	}
@@ -637,4 +709,86 @@ bool Framework::OpenCommonDialogAndFile()
 	Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
 
 	return true;
+}
+
+void Framework::SetMouseCapture()
+{
+	SetCapture( hWnd );
+	isCaptureWindow = true;
+}
+void Framework::ReleaseMouseCapture()
+{
+	bool result = ReleaseCapture();
+	isCaptureWindow = false;
+
+#if DEBUG_MODE
+
+	static unsigned int errorCount = 0;
+	if ( !result ) { errorCount++; }
+
+#endif // DEBUG_MODE
+}
+
+void Framework::PutLimitMouseMoveArea()
+{
+	// [0]:X, [1]:Y.
+	constexpr std::array<int, 2> MARGIN_SIZE{ 32, 32 };
+	constexpr int ADJUST = 16;
+
+	// [0]:Left, [1]:Right.
+	const std::array<int, 2> EDGE_X
+	{
+		0 + MARGIN_SIZE[0],
+		Common::ScreenWidth() - MARGIN_SIZE[0]
+	};
+
+	// [0]:Up, [1]:Down.
+	const std::array<int, 2> EDGE_Y
+	{
+		0 + MARGIN_SIZE[1],
+		Common::ScreenHeight() - MARGIN_SIZE[1]
+	};
+
+	int mx{}, my{};
+	Donya::Mouse::GetMouseCoord( &mx, &my );
+
+	bool isReset = false;
+
+	if ( mx < EDGE_X[0] )
+	{
+		mx = EDGE_X[1] - ADJUST;
+		isReset = true;
+	}
+	else
+	if ( EDGE_X[1] < mx )
+	{
+		mx = EDGE_X[0] + ADJUST;
+		isReset = true;
+	}
+
+	if ( my < EDGE_Y[0] )
+	{
+		my = EDGE_Y[1] - ADJUST;
+		isReset = true;
+	}
+	else
+	if ( EDGE_Y[1] < my )
+	{
+		my = EDGE_Y[0] + ADJUST;
+		isReset = true;
+	}
+
+	if ( isReset )
+	{
+		WINDOWPLACEMENT wp{};
+		GetWindowPlacement( hWnd, &wp );
+
+		RECT wRect = wp.rcNormalPosition;
+
+		// Adjust diff of window-area <-> client-area.
+		wRect.left += ( wRect.right - wRect.left ) - Common::ScreenWidth();
+		wRect.top  += ( wRect.bottom - wRect.top ) - Common::ScreenHeight();
+
+		SetCursorPos( wRect.left + mx, wRect.top + my );
+	}
 }
