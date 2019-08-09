@@ -118,10 +118,10 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 		}
 		break;
 	case WM_MOUSEWHEEL:
-		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
+		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ true, wParam, lParam );
 		break;
 	case WM_MOUSEHWHEEL:
-		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ true, wParam, lParam );
+		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
 		break;
 	case WM_LBUTTONDOWN:
 		if ( !pressMouseButton )
@@ -259,6 +259,8 @@ int Framework::Run()
 			highResoTimer.Tick();
 			CalcFrameStats();
 			Update( highResoTimer.timeInterval() );
+
+			Donya::Mouse::ResetMouseWheelRot();
 
 			Render( highResoTimer.timeInterval() );
 		}
@@ -510,8 +512,9 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		{
 			int x{}, y{};
 			Donya::Mouse::GetMouseCoord( &x, &y );
-
+			
 			ImGui::Text( "Mouse[X:%d][Y%d]", x, y );
+			ImGui::Text( "Wheel[%d]", Donya::Mouse::GetMouseWheelRot() );
 			ImGui::Text( "" );
 		}
 

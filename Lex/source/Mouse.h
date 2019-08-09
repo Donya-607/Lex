@@ -18,6 +18,11 @@ namespace Donya
 		void CalledMouseWheelMessage( bool isVertical, WPARAM wParam, LPARAM lParam );
 
 		/// <summary>
+		/// Please call once when every game-loop.
+		/// </summary>
+		void ResetMouseWheelRot();
+
+		/// <summary>
 		/// Mouse coordinate is cliant space.<para></para>
 		/// You can set nullptr.
 		/// </summary>

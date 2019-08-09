@@ -5,9 +5,18 @@
 class Camera
 {
 private:
+	enum class Mode
+	{
+		None,			// when the left-button and wheel-button is not pressed.
+		OrbitAround,	// when left-clicking.
+		Pan				// when wheel-pressing.
+	};
+private:
+	Mode moveMode;
 	float scopeAngle; // 0-based, Radian
 	Donya::Vector3 pos;
 	Donya::Vector3 focus;
+	Donya::Vector3 velocity;
 	DirectX::XMFLOAT4X4 projection;
 public:
 	Camera();
@@ -38,8 +47,9 @@ public:
 public:
 	void Update( const Donya::Vector3 &targetPos );	// You can set nullptr.
 private:
+	void SetVelocity(); // Setting Normalized value.
 	void Move( const Donya::Vector3 &targetPos );
-	void SetXMoveSpeed( Donya::Vector3 *pVelocity );
-	void SetYMoveSpeed( Donya::Vector3 *pVelocity );
-	void SetZMoveSpeed( Donya::Vector3 *pVelocity );
+	void Zoom();
+	void OrbitAround();
+	void Pan();
 };

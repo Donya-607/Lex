@@ -6,6 +6,7 @@
 
 #include "Common.h"
 #include "Keyboard.h"
+#include "Mouse.h"
 #include "Quaternion.h"
 #include "UseImgui.h"
 
@@ -15,15 +16,17 @@
 using namespace DirectX;
 
 Camera::Camera() :
+	moveMode( Mode::None ),
 	scopeAngle( ToRadian( 30.0f ) ),
-	pos(), focus(),
+	pos(), focus(), velocity(),
 	projection()
 {
 	ResetPerspectiveProjection();
 }
 Camera::Camera( float scopeAngle ) :
+	moveMode( Mode::None ),
 	scopeAngle( scopeAngle ),
-	pos(), focus(),
+	pos(), focus(), velocity(),
 	projection()
 {
 	ResetPerspectiveProjection();
@@ -120,7 +123,41 @@ void Camera::Interpolate()
 }
 */
 
+void Camera::SetVelocity()
+{
+
+}
+
 void Camera::Move( const Donya::Vector3 &targetPos )
+{
+	switch ( moveMode )
+	{
+	case Mode::None:		Zoom();			break;
+	case Mode::OrbitAround:	OrbitAround();	break;
+	case Mode::Pan:			Pan();			break;
+	}
+}
+
+void Camera::Zoom()
+{
+	velocity = pos - focus;
+
+	float rot = scast<float>( Donya::Mouse::GetMouseWheelRot() );
+	float speed = 1.0f;
+
+	velocity.z += rot * speed;
+	if ( velocity == ( pos - focus ) ) { return; }
+	// else
+
+	pos = focus + velocity;
+}
+
+void Camera::OrbitAround()
+{
+
+}
+
+void Camera::Pan()
 {
 	float speed = 0.1f;
 	Donya::Vector3 velo{ 0.0f, 0.0f, 0.0f };
@@ -136,16 +173,4 @@ void Camera::Move( const Donya::Vector3 &targetPos )
 
 	pos += velo;
 	focus += velo;
-}
-void Camera::SetXMoveSpeed( Donya::Vector3 *pVelo )
-{
-
-}
-void Camera::SetYMoveSpeed( Donya::Vector3 *pVelo )
-{
-
-}
-void Camera::SetZMoveSpeed( Donya::Vector3 *pVelo )
-{
-
 }

@@ -110,6 +110,7 @@ namespace Donya
 		static float Dot( const XMFLOAT2 &L, const XMFLOAT2 &R ) { return Vector2( L ).Dot( R ); }
 		static float Cross( const Vector2  &L, const Vector2  &R ) { return L.Cross( R ); }
 		static float Cross( const XMFLOAT2 &L, const XMFLOAT2 &R ) { return Vector2( L ).Cross( R ); }
+		static Vector2 Zero() { return Vector2{ 0.0f, 0.0f }; }
 	};
 
 	static Vector2	operator + ( const Vector2 &L, float scalar )					{ return ( Vector2( L ) += scalar ); }
@@ -249,6 +250,7 @@ namespace Donya
 		static float Dot( const XMFLOAT3 &L, const XMFLOAT3 &R ) { return Vector3( L ).Dot( R ); }
 		static Vector3 Cross( const Vector3  &L, const Vector3  &R ) { return L.Cross( R ); }
 		static Vector3 Cross( const XMFLOAT3 &L, const XMFLOAT3 &R ) { return Vector3( L ).Cross( R ); }
+		static Vector3 Zero() { return Vector3{ 0.0f, 0.0f, 0.0f }; }
 	};
 
 	static Vector3	operator + ( const Vector3 &L, float scalar )					{ return ( Vector3( L ) += scalar ); }
@@ -387,6 +389,7 @@ namespace Donya
 //		inline static float Dot( const XMFLOAT4 &L, const XMFLOAT4 &R ) { return Vector4( L ).Dot( R ); }
 //		inline static Vector4 Cross( const Vector4  &L, const Vector4  &R ) { return L.Cross( R ); }
 //		inline static Vector4 Cross( const XMFLOAT4 &L, const XMFLOAT4 &R ) { return Vector4( L ).Cross( R ); }
+		static Vector4 Zero() { return Vector4{ 0.0f, 0.0f, 0.0f, 0.0f }; }
 	};
 
 	static Vector4	operator + ( const Vector4 &L, float scalar )		{ return ( Vector4( L ) += scalar ); }
