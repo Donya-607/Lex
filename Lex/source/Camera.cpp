@@ -87,6 +87,10 @@ XMMATRIX Camera::GetProjectionMatrix() const
 
 void Camera::Update( const Donya::Vector3 &targetPos )
 {
+	ChangeMode();
+
+	SetVelocity();
+
 	Move( targetPos );
 }
 
@@ -123,9 +127,78 @@ void Camera::Interpolate()
 }
 */
 
+void Camera::ChangeMode()
+{
+	enum PressState { Left = 0, Middle = 1, Right = 2 };
+	const std::array<bool, 3> isPressed
+	{
+		Donya::Keyboard::Press( VK_LBUTTON ),
+		Donya::Keyboard::Press( VK_MBUTTON ),
+		Donya::Keyboard::Press( VK_RBUTTON )
+	};
+
+	switch ( moveMode )
+	{
+	case Mode::None:
+		{
+			// The mouse-button state is same as keyboard's state.
+
+			if ( isPressed[Left] )
+			{
+				moveMode = Mode::OrbitAround;
+			}
+			if ( isPressed[Middle] )
+			{
+				moveMode = Mode::Pan;
+			}
+
+		}
+		break;
+	case Mode::OrbitAround:
+		{
+			if ( !isPressed[Left] )
+			{
+				moveMode = Mode::None;
+			}
+		}
+		break;
+	case Mode::Pan:
+		{
+			if ( !isPressed[Middle] )
+			{
+				moveMode = Mode::None;
+			}
+		}
+		break;
+	}
+}
+
 void Camera::SetVelocity()
 {
+	static Donya::Vector2 prevMouse{};
+	static Donya::Vector2 currentMouse{};
 
+	prevMouse = currentMouse;
+
+	Donya::Mouse::GetMouseCoord( &currentMouse.x, &currentMouse.y );
+
+	auto SetLessOrGreater =
+	[]( float *pOut, float judgeNo )
+	{
+		if ( judgeNo < 0.0f )
+		{
+			*pOut = -1.0f;
+		}
+		else
+		if ( 0.0f < judgeNo )
+		{
+			*pOut = 1.0f;
+		}
+	};
+
+	Donya::Vector2 diff = currentMouse - prevMouse;
+	SetLessOrGreater( &velocity.x, diff.x );
+	SetLessOrGreater( &velocity.y, diff.y );
 }
 
 void Camera::Move( const Donya::Vector3 &targetPos )
@@ -142,11 +215,17 @@ void Camera::Zoom()
 {
 	velocity = pos - focus;
 
-	float rot = scast<float>( Donya::Mouse::GetMouseWheelRot() );
-	float speed = 1.0f;
+	int rot = Donya::Mouse::GetMouseWheelRot();
+	if ( !rot ) { return; }
+	// else
+	
+	rot *= -1; // I want the distance to get closer as "rot" gets bigger.
 
-	velocity.z += rot * speed;
-	if ( velocity == ( pos - focus ) ) { return; }
+	constexpr float MAGNI = 0.1f;
+	float addition = scast<float>( rot ) * MAGNI;
+
+	velocity *= 1.0f + addition;
+	if ( ZeroEqual( velocity.LengthSq() ) ) { return; }
 	// else
 
 	pos = focus + velocity;
@@ -159,18 +238,12 @@ void Camera::OrbitAround()
 
 void Camera::Pan()
 {
-	float speed = 0.1f;
-	Donya::Vector3 velo{ 0.0f, 0.0f, 0.0f };
+	constexpr float SPEED = 0.1f;
+	velocity *= SPEED;
 
-	if ( Donya::Keyboard::Press( 'Z' ) )
-	{
-		velo.z = speed;
-	}
-	if ( Donya::Keyboard::Press( 'X' ) )
-	{
-		velo.z = -speed;
-	}
+	velocity.x *= -1; // Move-direction fit to mouse.
+	velocity.z = 0.0f;
 
-	pos += velo;
-	focus += velo;
+	pos		+= velocity;
+	focus	+= velocity;
 }

@@ -72,7 +72,7 @@
 // Level9 shader bytecode:
 //
     ps_2_x
-    def c2, 0, 0.318309873, 0, 0
+    def c2, 0, 1, -1, 0.318309873
     dcl t0  // pin<4,5,6,7>
     dcl t1  // pin<8,9,10,11>
     dcl t2.xy  // pin<12,13>
@@ -80,6 +80,13 @@
 
 #line 17 "D:\学校関連\VS_Projects\FBXLex\Lex\Lex\Shader\SkinnedMeshPS.hlsl"
     texld r0, t2, s0  // ::diffuseColor<0,1,2,3>
+    mov r1.w, -r0.w
+    add r1.x, r1.w, c2.x
+    cmp r1.x, r1.x, c2.y, c2.x
+    mul r1, r1.x, c2.z
+    texkill r1
+
+#line 21
     nop
     mul r1.xyz, r0, c1  // NormalizedLambert::diffuse<0,1,2>
     mov r2.xyz, t1  // NormalizedLambert::normal<0,1,2>
@@ -91,12 +98,12 @@
     add r2.x, r2.x, c2.x
     cmp r1.w, r2.x, c2.x, r1.w
     mul r1.xyz, r1.w, r1
-    mul r0.xyz, r1, c2.y  // ::NormalizedLambert<0,1,2>
-
-#line 18
-    mov r0.xyz, r0  // ::color<0,1,2>
+    mul r0.xyz, r1, c2.w  // ::NormalizedLambert<0,1,2>
 
 #line 21
+    mov r0.xyz, r0  // ::color<0,1,2>
+
+#line 24
     mov r0.xyz, r0  // ::output<0,1,2>
     mov r0.w, r0.w  // ::output<3>
     mul r0, r0, t0  // ::main<0,1,2,3>
@@ -104,7 +111,7 @@
 #line 15
     mov oC0, r0  // ::main<0,1,2,3>
 
-// approximately 15 instruction slots used (1 texture, 14 arithmetic)
+// approximately 20 instruction slots used (1 texture, 19 arithmetic)
 ps_4_0
 dcl_constantbuffer CB0[10], immediateIndexed
 dcl_constantbuffer CB1[3], immediateIndexed
@@ -127,6 +134,12 @@ dcl_temps 4
 sample r0.xyzw, v3.xyxx, t0.xyzw, s0  // r0.x <- diffuseColor.x; r0.y <- diffuseColor.y; r0.z <- diffuseColor.z; r0.w <- diffuseColor.w
 
 #line 18
+ge r1.x, l(0.000000), r0.w
+if_nz r1.x
+  discard_nz l(-1)
+endif 
+
+#line 21
 nop 
 mul r1.xyz, r0.xyzx, cb1[2].xyzx
 mov r2.xyz, v2.xyzx
@@ -138,16 +151,16 @@ max r1.w, r1.w, l(0.000000)
 mul r1.xyz, r1.wwww, r1.xyzx
 mul r0.xyz, r1.xyzx, l(0.318310, 0.318310, 0.318310, 0.000000)  // r0.x <- <NormalizedLambert return value>.x; r0.y <- <NormalizedLambert return value>.y; r0.z <- <NormalizedLambert return value>.z
 
-#line 18
+#line 21
 mov r0.xyz, r0.xyzx  // r0.x <- color.x; r0.y <- color.y; r0.z <- color.z
 
-#line 21
+#line 24
 mov r0.xyz, r0.xyzx  // r0.x <- output.x; r0.y <- output.y; r0.z <- output.z
 
-#line 22
+#line 25
 mov r0.w, r0.w  // r0.w <- output.w
 
-#line 24
+#line 27
 mul o0.xyzw, r0.xyzw, v1.xyzw
 ret 
-// Approximately 14 instruction slots used
+// Approximately 18 instruction slots used

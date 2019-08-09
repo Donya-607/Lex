@@ -80,7 +80,7 @@ namespace Donya
 			switch ( checkButton )
 			{
 			case Left:		vKey = VK_LBUTTON;	break;
-			case Middle:		vKey = VK_MBUTTON;	break;
+			case Middle:	vKey = VK_MBUTTON;	break;
 			case Right:		vKey = VK_RBUTTON;	break;
 			}
 

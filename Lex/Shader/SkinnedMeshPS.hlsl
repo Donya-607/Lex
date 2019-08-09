@@ -15,6 +15,9 @@ SamplerState	diffuseSampler	: register( s0 );
 float4 main( VS_OUT pin ) : SV_TARGET
 {
 	float4 diffuseColor = diffuseMap.Sample( diffuseSampler, pin.texCoord );
+	if ( diffuseColor.a <= 0.0f ) { discard; }
+	// else
+
 	float3 color = NormalizedLambert( diffuse.rgb * diffuseColor.rgb, pin.normal.rgb, lightDir.rgb );
 
 	float4 output;

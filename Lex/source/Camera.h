@@ -47,7 +47,8 @@ public:
 public:
 	void Update( const Donya::Vector3 &targetPos );	// You can set nullptr.
 private:
-	void SetVelocity(); // Setting Normalized value.
+	void ChangeMode();
+	void SetVelocity(); // Setting -1 or 0 or +1 to each element.
 	void Move( const Donya::Vector3 &targetPos );
 	void Zoom();
 	void OrbitAround();
