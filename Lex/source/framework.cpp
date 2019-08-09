@@ -34,6 +34,11 @@ Framework::Framework( HWND hwnd ) :
 }
 Framework::~Framework()
 {
+	if ( isCaptureWindow )
+	{
+		ReleaseMouseCapture();
+	}
+
 	meshes.clear();
 	meshes.shrink_to_fit();
 };
@@ -783,12 +788,14 @@ void Framework::PutLimitMouseMoveArea()
 		WINDOWPLACEMENT wp{};
 		GetWindowPlacement( hWnd, &wp );
 
-		RECT wRect = wp.rcNormalPosition;
+		RECT wndRect = wp.rcNormalPosition;
 
-		// Adjust diff of window-area <-> client-area.
-		wRect.left += ( wRect.right - wRect.left ) - Common::ScreenWidth();
-		wRect.top  += ( wRect.bottom - wRect.top ) - Common::ScreenHeight();
+		// Adjust diff of window-area and client-area.
+		int diff = ( wndRect.bottom - wndRect.top ) - Common::ScreenHeight();
+		wndRect.top += diff >> 1; // diff is little-big.
 
-		SetCursorPos( wRect.left + mx, wRect.top + my );
+		// SetCursorPos() expect position is screen-space.
+		// but "mx" and "my" is client-space.
+		SetCursorPos( wndRect.left + mx, wndRect.top + my );
 	}
 }

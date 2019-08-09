@@ -123,7 +123,7 @@ namespace Donya
 	static Quaternion operator * ( const Quaternion &L, float scalar )				{ return Quaternion( L ) *= scalar;	}
 	static Quaternion operator * ( const Quaternion &L, const Quaternion &R )		{ return Quaternion( L ) *= R;		}
 	static Quaternion operator * ( const Quaternion &L, const Donya::Vector3 &R )	{ return Quaternion( L ) *= R;		}
-	static Quaternion operator * ( const Donya::Vector3 &L, const Quaternion &R );
+	Quaternion operator * ( const Donya::Vector3 &L, const Quaternion &R );
 
 	static Quaternion operator / ( const Quaternion &L, float scalar )				{ return Quaternion( L ) /= scalar; }
 // region Arithmetic
