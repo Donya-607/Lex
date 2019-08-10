@@ -11,12 +11,19 @@ private:
 		OrbitAround,	// when left-clicking.
 		Pan				// when wheel-pressing.
 	};
+	struct MouseCoord
+	{
+		Donya::Vector2 prev{};
+		Donya::Vector2 current{};
+	};
 private:
-	Mode moveMode;
-	float scopeAngle; // 0-based, Radian
-	Donya::Vector3 pos;
-	Donya::Vector3 focus;
-	Donya::Vector3 velocity;
+	Mode			moveMode;
+	float			scopeAngle;			// 0-based, Radian
+	float			virtualDistance;	// The distance of from my-position to virtual-screen, use for Pan() move.
+	Donya::Vector3	pos;
+	Donya::Vector3	focus;
+	Donya::Vector3	velocity;
+	MouseCoord		mouse;
 	DirectX::XMFLOAT4X4 projection;
 public:
 	Camera();
@@ -47,10 +54,17 @@ public:
 public:
 	void Update( const Donya::Vector3 &targetPos );	// You can set nullptr.
 private:
+	void MouseUpdate();
+
 	void ChangeMode();
-	void SetVelocity(); // Setting -1 or 0 or +1 to each element.
+
 	void Move( const Donya::Vector3 &targetPos );
+
 	void Zoom();
+
 	void OrbitAround();
+
 	void Pan();
+	void CalcDistToVirtualScreen();
+	Donya::Vector3 ToWorldPos( const Donya::Vector2 &screenPos );
 };

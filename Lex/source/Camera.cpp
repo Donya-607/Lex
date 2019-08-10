@@ -17,18 +17,22 @@ using namespace DirectX;
 
 Camera::Camera() :
 	moveMode( Mode::None ),
-	scopeAngle( ToRadian( 30.0f ) ),
+	scopeAngle( 0.0f ),
 	pos(), focus(), velocity(),
+	mouse(),
 	projection()
 {
+	SetScopeAngle( ToRadian( 30.0f ) ); // default-value.
 	ResetPerspectiveProjection();
 }
-Camera::Camera( float scopeAngle ) :
+Camera::Camera( float scope ) :
 	moveMode( Mode::None ),
-	scopeAngle( scopeAngle ),
+	scopeAngle( 0.0f ),
 	pos(), focus(), velocity(),
+	mouse(),
 	projection()
 {
+	SetScopeAngle( scope );
 	ResetPerspectiveProjection();
 }
 
@@ -41,6 +45,7 @@ void Camera::SetToHomePosition( Donya::Vector3 homePosition, Donya::Vector3 home
 void Camera::SetScopeAngle( float scope )
 {
 	scopeAngle = scope;
+	CalcDistToVirtualScreen();
 }
 
 void Camera::ResetOrthographicProjection()
@@ -87,9 +92,9 @@ XMMATRIX Camera::GetProjectionMatrix() const
 
 void Camera::Update( const Donya::Vector3 &targetPos )
 {
-	ChangeMode();
+	MouseUpdate();
 
-	SetVelocity();
+	ChangeMode();
 
 	Move( targetPos );
 }
@@ -126,6 +131,13 @@ void Camera::Interpolate()
 	}
 }
 */
+
+void Camera::MouseUpdate()
+{
+	mouse.prev = mouse.current;
+
+	Donya::Mouse::GetMouseCoord( &mouse.current.x, &mouse.current.y );
+}
 
 void Camera::ChangeMode()
 {
@@ -173,7 +185,7 @@ void Camera::ChangeMode()
 	}
 }
 
-void Camera::SetVelocity()
+void SetVelocity( Donya::Vector3 *pVelocity )
 {
 	static Donya::Vector2 prevMouse{};
 	static Donya::Vector2 currentMouse{};
@@ -197,8 +209,8 @@ void Camera::SetVelocity()
 	};
 
 	Donya::Vector2 diff = currentMouse - prevMouse;
-	SetLessOrGreater( &velocity.x, diff.x );
-	SetLessOrGreater( &velocity.y, diff.y );
+	SetLessOrGreater( &pVelocity->x, diff.x );
+	SetLessOrGreater( &pVelocity->y, diff.y );
 }
 
 void Camera::Move( const Donya::Vector3 &targetPos )
@@ -236,8 +248,35 @@ void Camera::OrbitAround()
 
 }
 
+void Multiply( XMFLOAT3 *pOutput, const XMFLOAT4X4 &M )
+{
+	XMFLOAT3 &V = *pOutput;
+
+	float x = ( V.x * M._11 ) + ( V.y * M._21 ) + ( V.z * M._31 );
+	float y = ( V.x * M._12 ) + ( V.y * M._22 ) + ( V.z * M._32 );
+	float z = ( V.x * M._13 ) + ( V.y * M._23 ) + ( V.z * M._33 );
+
+	V.x = x;
+	V.y = y;
+	V.z = z;
+}
+
 void Camera::Pan()
 {
+	if ( mouse.prev == mouse.current ) { return; }
+	// else
+
+	Donya::Vector3 from	= ToWorldPos( mouse.prev	);
+	Donya::Vector3 to	= ToWorldPos( mouse.current	);
+
+	Donya::Vector3 moveVec = to - from;
+	moveVec.x *= -1; // If you want move to right, the camera(myself) must move to left.
+
+	pos		+= moveVec;
+	focus	+= moveVec;
+
+	// Old behavior
+	/*
 	constexpr float SPEED = 0.1f;
 	velocity *= SPEED;
 
@@ -246,4 +285,45 @@ void Camera::Pan()
 
 	pos		+= velocity;
 	focus	+= velocity;
+	*/
+}
+
+void Camera::CalcDistToVirtualScreen()
+{
+	// see http://marupeke296.com/ALG_No7_MoveCameraWithCursor.html
+
+	float FOV = scopeAngle;
+	FOV *= 0.5f;
+
+	virtualDistance = Common::ScreenHeightF() / ( 2 * tanf( FOV ) );
+}
+
+Donya::Vector3 Camera::ToWorldPos( const Donya::Vector2 &screenPos )
+{
+	// see http://marupeke296.com/ALG_No7_MoveCameraWithCursor.html
+
+	Donya::Vector3 worldPos{};
+	{
+		Donya::Vector3 virtualPos{ screenPos.x, screenPos.y, virtualDistance };
+
+		XMFLOAT4X4 pose{};
+		XMStoreFloat4x4( &pose, GetViewMatrix() );
+
+		Multiply( &virtualPos, pose );
+
+		worldPos = virtualPos;
+	}
+
+	float rayLength{}; // The "a" of reference site.
+	{
+		Donya::Vector3 virNormal = pos - focus;
+
+		float dotSample = Donya::Vector3::Dot( { Donya::Vector3::Zero() - pos }, virNormal );
+		float dotTarget = Donya::Vector3::Dot( { worldPos - pos }, virNormal );
+
+		rayLength = dotSample / dotTarget;
+	}
+
+	Donya::Vector3 onPlanePos = pos + ( Donya::Vector3{ worldPos - pos } * rayLength );
+	return onPlanePos;
 }
