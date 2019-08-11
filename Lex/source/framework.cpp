@@ -445,6 +445,11 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		Donya::TogguleShowStateOfImGui();
 	}
 
+	if ( Donya::Keyboard::Trigger( 'R' ) )
+	{
+		camera.SetToHomePosition( { 0.0f, 0.0f, -16.0f } );
+	}
+
 	if ( meshes.empty() )
 	{
 		std::string prePath  = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\";
@@ -585,92 +590,90 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	);
 	*/
 	
-	// Geometric-Cube, StaticMesh Render
-	if ( 1 )
+	XMMATRIX W{};
 	{
-		XMMATRIX matWorld{};
+		static float scale	= 0.1f; // 0.1f;
+		static float angleX	= 0.0f; // -10.0f;
+		static float angleY	= 0.0f; // -160.0f;
+		static float angleZ	= 0.0f; // 0;
+		static float moveX	= 0.0f; // 2.0f;
+		static float moveY	= 0.0f; // -2.0f;
+		static float moveZ	= 0.0f; // 0;
+
+		if ( 0 )
 		{
-			static float scale	= 0.1f;
-			static float angleX	= -10.0f;
-			static float angleY	= -160.0f;
-			static float angleZ	= 0;
-			static float moveX	= 2.0f;
-			static float moveY	= -2.0f;
-			static float moveZ	= 0;
+			constexpr float SCALE_ADD = 0.0012f;
+			constexpr float ANGLE_ADD = 0.12f;
+			constexpr float MOVE_ADD  = 0.04f;
 
-			{
-				constexpr float SCALE_ADD = 0.0012f;
-				constexpr float ANGLE_ADD = 0.12f;
-				constexpr float MOVE_ADD  = 0.04f;
-
-				if ( Donya::Keyboard::Press( 'W'		) ) { scale  += SCALE_ADD; }
-				if ( Donya::Keyboard::Press( 'S'		) ) { scale  -= SCALE_ADD; }
-				if ( Donya::Keyboard::Press( VK_UP		) ) { angleX += ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( VK_DOWN	) ) { angleX -= ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( VK_LEFT	) ) { angleY += ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( VK_RIGHT	) ) { angleY -= ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( 'A'		) ) { angleZ += ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( 'D'		) ) { angleZ -= ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( 'I'		) ) { moveY  += MOVE_ADD;  }
-				if ( Donya::Keyboard::Press( 'K'		) ) { moveY  -= MOVE_ADD;  }
-				if ( Donya::Keyboard::Press( 'L'		) ) { moveX  += MOVE_ADD;  }
-				if ( Donya::Keyboard::Press( 'J'		) ) { moveX  -= MOVE_ADD;  }
-			}
-
-			XMMATRIX scaling		= XMMatrixScaling( scale, scale, scale );
-			XMMATRIX rotX			= XMMatrixRotationX( ToRadian( angleX ) );
-			XMMATRIX rotY			= XMMatrixRotationY( ToRadian( angleY ) );
-			XMMATRIX rotZ			= XMMatrixRotationZ( ToRadian( angleZ ) );
-			XMMATRIX rotation		= ( rotZ * rotY ) * rotX;
-			XMMATRIX translation	= XMMatrixTranslation( moveX, moveY, moveZ );
-
-			matWorld = scaling * rotation * translation;
-		}
-		XMMATRIX matView = camera.GetViewMatrix();
-
-		XMFLOAT4X4 worldViewProjection{};
-		{
-			XMMATRIX projPerspective = camera.GetProjectionMatrix();
-
-			XMStoreFloat4x4
-			(
-				&worldViewProjection,
-				DirectX::XMMatrixMultiply( matWorld, DirectX::XMMatrixMultiply( matView, projPerspective ) )
-			);
+			if ( Donya::Keyboard::Press( 'W'		) ) { scale  += SCALE_ADD; }
+			if ( Donya::Keyboard::Press( 'S'		) ) { scale  -= SCALE_ADD; }
+			if ( Donya::Keyboard::Press( VK_UP		) ) { angleX += ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( VK_DOWN	) ) { angleX -= ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( VK_LEFT	) ) { angleY += ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( VK_RIGHT	) ) { angleY -= ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( 'A'		) ) { angleZ += ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( 'D'		) ) { angleZ -= ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( 'I'		) ) { moveY  += MOVE_ADD;  }
+			if ( Donya::Keyboard::Press( 'K'		) ) { moveY  -= MOVE_ADD;  }
+			if ( Donya::Keyboard::Press( 'L'		) ) { moveX  += MOVE_ADD;  }
+			if ( Donya::Keyboard::Press( 'J'		) ) { moveX  -= MOVE_ADD;  }
 		}
 
-		XMFLOAT4X4 world{};
-		XMStoreFloat4x4( &world, matWorld );
+		XMMATRIX S	= XMMatrixScaling( scale, scale, scale );
+		XMMATRIX RX	= XMMatrixRotationX( ToRadian( angleX ) );
+		XMMATRIX RY	= XMMatrixRotationY( ToRadian( angleY ) );
+		XMMATRIX RZ	= XMMatrixRotationZ( ToRadian( angleZ ) );
+		XMMATRIX R	= ( RZ * RY ) * RX;
+		XMMATRIX T	= XMMatrixTranslation( moveX, moveY, moveZ );
 
-		static XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-		static XMFLOAT4 lightDirection{ 0.0f, 2.0f, -2.0f, 0.0f };
-		XMFLOAT4 cameraPos{};
+		W = S * R * T;
+	}
+
+	XMMATRIX V = camera.GetViewMatrix();
+
+	XMFLOAT4X4 worldViewProjection{};
+	{
+		XMMATRIX projPerspective = camera.GetProjectionMatrix();
+
+		XMStoreFloat4x4
+		(
+			&worldViewProjection,
+			DirectX::XMMatrixMultiply( W, DirectX::XMMatrixMultiply( V, projPerspective ) )
+		);
+	}
+
+	XMFLOAT4X4 world{};
+	XMStoreFloat4x4( &world, W );
+
+	static XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+	static XMFLOAT4 lightDirection{ 0.0f, 2.0f, -2.0f, 0.0f };
+	XMFLOAT4 cameraPos{};
+	{
+		XMFLOAT3 ref = camera.GetPos();
+		cameraPos.x = ref.x;
+		cameraPos.y = ref.y;
+		cameraPos.z = ref.z;
+		cameraPos.w = 1.0f;
+	}
+
+#if USE_IMGUI
+
+	if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
+	{
+		ImGui::ColorEdit4( "Light Color", &lightColor.x );
+		ImGui::SliderFloat3( "Light Direction", &lightDirection.x, -8.0f, 8.0f );
+
+		ImGui::End();
+	}
+
+#endif // USE_IMGUI
+
+	for ( auto &it : meshes )
+	{
+		if ( it.pMesh )
 		{
-			XMFLOAT3 ref = camera.GetPos();
-			cameraPos.x = ref.x;
-			cameraPos.y = ref.y;
-			cameraPos.z = ref.z;
-			cameraPos.w = 1.0f;
-		}
-
-	#if USE_IMGUI
-
-		if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
-		{
-			ImGui::ColorEdit4( "Light Color", &lightColor.x );
-			ImGui::SliderFloat3( "Light Direction", &lightDirection.x, -8.0f, 8.0f );
-
-			ImGui::End();
-		}
-
-	#endif // USE_IMGUI
-
-		for ( auto &it : meshes )
-		{
-			if ( it.pMesh )
-			{
-				it.pMesh->Render( worldViewProjection, world, cameraPos, lightColor, lightDirection, isSolidState );
-			}
+			it.pMesh->Render( worldViewProjection, world, cameraPos, lightColor, lightDirection, isSolidState );
 		}
 	}
 

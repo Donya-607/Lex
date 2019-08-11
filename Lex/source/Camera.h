@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Common.h"	// Use DEBUG_MODE macro.
+
+#include "Quaternion.h"
 #include "Vector.h"
 
 class Camera
@@ -9,7 +12,7 @@ private:
 	{
 		None,			// when the left-button and wheel-button is not pressed.
 		OrbitAround,	// when left-clicking.
-		Pan				// when wheel-pressing.
+		Pan				// when wheel-pressing, or right-clicking.
 	};
 	struct MouseCoord
 	{
@@ -17,14 +20,16 @@ private:
 		Donya::Vector2 current{};
 	};
 private:
-	Mode			moveMode;
-	float			scopeAngle;			// 0-based, Radian
-	float			virtualDistance;	// The distance of from my-position to virtual-screen, use for Pan() move.
-	Donya::Vector3	pos;
-	Donya::Vector3	focus;
-	Donya::Vector3	velocity;
-	MouseCoord		mouse;
-	DirectX::XMFLOAT4X4 projection;
+	Mode				moveMode;
+	float				radius;				// same as length of vector(pos-focus).
+	float				scopeAngle;			// 0-based, Radian
+	float				virtualDistance;	// The distance of from my-position to virtual-screen, use for Pan() move.
+	Donya::Vector3		pos;
+	Donya::Vector3		focus;
+	Donya::Vector3		velocity;
+	MouseCoord			mouse;
+	Donya::Quaternion	posture;
+	DirectX::XMFLOAT4X4	projection;
 public:
 	Camera();
 	Camera( float scopeAngle );
@@ -67,4 +72,10 @@ private:
 	void Pan();
 	void CalcDistToVirtualScreen();
 	Donya::Vector3 ToWorldPos( const Donya::Vector2 &screenPos );
+
+#if DEBUG_MODE
+
+	void ShowPaametersToImGui();
+
+#endif // DEBUG_MODE
 };

@@ -119,6 +119,14 @@ namespace Donya
 		return Vector3{ x, y, z };
 	}
 
+	Vector3 Quaternion::RotateVector( const Donya::Vector3 &V ) const
+	{
+		// Q * V * Q*
+		Quaternion rotated = ( ( *this ) * V ) * Conjugate();
+
+		return rotated.GetAxis();
+	}
+
 	XMFLOAT4X4 Quaternion::RequireRotationMatrix() const
 	{
 		XMFLOAT4X4 m{};
@@ -277,6 +285,11 @@ namespace Donya
 	Vector3 Quaternion::GetAxis( const Quaternion &Q )
 	{
 		return Q.GetAxis();
+	}
+
+	Vector3 Quaternion::RotateVector( const Quaternion &R, const Donya::Vector3 &target )
+	{
+		return R.RotateVector( target );
 	}
 
 	XMFLOAT4X4 Quaternion::RequireRotationMatrix( const Quaternion &Q )

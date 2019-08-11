@@ -7,7 +7,6 @@
 #include "Common.h"
 #include "Keyboard.h"
 #include "Mouse.h"
-#include "Quaternion.h"
 #include "UseImgui.h"
 
 #undef min
@@ -17,9 +16,11 @@ using namespace DirectX;
 
 Camera::Camera() :
 	moveMode( Mode::None ),
-	scopeAngle( 0.0f ),
+	radius(),
+	scopeAngle(),
 	pos(), focus(), velocity(),
 	mouse(),
+	posture(),
 	projection()
 {
 	SetScopeAngle( ToRadian( 30.0f ) ); // default-value.
@@ -27,9 +28,11 @@ Camera::Camera() :
 }
 Camera::Camera( float scope ) :
 	moveMode( Mode::None ),
-	scopeAngle( 0.0f ),
+	radius(),
+	scopeAngle(),
 	pos(), focus(), velocity(),
 	mouse(),
+	posture(),
 	projection()
 {
 	SetScopeAngle( scope );
@@ -40,6 +43,7 @@ void Camera::SetToHomePosition( Donya::Vector3 homePosition, Donya::Vector3 home
 {
 	pos		= homePosition;
 	focus	= homeFocus;
+	posture	= Donya::Quaternion::Identity();
 }
 
 void Camera::SetScopeAngle( float scope )
@@ -97,6 +101,12 @@ void Camera::Update( const Donya::Vector3 &targetPos )
 	ChangeMode();
 
 	Move( targetPos );
+
+#if DEBUG_MODE
+
+	ShowPaametersToImGui();
+
+#endif // DEBUG_MODE
 }
 
 // Interpolate is not used in current implement.
@@ -137,6 +147,8 @@ void Camera::MouseUpdate()
 	mouse.prev = mouse.current;
 
 	Donya::Mouse::GetMouseCoord( &mouse.current.x, &mouse.current.y );
+
+	// TODO:I should support looping mouse.
 }
 
 void Camera::ChangeMode()
@@ -159,7 +171,7 @@ void Camera::ChangeMode()
 			{
 				moveMode = Mode::OrbitAround;
 			}
-			if ( isPressed[Middle] )
+			if ( isPressed[Middle] || isPressed[Right] )
 			{
 				moveMode = Mode::Pan;
 			}
@@ -176,7 +188,7 @@ void Camera::ChangeMode()
 		break;
 	case Mode::Pan:
 		{
-			if ( !isPressed[Middle] )
+			if ( !( isPressed[Middle] || isPressed[Right] ) )
 			{
 				moveMode = Mode::None;
 			}
@@ -241,11 +253,38 @@ void Camera::Zoom()
 	// else
 
 	pos = focus + velocity;
+	radius = Donya::Vector3{ pos - focus }.Length();
 }
 
 void Camera::OrbitAround()
 {
+	if ( mouse.prev == mouse.current ) { return; }
+	// else
 
+	float rotateSpeed = 1.0f;
+	Donya::Vector2 diff = mouse.current - mouse.prev;
+
+	if ( !ZeroEqual( diff.x ) )
+	{
+		float radian = ToRadian( diff.x * rotateSpeed );
+		Donya::Vector3 up = posture.RotateVector( Donya::Vector3::Up() );
+
+		Donya::Quaternion rotate = Donya::Quaternion::Make( up, radian );
+		posture *= rotate;
+	}
+	if ( !ZeroEqual( diff.y ) )
+	{
+		float radian = ToRadian( diff.y * rotateSpeed );
+		Donya::Vector3 right = posture.RotateVector( Donya::Vector3::Right() );
+
+		Donya::Quaternion rotate = Donya::Quaternion::Make( right, radian );
+		posture *= rotate;
+	}
+
+	Donya::Vector3 front = posture.RotateVector( Donya::Vector3::Front() );
+	front *= radius;
+
+	pos = focus + ( -front );
 }
 
 void Multiply( XMFLOAT3 *pOutput, const XMFLOAT4X4 &M )
@@ -327,3 +366,57 @@ Donya::Vector3 Camera::ToWorldPos( const Donya::Vector2 &screenPos )
 	Donya::Vector3 onPlanePos = pos + ( Donya::Vector3{ worldPos - pos } * rayLength );
 	return onPlanePos;
 }
+
+#if DEBUG_MODE
+
+void Camera::ShowPaametersToImGui()
+{
+#if USE_IMGUI
+
+	if ( ImGui::BeginIfAllowed() )
+	{
+		if ( ImGui::TreeNode( "Camera" ) )
+		{
+			std::string vec3Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f]" };
+			std::string vec4Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]" };
+			auto ShowVec3 =
+			[&vec3Info]( std::string name, const Donya::Vector3 &param )
+			{
+				ImGui::Text( ( name + vec3Info ).c_str(), param.x, param.y, param.z );
+			};
+			auto ShowVec4 =
+			[&vec4Info]( std::string name, const Donya::Vector4 &param )
+			{
+				ImGui::Text( ( name + vec4Info ).c_str(), param.x, param.y, param.z, param.w );
+			};
+
+			Donya::Vector3 up		= posture.RotateVector( Donya::Vector3::Up()	);
+			Donya::Vector3 right	= posture.RotateVector( Donya::Vector3::Right()	);
+			Donya::Vector3 front	= posture.RotateVector( Donya::Vector3::Front()	);
+
+			ShowVec3( "Pos",	pos		);
+			ShowVec3( "Focus",	focus	);
+			ShowVec3( "Up",		up		);
+			ShowVec3( "Right",	right	);
+			ShowVec3( "Front",	front	);
+			
+			Donya::Vector4 vec4Posture
+			{
+				posture.x,
+				posture.y,
+				posture.z,
+				posture.w
+			};
+			ShowVec4( "Posture", vec4Posture );
+			ImGui::Text( "Norm[%5.3f]", posture.Length() );
+
+			ImGui::TreePop();
+		}
+
+		ImGui::End();
+	}
+
+#endif // USE_IMGUI
+}
+
+#endif // DEBUG_MODE

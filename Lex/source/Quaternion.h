@@ -42,7 +42,7 @@ namespace Donya
 		float LengthSq() const;
 
 		/// <summary>
-		/// Q = s - v
+		/// Q* = s - v
 		/// </summary>
 		Quaternion Conjugate() const;
 
@@ -55,6 +55,11 @@ namespace Donya
 		/// 
 		/// </summary>
 		Donya::Vector3 GetAxis() const;
+
+		/// <summary>
+		/// Returns = Q * V * Q*
+		/// </summary>
+		Donya::Vector3 RotateVector( const Donya::Vector3 &target ) const;
 
 		/// <summary>
 		/// The fourth-elements are same to identity.
@@ -109,6 +114,11 @@ namespace Donya
 		/// 
 		/// </summary>
 		static Donya::Vector3 GetAxis( const Quaternion & );
+
+		/// <summary>
+		/// Returns = Q * V * Q*
+		/// </summary>
+		static Donya::Vector3 RotateVector( const Quaternion &R, const Donya::Vector3 &target );
 
 		/// <summary>
 		/// The fourth-elements are same to identity.
