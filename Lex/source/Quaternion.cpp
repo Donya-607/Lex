@@ -131,8 +131,10 @@ namespace Donya
 		return Vector3{ x, y, z };
 	}
 
-	Vector3 Quaternion::RotateVector( const Donya::Vector3 &V ) const
+	Vector3 Quaternion::RotateVector( const Donya::Vector3 &target ) const
 	{
+		Quaternion V{ target.x, target.y, target.z, 0.0f };
+
 		// Q * V * Q*
 		Quaternion rotated = ( ( *this ) * V ) * Conjugate();
 

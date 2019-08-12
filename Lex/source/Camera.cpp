@@ -68,7 +68,7 @@ void Camera::ResetPerspectiveProjection()
 
 XMMATRIX Camera::SetOrthographicProjectionMatrix( float width, float height, float mostNear, float mostFar )
 {
-	XMStoreFloat4x4( &projection, DirectX::XMMatrixOrthographicLH( width, height, mostNear, mostFar ) );
+	XMStoreFloat4x4( &projection, XMMatrixOrthographicLH( width, height, mostNear, mostFar ) );
 	return GetProjectionMatrix();
 }
 XMMATRIX Camera::SetPerspectiveProjectionMatrix( float aspectRatio )
@@ -77,17 +77,30 @@ XMMATRIX Camera::SetPerspectiveProjectionMatrix( float aspectRatio )
 }
 XMMATRIX Camera::SetPerspectiveProjectionMatrix( float scopeAngle, float aspectRatio, float mostNear, float mostFar )
 {
-	XMStoreFloat4x4( &projection, DirectX::XMMatrixPerspectiveFovLH( scopeAngle, aspectRatio, mostNear, mostFar ) );
+	XMStoreFloat4x4( &projection, XMMatrixPerspectiveFovLH( scopeAngle, aspectRatio, mostNear, mostFar ) );
 	return GetProjectionMatrix();
 }
 
-XMMATRIX Camera::GetViewMatrix() const
+XMMATRIX Camera::CalcViewMatrix() const
 {
-	XMVECTOR vEye	= DirectX::XMVectorSet( pos.x, pos.y, pos.z, 1.0f );
-	XMVECTOR vFocus	= DirectX::XMVectorSet( focus.x, focus.y, focus.z, 1.0f );
-	XMVECTOR vUp	= DirectX::XMVectorSet( 0, 1.0f, 0, 0 );
+	XMMATRIX R{};
+	{
+		Donya::Quaternion invRot = posture.Conjugate();
+		XMFLOAT4X4 rotate = invRot.RequireRotationMatrix();
 
-	return DirectX::XMMatrixLookAtLH( vEye, vFocus, vUp );
+		R = XMLoadFloat4x4( &rotate );
+	}
+
+	XMMATRIX T = XMMatrixTranslation( -pos.x, -pos.y, -pos.z );
+
+	return { T * R };
+	/*
+	XMVECTOR vEye	= XMVectorSet( pos.x, pos.y, pos.z, 1.0f );
+	XMVECTOR vFocus	= XMVectorSet( focus.x, focus.y, focus.z, 1.0f );
+	XMVECTOR vUp	= XMVectorSet( 0, 1.0f, 0, 0 );
+
+	return XMMatrixLookAtLH( vEye, vFocus, vUp );
+	*/
 }
 
 XMMATRIX Camera::GetProjectionMatrix() const
@@ -270,22 +283,25 @@ void Camera::OrbitAround()
 
 	float rotateSpeed = 1.0f;
 	Donya::Vector2 diff = mouse.current - mouse.prev;
+	// diff.y *= -1; // If you want move to up, the camera(myself) must move to down.
 	
 	if ( !ZeroEqual( diff.x ) )
 	{
 		float radian = ToRadian( diff.x * rotateSpeed );
-		Donya::Vector3 up = posture.RotateVector( Donya::Vector3::Up() );
+		// Donya::Vector3 up = posture.RotateVector( Donya::Vector3::Up() );
+		Donya::Vector3 up = Donya::Vector3::Up();
 
 		Donya::Quaternion rotate = Donya::Quaternion::Make( up, radian );
-		posture *= rotate;
+		posture = rotate * posture;
 	}
 	if ( !ZeroEqual( diff.y ) )
 	{
 		float radian = ToRadian( diff.y * rotateSpeed );
 		Donya::Vector3 right = posture.RotateVector( Donya::Vector3::Right() );
+		// Donya::Vector3 right = Donya::Vector3::Right();
 
 		Donya::Quaternion rotate = Donya::Quaternion::Make( right, radian );
-		posture *= rotate;
+		posture = rotate * posture;
 	}
 
 	Donya::Vector3 front = posture.RotateVector( Donya::Vector3::Front() );
@@ -323,18 +339,6 @@ void Camera::Pan()
 
 	pos		+= moveVec;
 	focus	+= moveVec;
-
-	// Old behavior
-	/*
-	constexpr float SPEED = 0.1f;
-	velocity *= SPEED;
-
-	velocity.x *= -1; // Move-direction fit to mouse.
-	velocity.z = 0.0f;
-
-	pos		+= velocity;
-	focus	+= velocity;
-	*/
 }
 
 void Camera::CalcDistToVirtualScreen()
@@ -355,8 +359,7 @@ Donya::Vector3 Camera::ToWorldPos( const Donya::Vector2 &screenPos )
 	{
 		Donya::Vector3 virtualPos{ screenPos.x, screenPos.y, virtualDistance };
 
-		XMFLOAT4X4 pose{};
-		XMStoreFloat4x4( &pose, GetViewMatrix() );
+		XMFLOAT4X4 pose = posture.RequireRotationMatrix();
 
 		Multiply( &virtualPos, pose );
 

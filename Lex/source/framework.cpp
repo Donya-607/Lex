@@ -630,7 +630,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		W = S * R * T;
 	}
 
-	XMMATRIX V = camera.GetViewMatrix();
+	XMMATRIX V = camera.CalcViewMatrix();
 
 	XMFLOAT4X4 worldViewProjection{};
 	{
@@ -647,7 +647,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	XMStoreFloat4x4( &world, W );
 
 	static XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-	static XMFLOAT4 lightDirection{ 0.0f, 2.0f, -2.0f, 0.0f };
+	static XMFLOAT4 lightDirection{ 0.0f, 6.0f, 0.0f, 0.0f };
 	XMFLOAT4 cameraPos{};
 	{
 		XMFLOAT3 ref = camera.GetPos();

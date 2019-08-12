@@ -53,7 +53,7 @@ public:
 	/// </summary>
 	DirectX::XMMATRIX SetPerspectiveProjectionMatrix( float aspectRatio );
 	DirectX::XMMATRIX SetPerspectiveProjectionMatrix( float scopeAngle, float aspectRatio, float mostNear, float mostFar );
-	DirectX::XMMATRIX GetViewMatrix() const;
+	DirectX::XMMATRIX CalcViewMatrix() const;
 	DirectX::XMMATRIX GetProjectionMatrix() const;
 	Donya::Vector3 GetPos() const { return pos; }
 public:
