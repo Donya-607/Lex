@@ -40,6 +40,15 @@ namespace Donya
 		/// |Q| = sqrt( q0^2 + q1^2 + q2^2 + q3^2 ) = sqrt( QQ* ) = sqrt( Q*Q )
 		/// </summary>
 		float LengthSq() const;
+		/// <summary>
+		/// |Q| = sqrt( q0^2 + q1^2 + q2^2 + q3^2 ) = sqrt( QQ* ) = sqrt( Q*Q )
+		/// </summary>
+		float Norm() const;
+
+		/// <summary>
+		/// Q /= |Q| (0 < |Q|)
+		/// </summary>
+		void Normalize();
 
 		/// <summary>
 		/// Q* = s - v
@@ -79,6 +88,10 @@ namespace Donya
 		/// |Q| = sqrt( q0^2 + q1^2 + q2^2 + q3^2 ) = sqrt( QQ* ) = sqrt( Q*Q )
 		/// </summary>
 		static float LengthSq( const Quaternion & );
+		/// <summary>
+		/// |Q| = sqrt( q0^2 + q1^2 + q2^2 + q3^2 ) = sqrt( QQ* ) = sqrt( Q*Q )
+		/// </summary>
+		static float Norm( const Quaternion & );
 
 		/// <summary>
 		/// Q = s - v

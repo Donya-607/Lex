@@ -7,6 +7,7 @@
 #include "Common.h"
 #include "Keyboard.h"
 #include "Mouse.h"
+#include "Useful.h"
 #include "UseImgui.h"
 
 #undef min
@@ -233,6 +234,12 @@ void Camera::Move( const Donya::Vector3 &targetPos )
 	case Mode::OrbitAround:	OrbitAround();	break;
 	case Mode::Pan:			Pan();			break;
 	}
+
+	// Norm() != 1
+	if ( !ZeroEqual( posture.Length() - 1.0f ) )
+	{
+		posture.Normalize();
+	}
 }
 
 void Camera::Zoom()
@@ -263,7 +270,7 @@ void Camera::OrbitAround()
 
 	float rotateSpeed = 1.0f;
 	Donya::Vector2 diff = mouse.current - mouse.prev;
-
+	
 	if ( !ZeroEqual( diff.x ) )
 	{
 		float radian = ToRadian( diff.x * rotateSpeed );
@@ -283,6 +290,9 @@ void Camera::OrbitAround()
 
 	Donya::Vector3 front = posture.RotateVector( Donya::Vector3::Front() );
 	front *= radius;
+
+	if ( ZeroEqual( front.LengthSq() ) ) { return; }
+	// else
 
 	pos = focus + ( -front );
 }

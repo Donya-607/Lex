@@ -95,6 +95,18 @@ namespace Donya
 	{
 		return ( x * x ) + ( y * y ) + ( z * z ) + ( w * w );
 	}
+	float Quaternion::Norm() const
+	{
+		return Length();
+	}
+
+	void Quaternion::Normalize()
+	{
+		float len = Length();
+		if ( len < FLT_EPSILON ) { return; }
+		// else
+		*this /= len;
+	}
 
 	Quaternion Quaternion::Conjugate() const
 	{
@@ -166,6 +178,10 @@ namespace Donya
 	float Quaternion::LengthSq( const Quaternion &Q )
 	{
 		return Q.LengthSq();
+	}
+	float Quaternion::Norm( const Quaternion &Q )
+	{
+		return Q.Length();
 	}
 
 	Quaternion Quaternion::Conjugate( const Quaternion &Q )
