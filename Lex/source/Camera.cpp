@@ -94,13 +94,6 @@ XMMATRIX Camera::CalcViewMatrix() const
 	XMMATRIX T = XMMatrixTranslation( -pos.x, -pos.y, -pos.z );
 
 	return { T * R };
-	/*
-	XMVECTOR vEye	= XMVectorSet( pos.x, pos.y, pos.z, 1.0f );
-	XMVECTOR vFocus	= XMVectorSet( focus.x, focus.y, focus.z, 1.0f );
-	XMVECTOR vUp	= XMVectorSet( 0, 1.0f, 0, 0 );
-
-	return XMMatrixLookAtLH( vEye, vFocus, vUp );
-	*/
 }
 
 XMMATRIX Camera::GetProjectionMatrix() const
@@ -294,27 +287,20 @@ void Camera::OrbitAround()
 	if ( mouse.prev == mouse.current ) { return; }
 	// else
 
-	// float rotateSpeed = 1.0f;
-	float rotateSpeed = 10.0f;
+	constexpr float ROTATION_SPEED = 1.0f;
 
+	/* // TODO:I wanna change the way of calculation of rotation-amount. that calculate by world-space mouse-position.
 	Donya::Vector3 from	= ToWorldPos( mouse.prev	);
 	Donya::Vector3 to	= ToWorldPos( mouse.current	);
-
-	if ( 0 ) // Test:ÉèÅ[ÉãÉhç¿ïWÇäÓèÄÇ…ÇµÇΩÇ¢
-	{
-		XMFLOAT4X4 view{};
-		XMStoreFloat4x4( &view, CalcViewMatrix() );
-
-		Multiply( &from, view );
-		Multiply( &to, view );
-	}
-
-	// Donya::Vector2 diff = mouse.current - mouse.prev;
 	Donya::Vector3 diff = to - from;
+	*/
+
+	Donya::Vector2 diff = mouse.current - mouse.prev;
 	
+	// Rotate posture.
 	if ( !ZeroEqual( diff.x ) )
 	{
-		float radian = ToRadian( diff.x * rotateSpeed );
+		float radian = ToRadian( diff.x * ROTATION_SPEED );
 		Donya::Vector3 up = Donya::Vector3::Up(); // world-space axis.
 
 		Donya::Quaternion rotate = Donya::Quaternion::Make( up, radian );
@@ -322,19 +308,19 @@ void Camera::OrbitAround()
 	}
 	if ( !ZeroEqual( diff.y ) )
 	{
-		float radian = ToRadian( diff.y * rotateSpeed );
+		float radian = ToRadian( diff.y * ROTATION_SPEED );
 		Donya::Vector3 right = posture.RotateVector( Donya::Vector3::Right() ); // camera-space axis.
 
 		Donya::Quaternion rotate = Donya::Quaternion::Make( right, radian );
 		posture = rotate * posture;
 	}
 
-	Donya::Vector3 front = posture.RotateVector( Donya::Vector3::Front() );
-	front *= radius;
-
+	// Calculate front-vector. thereby I can decide camera-position.
+	Donya::Vector3  front = posture.RotateVector( Donya::Vector3::Front() );
 	if ( ZeroEqual( front.LengthSq() ) ) { return; }
 	// else
 
+	front *= radius;
 	pos = focus + ( -front );
 }
 
@@ -344,7 +330,8 @@ void Camera::Pan()
 	// else
 
 	// If you want move to right, the camera(myself) must move to left.
-	Donya::Vector2 old{ mouse.prev }, now( mouse.current );
+	Donya::Vector2 old{ mouse.prev };
+	Donya::Vector2 now( mouse.current );
 	old.x *= -1;
 	now.x *= -1;
 
@@ -374,26 +361,17 @@ Donya::Vector3 Camera::ToWorldPos( const Donya::Vector2 &screenPos )
 	Donya::Vector3 worldPos{};
 	{
 		Donya::Vector3 virtualPos{ screenPos.x, screenPos.y, virtualDistance };
-
-		XMFLOAT4X4 pose = posture.RequireRotationMatrix();
-
-		// Test:Multiply translation-matrix to pose-matrix. is this necessaary???
-		if ( 0 )
-		{
-			XMMATRIX T = XMMatrixTranslation( pos.x, pos.y, pos.z );
-			XMStoreFloat4x4( &pose, ( XMLoadFloat4x4( &pose ) * T ) );
-		}
-
-		Multiply( &virtualPos, pose );
+		
+		Multiply( &virtualPos, posture.RequireRotationMatrix() );
 
 		worldPos = virtualPos;
 	}
 
 	float rayLength{}; // The "a" of reference site.
 	{
+		Donya::Vector3 anyPoint  = Donya::Vector3::Zero();
 		Donya::Vector3 virNormal = pos - focus;
-
-		float dotSample = Donya::Vector3::Dot( { Donya::Vector3::Zero() - pos }, virNormal );
+		float dotSample = Donya::Vector3::Dot( { anyPoint - pos }, virNormal );
 		float dotTarget = Donya::Vector3::Dot( { worldPos - pos }, virNormal );
 
 		rayLength = dotSample / dotTarget;
