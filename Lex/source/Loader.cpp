@@ -13,6 +13,9 @@
 
 #define scast static_cast
 
+#undef min
+#undef max
+
 namespace FBX = fbxsdk;
 
 namespace Donya

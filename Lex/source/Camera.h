@@ -75,7 +75,7 @@ private:
 
 #if DEBUG_MODE
 
-	void ShowPaametersToImGui();
+	void ShowParametersToImGui();
 
 #endif // DEBUG_MODE
 };
