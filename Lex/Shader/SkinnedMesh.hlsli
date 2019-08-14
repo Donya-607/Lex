@@ -2,7 +2,7 @@ struct VS_OUT
 {
 	float4 pos		: SV_POSITION;
 	float4 color	: COLOR;
-	float4 normal	: TEXCOORD0;
+	float4 normal	: NORMAL;
 	float2 texCoord	: TEXCOORD1;
 };
 

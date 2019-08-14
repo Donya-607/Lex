@@ -32,6 +32,7 @@ namespace Donya
 		{
 			auto &loadedMesh = ( *pLoadedMeshes )[i];
 
+			meshes[i].coordinateConversion = loadedMesh.coordinateConversion;
 			meshes[i].globalTransform = loadedMesh.globalTransform;
 
 			std::vector<Vertex> vertices{};
@@ -39,6 +40,7 @@ namespace Donya
 				const std::vector<Donya::Vector3> &normals   = loadedMesh.normals;
 				const std::vector<Donya::Vector3> &positions = loadedMesh.positions;
 				const std::vector<Donya::Vector2> &texCoords = loadedMesh.texCoords;
+				const std::vector<Loader::BoneInfluencesPerControlPoint> &boneInfluences = loadedMesh.influences;
 
 				vertices.resize( max( normals.size(), positions.size() ) );
 				size_t end = vertices.size();
@@ -46,14 +48,16 @@ namespace Donya
 				{
 					vertices[j].normal		= normals[j];
 					vertices[j].pos			= positions[j];
+					
+					vertices[j].texCoord	= ( j < texCoords.size() )
+											? texCoords[j]
+											: Donya::Vector2{};
 
-					if ( j < texCoords.size() )
+					size_t influenceCount = boneInfluences[j].cluster.size();
+					for ( size_t k = 0; k < influenceCount; ++k )
 					{
-						vertices[j].texCoord = texCoords[j];
-					}
-					else
-					{
-						vertices[j].texCoord = { 0, 0 };
+						vertices[j].boneIndices[k] = boneInfluences[j].cluster[k].index;
+						vertices[j].boneWeights[k] = boneInfluences[j].cluster[k].weight;
 					}
 				}
 			}
@@ -188,15 +192,17 @@ namespace Donya
 		{
 			D3D11_INPUT_ELEMENT_DESC d3d11InputElementsDesc[] =
 			{
-				{ "POSITION"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-				{ "NORMAL"		, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-				{ "TEXCOORD"	, 0, DXGI_FORMAT_R32G32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "POSITION"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "NORMAL"		, 0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "TEXCOORD"	, 0, DXGI_FORMAT_R32G32_FLOAT,			0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "BONES"		, 0, DXGI_FORMAT_R32G32B32A32_UINT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "WEIGHTS"		, 0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			};
 
 			Resource::CreateVertexShaderFromCso
 			(
 				pDevice,
-				"SkinnedMeshVS.cso", "rb",
+				"./Shader/SkinnedMeshVS.cso", "rb",
 				iVertexShader.GetAddressOf(),
 				iInputLayout.GetAddressOf(),
 				d3d11InputElementsDesc,
@@ -209,7 +215,7 @@ namespace Donya
 			Resource::CreatePixelShaderFromCso
 			(
 				pDevice,
-				"SkinnedMeshPS.cso", "rb",
+				"./Shader/SkinnedMeshPS.cso", "rb",
 				iPixelShader.GetAddressOf(),
 				/* enableCache = */ true
 			);
@@ -217,7 +223,7 @@ namespace Donya
 		// Create Rasterizer States
 		{
 			D3D11_RASTERIZER_DESC d3d11ResterizerDescBase{};
-			d3d11ResterizerDescBase.CullMode					= D3D11_CULL_BACK;
+			d3d11ResterizerDescBase.CullMode					= D3D11_CULL_FRONT;
 			d3d11ResterizerDescBase.FrontCounterClockwise		= FALSE;
 			d3d11ResterizerDescBase.DepthBias					= 0;
 			d3d11ResterizerDescBase.DepthBiasClamp				= 0;
@@ -261,7 +267,7 @@ namespace Donya
 			samplerDesc.AddressU		= D3D11_TEXTURE_ADDRESS_WRAP;
 			samplerDesc.AddressV		= D3D11_TEXTURE_ADDRESS_WRAP;
 			samplerDesc.AddressW		= D3D11_TEXTURE_ADDRESS_WRAP;
-			samplerDesc.ComparisonFunc	= D3D11_COMPARISON_NEVER;
+			samplerDesc.ComparisonFunc	= D3D11_COMPARISON_ALWAYS;
 			samplerDesc.MinLOD			= 0;
 			samplerDesc.MaxLOD			= D3D11_FLOAT32_MAX;
 
@@ -329,6 +335,35 @@ namespace Donya
 
 	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
 	{
+	#if USE_IMGUI && DEBUG_MODE
+		{
+			DirectX::XMFLOAT4X4 identity{}; DirectX::XMStoreFloat4x4( &identity, DirectX::XMMatrixIdentity() );
+			identity._11 = -1.0f;
+			static DirectX::XMFLOAT4X4 coordConversion = identity;	// I'm not want to initialize to identity every frame.
+
+			if ( ImGui::BeginIfAllowed( "SkinnedMesh" ) )
+			{
+				if ( ImGui::TreeNode( "CoordinateConversion" ) )
+				{
+					ImGui::SliderFloat4( "11, 12, 13, 14", &coordConversion._11, -1.0f, 1.0f );
+					ImGui::SliderFloat4( "21, 22, 23, 24", &coordConversion._21, -1.0f, 1.0f );
+					ImGui::SliderFloat4( "31, 32, 33, 34", &coordConversion._31, -1.0f, 1.0f );
+					ImGui::SliderFloat4( "41, 42, 43, 44", &coordConversion._41, -1.0f, 1.0f );
+
+					ImGui::TreePop();
+				}
+
+				ImGui::End();
+			}
+
+			for ( auto &it : meshes )
+			{
+				it.coordinateConversion = coordConversion;
+			}
+		}
+
+	#endif // USE_IMGUI && DEBUG_MODE
+
 		HRESULT hr = S_OK;
 		ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
 
@@ -380,7 +415,7 @@ namespace Donya
 
 			// Update Subresource
 			{
-				auto MultiFloat4x4 =
+				auto Mul4x4 =
 				[]( const DirectX::XMFLOAT4X4 &lhs, const DirectX::XMFLOAT4X4 &rhs )
 				->DirectX::XMFLOAT4X4
 				{
@@ -394,8 +429,8 @@ namespace Donya
 				};
 
 				ConstantBuffer cb;
-				cb.worldViewProjection	= MultiFloat4x4( mesh.globalTransform, worldViewProjection );
-				cb.world				= MultiFloat4x4( mesh.globalTransform, world );
+				cb.worldViewProjection	= Mul4x4( Mul4x4( mesh.coordinateConversion, mesh.globalTransform ), worldViewProjection );
+				cb.world				= Mul4x4( Mul4x4( mesh.coordinateConversion, mesh.globalTransform ), world );
 				cb.lightColor			= lightColor;
 				cb.lightDir				= lightDirection;
 				// cb.eyePosition			= eyePosition;
@@ -458,6 +493,5 @@ namespace Donya
 			pImmediateContext->OMSetDepthStencilState( prevDepthStencilState.Get(), 1 );
 		}
 	}
-
 
 }

@@ -18,15 +18,26 @@ namespace Donya
 		void CalledMouseWheelMessage( bool isVertical, WPARAM wParam, LPARAM lParam );
 
 		/// <summary>
+		/// Please call once when every game-loop.
+		/// </summary>
+		void ResetMouseWheelRot();
+
+		/// <summary>
+		/// Mouse coordinate is cliant space.<para></para>
+		/// </summary>
+		POINT GetMouseCoord();
+		/// <summary>
 		/// Mouse coordinate is cliant space.<para></para>
 		/// You can set nullptr.
 		/// </summary>
 		void GetMouseCoord( int *x, int *y );
-
 		/// <summary>
-		/// Same as call int version by using static_cast.
+		/// Mouse coordinate is cliant space.<para></para>
+		/// You can set nullptr.
 		/// </summary>
 		void GetMouseCoord( float *x, float *y );
+
+		POINT GetMouseSize();
 
 		/// <summary>
 		/// Returns :<para></para>

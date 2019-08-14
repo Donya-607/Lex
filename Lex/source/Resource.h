@@ -14,49 +14,33 @@ namespace Donya
 	#pragma region Shader
 
 		/// <summary>
-		/// You can register the directory used by Donya::Resource::CreateVertexShaderFromCso().<para></para>
-		/// registered name are used just combine before CreateVertexShaderFromCso()'s file name.<para></para>
-		/// for exanmple:<para></para>
-		/// RegisterDirectoryOfVertexShader( "./Shader/" );<para></para>
-		/// CreateVertexShaderFromCso( "foo.cso" ); // Loading cso name is "./Shader/foo.cso".<para></para>
-		/// </summary>
-		void RegisterDirectoryOfVertexShader( const char *fileDirectory );
-		/// <summary>
 		/// I doing; read cso-file, CreateVertexShader().<para></para>
 		/// If unnecessary ID3D11InputLayout, you can set nullptr.
 		/// </summary>
 		void CreateVertexShaderFromCso
 		(
-			ID3D11Device *pd3dDevice,
-			const char *csoname,
-			const char *openMode,
-			ID3D11VertexShader **pd3dVertexShader,
-			ID3D11InputLayout **pd3dInputLayout,
-			D3D11_INPUT_ELEMENT_DESC *d3dInputElementsDesc,
-			size_t									inputElementSize,
-			bool enableCache
+			ID3D11Device				*pd3dDevice,
+			std::string					csoname,
+			const char					*openMode,
+			ID3D11VertexShader			**pd3dVertexShader,
+			ID3D11InputLayout			**pd3dInputLayout,
+			D3D11_INPUT_ELEMENT_DESC	*d3dInputElementsDesc,
+			size_t						inputElementSize,
+			bool enableCache = true
 		);
 
 		void ReleaseAllVertexShaderCaches();
 
 		/// <summary>
-		/// You can register the directory used by Donya::Resource::CreatePixelShaderFromCso().<para></para>
-		/// registered name are used just combine before CreatePixelShaderFromCso()'s file name.<para></para>
-		/// for exanmple:<para></para>
-		/// RegisterDirectoryOfPixelShader( "./Shader/" );<para></para>
-		/// CreatePixelShaderFromCso( "foo.cso" ); // Loading cso name is "./Shader/foo.cso".<para></para>
-		/// </summary>
-		void RegisterDirectoryOfPixelShader( const char *fileDirectory );
-		/// <summary>
 		/// I doing; read cso-file, CreatePixelShader().
 		/// </summary>
 		void CreatePixelShaderFromCso
 		(
-			ID3D11Device *pd3dDevice,
-			const char *csoname,
-			const char *openMode,
-			ID3D11PixelShader **pd3dPixelShader,
-			bool enableCache
+			ID3D11Device		*pd3dDevice,
+			std::string			csoname,
+			const char			*openMode,
+			ID3D11PixelShader	**pd3dPixelShader,
+			bool enableCache = true
 		);
 
 		void ReleaseAllPixelShaderCaches();
@@ -65,14 +49,6 @@ namespace Donya
 
 	#pragma region Texture
 
-		/// <summary>
-		/// You can register the directory used by Donya::Resource::CreateTexture2DFromFile().<para></para>
-		/// registered name are used just combine before CreateTexture2DFromFile()'s file name.<para></para>
-		/// for exanmple:<para></para>
-		/// RegisterDirectoryOfTexture( L"./Data/Images/" );<para></para>
-		/// CreateTexture2DFromFile( L"foo/bar.png" ); // Loading cso name is L"./Data/Images/foo/bar.png".<para></para>
-		/// </summary>
-		void RegisterDirectoryOfTexture( const wchar_t *fileDirectory );
 		/// <summary>
 		/// I doing; CreateWICTextureFromFile(), QueryInterface(),<para></para>
 		/// ID3D11Texture2D::GetDesc(), CreateShaderResourceView().<para></para>

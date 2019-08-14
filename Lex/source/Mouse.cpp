@@ -6,11 +6,8 @@ namespace Donya
 {
 	namespace Mouse
 	{
-
-		// reference to http://black-yuzunyan.lolipop.jp/archives/2544
-
 		struct Int2 { int x = 0, y = 0; };
-		static Int2 coordinate; // cliant space.
+		static Int2 coordinate; // client-space.
 
 		static Int2 wheelFraction{};
 		static Int2 rotateAmount{};
@@ -23,7 +20,11 @@ namespace Donya
 
 		void CalledMouseWheelMessage( bool isVertical, WPARAM wParam, LPARAM lParam )
 		{
-			UpdateMouseCoordinate( lParam );
+			// see http://black-yuzunyan.lolipop.jp/archives/2544
+
+			// If update here, the coordinate will be screen-space.
+			// but the coordinate is client-space, so I don't update.
+			// UpdateMouseCoordinate( lParam );
 
 			int *fraction = ( isVertical ) ? &wheelFraction.y : &wheelFraction.x;
 			int *rotation = ( isVertical ) ? &rotateAmount.y  : &rotateAmount.x;
@@ -36,11 +37,11 @@ namespace Donya
 			int  notch = delta / WHEEL_DELTA;
 			if ( notch < 0 )
 			{
-				*rotation--;
+				( *rotation )--;
 			}
 			else if ( 0 < notch )
 			{
-				*rotation++;
+				( *rotation )++;
 			}
 			else
 			{
@@ -48,6 +49,16 @@ namespace Donya
 			}
 		}
 
+		void ResetMouseWheelRot()
+		{
+			rotateAmount.x =
+			rotateAmount.y = 0;
+		}
+
+		POINT GetMouseCoord()
+		{
+			return POINT{ coordinate.x, coordinate.y };
+		}
 		void GetMouseCoord( int *x, int *y )
 		{
 			if ( x != nullptr ) { *x = coordinate.x; }
@@ -62,6 +73,16 @@ namespace Donya
 			if( y != nullptr ) { *y = static_cast<float>( iy ); }
 		}
 
+		POINT GetMouseSize()
+		{
+			POINT size
+			{
+				GetSystemMetrics( SM_CXCURSOR ),
+				GetSystemMetrics( SM_CYCURSOR )
+			};
+			return size;
+		}
+
 		int  GetMouseWheelRot( bool isVertical )
 		{
 			return ( isVertical ) ? rotateAmount.y : rotateAmount.x;
@@ -73,11 +94,11 @@ namespace Donya
 			switch ( checkButton )
 			{
 			case Left:		vKey = VK_LBUTTON;	break;
-			case Middle:		vKey = VK_MBUTTON;	break;
+			case Middle:	vKey = VK_MBUTTON;	break;
 			case Right:		vKey = VK_RBUTTON;	break;
 			}
 
-			Donya::Keyboard::Mode mode;
+			Donya::Keyboard::Mode mode = Donya::Keyboard::Mode::PRESS;
 			switch ( checkState )
 			{
 			case PRESS:		mode = Donya::Keyboard::Mode::PRESS;	break;

@@ -1,10 +1,31 @@
 #include "SkinnedMesh.hlsli"
 
+static const float PI = 3.14159265359f;
+
+// see http://www.project-asura.com/program/d3d11/d3d11_004.html
+
+float3 NormalizedLambert( float3 diffuse, float3 normal, float3 lightDir )
+{
+	return diffuse * max( 0.0f, dot( normal, lightDir ) ) * ( 1.0f / PI );
+}
+
 Texture2D		diffuseMap		: register( t0 );
 SamplerState	diffuseSampler	: register( s0 );
 
 float4 main( VS_OUT pin ) : SV_TARGET
 {
+	float4 diffuseColor = diffuseMap.Sample( diffuseSampler, pin.texCoord );
+	if ( diffuseColor.a <= 0.0f ) { discard; }
+	// else
+
+	float3 color = NormalizedLambert( diffuse.rgb * diffuseColor.rgb, pin.normal.rgb, lightDir.rgb );
+
+	float4 output;
+	output.rgb = color;
+	output.a = diffuseColor.a;
+
+	return output * pin.color;
+
 	/*
 	float4 nNorm		= normalize( pin.normal );
 	float4 nLightDir	= normalize( lightDir );
@@ -21,6 +42,7 @@ float4 main( VS_OUT pin ) : SV_TARGET
 	return color;
 	*/
 
+	/*
 	// make reference to http://marupeke296.com/DXPS_S_No4_DiffuseMap.html
 
 	float  lightPower =
@@ -29,5 +51,6 @@ float4 main( VS_OUT pin ) : SV_TARGET
 		diffuseMap.Sample( diffuseSampler, pin.texCoord ) * lightColor * diffuse;
 
 	float4 output = lightPower * surfaceColor;
-	return output;
+	return output; // saturate( output + ambient );
+	*/
 }
