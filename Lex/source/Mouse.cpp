@@ -55,6 +55,10 @@ namespace Donya
 			rotateAmount.y = 0;
 		}
 
+		POINT GetMouseCoord()
+		{
+			return POINT{ coordinate.x, coordinate.y };
+		}
 		void GetMouseCoord( int *x, int *y )
 		{
 			if ( x != nullptr ) { *x = coordinate.x; }
@@ -67,6 +71,16 @@ namespace Donya
 
 			if( x != nullptr ) { *x = static_cast<float>( ix ); }
 			if( y != nullptr ) { *y = static_cast<float>( iy ); }
+		}
+
+		POINT GetMouseSize()
+		{
+			POINT size
+			{
+				GetSystemMetrics( SM_CXCURSOR ),
+				GetSystemMetrics( SM_CYCURSOR )
+			};
+			return size;
 		}
 
 		int  GetMouseWheelRot( bool isVertical )

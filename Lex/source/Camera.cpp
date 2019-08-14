@@ -155,7 +155,44 @@ void Camera::MouseUpdate()
 
 	Donya::Mouse::GetMouseCoord( &mouse.current.x, &mouse.current.y );
 
-	// TODO:I should support looping mouse.
+	// Use only Orbit-mode or Pan-mode.
+	// Returns true if move-amount is too large.
+	auto IsMouseLoopedH = [&]()
+	{
+		if ( moveMode == Mode::None ) { return false; }
+		// else
+
+		float judgeSize = Common::ScreenWidthF()  * 0.8f;
+		
+		if ( fabsf( mouse.current.x - mouse.prev.x ) < judgeSize ) { return false; }
+		// else
+		return true;
+	};
+	auto IsMouseLoopedV = [&]()
+	{
+		if ( moveMode == Mode::None ) { return false; }
+		// else
+
+		float judgeSize = Common::ScreenHeightF() * 0.8f;
+
+		if ( fabsf( mouse.current.y - mouse.prev.y ) < judgeSize ) { return false; }
+		// else
+		return true;
+	};
+
+	float diff = 1.0f;
+	if ( IsMouseLoopedH() )
+	{
+		float center = Common::HalfScreenWidthF();
+		mouse.prev.x = mouse.current.x;
+		mouse.prev.x += ( mouse.current.x < center ) ? -diff : diff;
+	}
+	if ( IsMouseLoopedV() )
+	{
+		float center = Common::HalfScreenHeightF();
+		mouse.prev.y = mouse.current.y;
+		mouse.prev.y += ( mouse.current.y < center ) ? -diff : diff;
+	}
 }
 
 void Camera::ChangeMode()

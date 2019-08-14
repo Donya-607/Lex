@@ -12,6 +12,7 @@
 #include "Resource.h"
 #include "UseImGui.h"
 #include "Useful.h"
+#include "WindowsUtil.h"
 
 #if USE_IMGUI
 
@@ -742,22 +743,21 @@ void Framework::ReleaseMouseCapture()
 
 void Framework::PutLimitMouseMoveArea()
 {
-	// [0]:X, [1]:Y.
-	constexpr std::array<int, 2> MARGIN_SIZE{ 32, 32 };
-	constexpr int ADJUST = 16;
+	constexpr int ADJUST = 8;
+	const POINT MOUSE_SIZE = Donya::Mouse::GetMouseSize();
 
 	// [0]:Left, [1]:Right.
 	const std::array<int, 2> EDGE_X
 	{
-		0 + MARGIN_SIZE[0],
-		Common::ScreenWidth() - MARGIN_SIZE[0]
+		0 + MOUSE_SIZE.x,
+		Common::ScreenWidth() - MOUSE_SIZE.x
 	};
 
 	// [0]:Up, [1]:Down.
 	const std::array<int, 2> EDGE_Y
 	{
-		0 + MARGIN_SIZE[1],
-		Common::ScreenHeight() - MARGIN_SIZE[1]
+		0 + MOUSE_SIZE.y,
+		Common::ScreenHeight() - MOUSE_SIZE.y
 	};
 
 	int mx{}, my{};
@@ -791,17 +791,24 @@ void Framework::PutLimitMouseMoveArea()
 
 	if ( isReset )
 	{
-		WINDOWPLACEMENT wp{};
-		GetWindowPlacement( hWnd, &wp );
+		POINT client = GetClientCoordinate( hWnd );
 
-		RECT wndRect = wp.rcNormalPosition;
+		SetCursorPos( client.x + mx, client.y + my );
 
-		// Adjust diff of window-area and client-area.
-		int diff = ( wndRect.bottom - wndRect.top ) - Common::ScreenHeight();
-		wndRect.top += diff >> 1; // diff is little-big.
+		if ( 0 )
+		{
+			WINDOWPLACEMENT wp{};
+			GetWindowPlacement( hWnd, &wp );
 
-		// SetCursorPos() expect position is screen-space.
-		// but "mx" and "my" is client-space.
-		SetCursorPos( wndRect.left + mx, wndRect.top + my );
+			RECT wndRect = wp.rcNormalPosition;
+
+			// Adjust diff of window-area and client-area.
+			int diff = ( wndRect.bottom - wndRect.top ) - Common::ScreenHeight();
+			wndRect.top += diff >> 1; // diff is little-big.
+
+			// SetCursorPos() expect position is screen-space.
+			// but "mx" and "my" is client-space.
+			SetCursorPos( wndRect.left + mx, wndRect.top + my );
+		}
 	}
 }

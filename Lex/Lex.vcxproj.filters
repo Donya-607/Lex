@@ -90,6 +90,9 @@
     <ClInclude Include="source\Quaternion.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="source\WindowsUtil.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Common.cpp">
@@ -150,6 +153,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="source\Quaternion.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\WindowsUtil.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

@@ -171,6 +171,7 @@
     <ClInclude Include="Source\Useful.h" />
     <ClInclude Include="Source\UseImGui.h" />
     <ClInclude Include="Source\Vector.h" />
+    <ClInclude Include="source\WindowsUtil.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\ImGui\imgui.cpp" />
@@ -193,6 +194,7 @@
     <ClCompile Include="Source\Useful.cpp" />
     <ClCompile Include="Source\UseImGui.cpp" />
     <ClCompile Include="Source\Vector.cpp" />
+    <ClCompile Include="source\WindowsUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\SkinnedMesh.hlsli" />
