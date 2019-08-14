@@ -17,11 +17,11 @@
 // cbuffer MATERIAL_CONSTANT_BUFFER
 // {
 //
-//   float4 ambient;                    // Offset:    0 Size:    16 [unused]
-//   float4 bump;                       // Offset:   16 Size:    16 [unused]
-//   float4 diffuse;                    // Offset:   32 Size:    16
-//   float4 emissive;                   // Offset:   48 Size:    16 [unused]
-//   float4 specular;                   // Offset:   64 Size:    16 [unused]
+//   float4 mtlAmbient;                 // Offset:    0 Size:    16 [unused]
+//   float4 mtlBump;                    // Offset:   16 Size:    16 [unused]
+//   float4 mtlDiffuse;                 // Offset:   32 Size:    16
+//   float4 mtlEmissive;                // Offset:   48 Size:    16 [unused]
+//   float4 mtlSpecular;                // Offset:   64 Size:    16 [unused]
 //
 // }
 //

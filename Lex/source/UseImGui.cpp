@@ -16,6 +16,14 @@ namespace Donya
 	{
 		return isAllowShowingImGui;
 	}
+
+	bool IsMouseHoveringImGuiWindow()
+	{
+	#if !USE_IMGUI
+		return false;
+	#endif // !USE_IMGUI
+		return ImGui::IsMouseHoveringAnyWindow();
+	}
 }
 
 namespace ImGui

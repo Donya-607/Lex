@@ -361,7 +361,6 @@ namespace Donya
 				it.coordinateConversion = coordConversion;
 			}
 		}
-
 	#endif // USE_IMGUI && DEBUG_MODE
 
 		HRESULT hr = S_OK;

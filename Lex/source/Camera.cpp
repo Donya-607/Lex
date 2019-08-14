@@ -209,6 +209,9 @@ void Camera::ChangeMode()
 	{
 	case Mode::None:
 		{
+			if ( Donya::IsMouseHoveringImGuiWindow() ) { break; }
+			// else
+
 			// The mouse-button state is same as keyboard's state.
 
 			if ( isPressed[Left] )
@@ -287,6 +290,9 @@ void Camera::Move( const Donya::Vector3 &targetPos )
 
 void Camera::Zoom()
 {
+	if ( Donya::IsMouseHoveringImGuiWindow() ) { return; }
+	// else
+
 	velocity = pos - focus;
 
 	int rot = Donya::Mouse::GetMouseWheelRot();

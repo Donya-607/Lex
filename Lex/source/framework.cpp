@@ -487,7 +487,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	}
 	if ( Donya::Keyboard::Press( 'J' ) && Donya::Keyboard::Press( 'I' ) && Donya::Keyboard::Trigger( 'G' ) && meshes.empty() )
 	{
-		constexpr const char *JIGGLYPUFF = "D:\\D-Download\\ASSET_Models\\Free\\Jigglypuff\\Pokemon XY\\Jigglypuff\\Jigglypuff.FBX";
+		constexpr const char *JIGGLYPUFF = "D:\\D-Download\\ASSET_Models\\Free\\Jigglypuff\\Fixed\\JigglypuffNEW.FBX";
 
 		meshes.push_back( {} );
 		bool result = meshes.back().loader.Load( JIGGLYPUFF, nullptr );

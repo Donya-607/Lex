@@ -21,6 +21,8 @@ namespace Donya
 	/// In release build, returns false.
 	/// </summary>
 	bool IsAllowShowImGui();
+
+	bool IsMouseHoveringImGuiWindow();
 }
 
 namespace ImGui
