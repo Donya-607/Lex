@@ -1,5 +1,7 @@
 #include "Framework.h"
 
+#include <array>
+
 #include "Benchmark.h"
 #include "Camera.h"
 #include "Common.h"
@@ -10,6 +12,7 @@
 #include "Resource.h"
 #include "UseImGui.h"
 #include "Useful.h"
+#include "WindowsUtil.h"
 
 #if USE_IMGUI
 
@@ -19,19 +22,24 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler( HWND hWnd, UINT msg, WPARAM wpara
 
 using namespace DirectX;
 
-namespace Do = Donya;
-
-constexpr char *ImGuiWindowName = "File Information";
+static constexpr char *ImGuiWindowName = "File Information";
 
 Framework::Framework( HWND hwnd ) :
 	hWnd( hwnd ),
-	pCamera( nullptr ), meshes(),
-	isFillDraw( true )
+	camera(), meshes(),
+	pressMouseButton( NULL ),
+	isCaptureWindow( false ),
+	isSolidState( true )
 {
 	DragAcceptFiles( hWnd, TRUE );
 }
 Framework::~Framework()
 {
+	if ( isCaptureWindow )
+	{
+		ReleaseMouseCapture();
+	}
+
 	meshes.clear();
 	meshes.shrink_to_fit();
 };
@@ -102,15 +110,75 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 			}
 		}
 		break;
+	#pragma region Mouse Process
 	case WM_MOUSEMOVE:
 		Donya::Mouse::UpdateMouseCoordinate( lParam );
+		if ( isCaptureWindow )
+		{
+			PutLimitMouseMoveArea();
+		}
 		break;
 	case WM_MOUSEWHEEL:
-		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
-		break;
-	case WM_MOUSEHWHEEL:
 		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ true, wParam, lParam );
 		break;
+	case WM_MOUSEHWHEEL:
+		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
+		break;
+	case WM_LBUTTONDOWN:
+		if ( !pressMouseButton )
+		{
+			pressMouseButton = VK_LBUTTON;
+			SetMouseCapture();
+		}
+		break;
+	case WM_MBUTTONDOWN:
+		if ( !pressMouseButton )
+		{
+			pressMouseButton = VK_MBUTTON;
+			SetMouseCapture();
+		}
+		break;
+	case WM_RBUTTONDOWN:
+		if ( !pressMouseButton )
+		{
+			pressMouseButton = VK_RBUTTON;
+			SetMouseCapture();
+		}
+		break;
+	case WM_LBUTTONUP:
+		if ( isCaptureWindow )
+		{
+			if ( pressMouseButton == VK_LBUTTON || !pressMouseButton )
+			{
+				ReleaseMouseCapture();
+			}
+
+			pressMouseButton = NULL;
+		}
+		break;
+	case WM_MBUTTONUP:
+		if ( isCaptureWindow )
+		{
+			if ( pressMouseButton == VK_MBUTTON || !pressMouseButton )
+			{
+				ReleaseMouseCapture();
+			}
+
+			pressMouseButton = NULL;
+		}
+		break;
+	case WM_RBUTTONUP:
+		if ( isCaptureWindow )
+		{
+			if ( pressMouseButton == VK_RBUTTON || !pressMouseButton )
+			{
+				ReleaseMouseCapture();
+			}
+
+			pressMouseButton = NULL;
+		}
+		break;
+	#pragma endregion
 	case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
@@ -192,6 +260,8 @@ int Framework::Run()
 			highResoTimer.Tick();
 			CalcFrameStats();
 			Update( highResoTimer.timeInterval() );
+
+			Donya::Mouse::ResetMouseWheelRot();
 
 			Render( highResoTimer.timeInterval() );
 		}
@@ -348,12 +418,8 @@ bool Framework::Init()
 
 	#pragma endregion
 
-	// std::string projectDir = "./";
-	std::string projectDir = "D:\\äwçZä÷òA\\VS_Projects\\FBXLex\\Lex\\Lex\\";
-	Donya::Resource::RegisterDirectoryOfVertexShader( ( projectDir + "Shader/" ).c_str() );
-	Donya::Resource::RegisterDirectoryOfPixelShader ( ( projectDir + "Shader/" ).c_str() );
-
-	pCamera = std::make_unique<Do::Camera>();
+	camera.SetToHomePosition( { 0.0f, 0.0f, -16.0f} );
+	camera.SetPerspectiveProjectionMatrix( Common::ScreenWidthF() / Common::ScreenHeightF() );
 
 	return true;
 }
@@ -378,6 +444,11 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	if ( Donya::Keyboard::Trigger( 'T' ) )
 	{
 		Donya::TogguleShowStateOfImGui();
+	}
+
+	if ( Donya::Keyboard::Trigger( 'R' ) )
+	{
+		camera.SetToHomePosition( { 0.0f, 0.0f, -16.0f } );
 	}
 
 	if ( meshes.empty() )
@@ -434,15 +505,25 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	if ( Donya::Keyboard::Trigger( 'F' ) && !Donya::Keyboard::Press( 'B' ) )
 	{
-		isFillDraw = !isFillDraw;
+		isSolidState = !isSolidState;
 	}
 
-	pCamera->Update();
+	Donya::Vector3 origin{ 0.0f, 0.0f, 0.0f };
+	camera.Update( origin );
 
 #if USE_IMGUI
 
 	if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
 	{
+		{
+			int x{}, y{};
+			Donya::Mouse::GetMouseCoord( &x, &y );
+			
+			ImGui::Text( "Mouse[X:%d][Y%d]", x, y );
+			ImGui::Text( "Wheel[%d]", Donya::Mouse::GetMouseWheelRot() );
+			ImGui::Text( "" );
+		}
+
 		if ( ImGui::Button( "Open FBX File" ) )
 		{
 			OpenCommonDialogAndFile();
@@ -510,134 +591,94 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	);
 	*/
 	
-	// Geometric-Cube, StaticMesh Render
-	if ( 1 )
+	XMMATRIX W{};
 	{
-		XMMATRIX matWorld{};
-		{
-			static float scale	= 0.1f;
-			static float angleX	= -10.0f;
-			static float angleY	= -160.0f;
-			static float angleZ	= 0;
-			static float moveX	= 2.0f;
-			static float moveY	= -2.0f;
-			static float moveZ	= 0;
+		static float scale	= 0.1f; // 0.1f;
+		static float angleX	= 0.0f; // -10.0f;
+		static float angleY	= 0.0f; // -160.0f;
+		static float angleZ	= 0.0f; // 0;
+		static float moveX	= 0.0f; // 2.0f;
+		static float moveY	= 0.0f; // -2.0f;
+		static float moveZ	= 0.0f; // 0;
 
-			{
-				constexpr float SCALE_ADD = 0.0012f;
-				constexpr float ANGLE_ADD = 0.12f;
-				constexpr float MOVE_ADD  = 0.04f;
-
-				if ( Donya::Keyboard::Press( 'W'		) ) { scale  += SCALE_ADD; }
-				if ( Donya::Keyboard::Press( 'S'		) ) { scale  -= SCALE_ADD; }
-				if ( Donya::Keyboard::Press( VK_UP		) ) { angleX += ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( VK_DOWN	) ) { angleX -= ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( VK_LEFT	) ) { angleY += ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( VK_RIGHT	) ) { angleY -= ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( 'A'		) ) { angleZ += ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( 'D'		) ) { angleZ -= ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( 'I'		) ) { moveY  += MOVE_ADD;  }
-				if ( Donya::Keyboard::Press( 'K'		) ) { moveY  -= MOVE_ADD;  }
-				if ( Donya::Keyboard::Press( 'L'		) ) { moveX  += MOVE_ADD;  }
-				if ( Donya::Keyboard::Press( 'J'		) ) { moveX  -= MOVE_ADD;  }
-			}
-
-			XMMATRIX scaling		= XMMatrixScaling( scale, scale, scale );
-			XMMATRIX rotX			= XMMatrixRotationX( ToRadian( angleX ) );
-			XMMATRIX rotY			= XMMatrixRotationY( ToRadian( angleY ) );
-			XMMATRIX rotZ			= XMMatrixRotationZ( ToRadian( angleZ ) );
-			XMMATRIX rotation		= ( rotZ * rotY ) * rotX;
-			XMMATRIX translation	= XMMatrixTranslation( moveX, moveY, moveZ );
-
-			matWorld = scaling * rotation * translation;
-		}
-		XMMATRIX matView = pCamera->CalcViewMatrix();
-
-		XMFLOAT4X4 worldViewProjection{};
-		{
-			XMMATRIX matProjPerspective{};
-			XMMATRIX matProjOrthographic{};
-			{
-				constexpr float FOV = ToRadian( 30.0f );
-				float width		= Common::ScreenWidthF();
-				float height	= Common::ScreenHeightF();
-				float aspect	= width / height;
-				float zNear		= 0.01f;
-				float zFar		= 1000.0f;
-			
-				XMFLOAT4X4 projection{};
-				projection = pCamera->AssignPerspectiveProjection( FOV, aspect, zNear, zFar );
-				matProjPerspective = XMLoadFloat4x4( &projection );
-
-				projection = pCamera->AssignOrthographicProjection( 16.0f, 9.0f, zNear, zFar );
-				matProjOrthographic = XMLoadFloat4x4( &projection );
-			}
-
-			XMMATRIX &useProjection = matProjOrthographic;
-
-			XMStoreFloat4x4
-			(
-				&worldViewProjection,
-				DirectX::XMMatrixMultiply( matWorld, DirectX::XMMatrixMultiply( matView, useProjection ) )
-			);
-		}
-
-		XMFLOAT4X4 world{};
-		XMStoreFloat4x4( &world, matWorld );
-
-		static XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-		static XMFLOAT4 lightDirection{ 0.0f, 2.0f, -2.0f, 0.0f };
-		XMFLOAT4 cameraPos{};
-		{
-			XMFLOAT3 ref = pCamera->GetPosition();
-			cameraPos.x = ref.x;
-			cameraPos.y = ref.y;
-			cameraPos.z = ref.z;
-			cameraPos.w = 1.0f;
-		}
-
-		if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
-		{
-			ImGui::ColorEdit4( "Light Color", &lightColor.x );
-			ImGui::SliderFloat3( "Light Direction", &lightDirection.x, -8.0f, 8.0f );
-
-			ImGui::End();
-		}
-
-		for ( auto &it : meshes )
-		{
-			if ( it.pMesh )
-			{
-				it.pMesh->Render( worldViewProjection, world, cameraPos, lightColor, lightDirection, isFillDraw );
-			}
-		}
-
-		/*
 		if ( 0 )
 		{
-			pGeomtrPrimitive->Render
-			(
-				worldViewProjection,
-				world,
-				lightDirection, materialColor,
-				isFillDraw
-			);
+			constexpr float SCALE_ADD = 0.0012f;
+			constexpr float ANGLE_ADD = 0.12f;
+			constexpr float MOVE_ADD  = 0.04f;
+
+			if ( Donya::Keyboard::Press( 'W'		) ) { scale  += SCALE_ADD; }
+			if ( Donya::Keyboard::Press( 'S'		) ) { scale  -= SCALE_ADD; }
+			if ( Donya::Keyboard::Press( VK_UP		) ) { angleX += ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( VK_DOWN	) ) { angleX -= ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( VK_LEFT	) ) { angleY += ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( VK_RIGHT	) ) { angleY -= ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( 'A'		) ) { angleZ += ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( 'D'		) ) { angleZ -= ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( 'I'		) ) { moveY  += MOVE_ADD;  }
+			if ( Donya::Keyboard::Press( 'K'		) ) { moveY  -= MOVE_ADD;  }
+			if ( Donya::Keyboard::Press( 'L'		) ) { moveX  += MOVE_ADD;  }
+			if ( Donya::Keyboard::Press( 'J'		) ) { moveX  -= MOVE_ADD;  }
 		}
-		if ( 1 )
-		{
-			pStaticMesh->Render
-			(
-				worldViewProjection,
-				world,
-				lightDirection, materialColor,
-				cameraPos,
-				isFillDraw
-			);
-		}
-		*/
+
+		XMMATRIX S	= XMMatrixScaling( scale, scale, scale );
+		XMMATRIX RX	= XMMatrixRotationX( ToRadian( angleX ) );
+		XMMATRIX RY	= XMMatrixRotationY( ToRadian( angleY ) );
+		XMMATRIX RZ	= XMMatrixRotationZ( ToRadian( angleZ ) );
+		XMMATRIX R	= ( RZ * RY ) * RX;
+		XMMATRIX T	= XMMatrixTranslation( moveX, moveY, moveZ );
+
+		W = S * R * T;
 	}
 
-#ifdef USE_IMGUI
+	XMMATRIX V = camera.CalcViewMatrix();
+
+	XMFLOAT4X4 worldViewProjection{};
+	{
+		XMMATRIX projPerspective = camera.GetProjectionMatrix();
+
+		XMStoreFloat4x4
+		(
+			&worldViewProjection,
+			DirectX::XMMatrixMultiply( W, DirectX::XMMatrixMultiply( V, projPerspective ) )
+		);
+	}
+
+	XMFLOAT4X4 world{};
+	XMStoreFloat4x4( &world, W );
+
+	static XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+	static XMFLOAT4 lightDirection{ 0.0f, 6.0f, 0.0f, 0.0f };
+	XMFLOAT4 cameraPos{};
+	{
+		XMFLOAT3 ref = camera.GetPos();
+		cameraPos.x = ref.x;
+		cameraPos.y = ref.y;
+		cameraPos.z = ref.z;
+		cameraPos.w = 1.0f;
+	}
+
+#if USE_IMGUI
+
+	if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
+	{
+		ImGui::ColorEdit4( "Light Color", &lightColor.x );
+		ImGui::SliderFloat3( "Light Direction", &lightDirection.x, -8.0f, 8.0f );
+
+		ImGui::End();
+	}
+
+#endif // USE_IMGUI
+
+	for ( auto &it : meshes )
+	{
+		if ( it.pMesh )
+		{
+			it.pMesh->Render( worldViewProjection, world, cameraPos, lightColor, lightDirection, isSolidState );
+		}
+	}
+
+#if USE_IMGUI
 
 	ImGui::Render();
 
@@ -680,4 +721,94 @@ bool Framework::OpenCommonDialogAndFile()
 	Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
 
 	return true;
+}
+
+void Framework::SetMouseCapture()
+{
+	SetCapture( hWnd );
+	isCaptureWindow = true;
+}
+void Framework::ReleaseMouseCapture()
+{
+	bool result = ReleaseCapture();
+	isCaptureWindow = false;
+
+#if DEBUG_MODE
+
+	static unsigned int errorCount = 0;
+	if ( !result ) { errorCount++; }
+
+#endif // DEBUG_MODE
+}
+
+void Framework::PutLimitMouseMoveArea()
+{
+	constexpr int ADJUST = 8;
+	const POINT MOUSE_SIZE = Donya::Mouse::GetMouseSize();
+
+	// [0]:Left, [1]:Right.
+	const std::array<int, 2> EDGE_X
+	{
+		0 + MOUSE_SIZE.x,
+		Common::ScreenWidth() - MOUSE_SIZE.x
+	};
+
+	// [0]:Up, [1]:Down.
+	const std::array<int, 2> EDGE_Y
+	{
+		0 + MOUSE_SIZE.y,
+		Common::ScreenHeight() - MOUSE_SIZE.y
+	};
+
+	int mx{}, my{};
+	Donya::Mouse::GetMouseCoord( &mx, &my );
+
+	bool isReset = false;
+
+	if ( mx < EDGE_X[0] )
+	{
+		mx = EDGE_X[1] - ADJUST;
+		isReset = true;
+	}
+	else
+	if ( EDGE_X[1] < mx )
+	{
+		mx = EDGE_X[0] + ADJUST;
+		isReset = true;
+	}
+
+	if ( my < EDGE_Y[0] )
+	{
+		my = EDGE_Y[1] - ADJUST;
+		isReset = true;
+	}
+	else
+	if ( EDGE_Y[1] < my )
+	{
+		my = EDGE_Y[0] + ADJUST;
+		isReset = true;
+	}
+
+	if ( isReset )
+	{
+		POINT client = GetClientCoordinate( hWnd );
+
+		SetCursorPos( client.x + mx, client.y + my );
+
+		if ( 0 )
+		{
+			WINDOWPLACEMENT wp{};
+			GetWindowPlacement( hWnd, &wp );
+
+			RECT wndRect = wp.rcNormalPosition;
+
+			// Adjust diff of window-area and client-area.
+			int diff = ( wndRect.bottom - wndRect.top ) - Common::ScreenHeight();
+			wndRect.top += diff >> 1; // diff is little-big.
+
+			// SetCursorPos() expect position is screen-space.
+			// but "mx" and "my" is client-space.
+			SetCursorPos( wndRect.left + mx, wndRect.top + my );
+		}
+	}
 }

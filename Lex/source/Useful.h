@@ -19,7 +19,7 @@ namespace Donya
 		ID3D11Buffer **constantBuffer,	unsigned int sizeofConstantBuffer
 	);
 
-	bool Equal( float L, float R, float maxRelativeDiff );
+	bool Equal( float L, float R, float maxRelativeDiff = 1.192092896e-07F/* FLT_EPSILON */ );
 
 	/// <summary>
 	/// Wrapper of OutputDebugStringA().

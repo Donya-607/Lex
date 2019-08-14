@@ -10,16 +10,12 @@
 #include <vector>
 #include <wrl.h>
 
+#include "Camera.h"
 #include "Loader.h"
 #include "HighResolutionTimer.h"
 #include "SkinnedMesh.h"
 
 #define scast static_cast
-
-namespace Donya
-{
-	class Camera;
-}
 
 class Framework
 {
@@ -32,7 +28,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	d3dRenderTargetView;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	d3dDepthStencilView;
 private:
-	std::unique_ptr<Donya::Camera>		pCamera;
+	Camera camera;
 	struct MeshAndInfo
 	{
 		Donya::Loader loader;
@@ -40,7 +36,9 @@ private:
 	};
 	std::vector<MeshAndInfo> meshes;
 private:
-	bool isFillDraw;
+	int pressMouseButton; // contain value is: None:0, Left:VK_LBUTTON, Middle:VK_MBUTTON, Right:VK_RBUTTON.
+	bool isCaptureWindow;
+	bool isSolidState;
 public:
 	Framework( HWND hwnd );
 	~Framework();
@@ -60,5 +58,8 @@ private:
 	void CalcFrameStats();
 private:
 	bool OpenCommonDialogAndFile();
+	void SetMouseCapture();
+	void ReleaseMouseCapture();
+	void PutLimitMouseMoveArea();
 };
 
