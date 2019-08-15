@@ -246,3 +246,8 @@ imgui.ini
 External/
 
 ShortcutTo*
+
+*.cso
+*.cod
+
+.gitignore

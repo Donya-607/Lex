@@ -24,7 +24,7 @@ float4 main( VS_OUT pin ) : SV_TARGET
 	output.rgb	= color;
 	output.a	= diffuseColor.a;
 
-	return output * pin.color;
+	return output * pin.color * lightColor;
 
 	/*
 	float4 nNorm		= normalize( pin.normal );

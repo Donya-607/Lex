@@ -7,11 +7,10 @@
 #include <memory>
 
 #include "Benchmark.h"
+#include "Common.h"
 #include "Useful.h"
 
 #pragma comment( lib, "shlwapi.lib" )
-
-#define scast static_cast
 
 #undef min
 #undef max
@@ -21,7 +20,7 @@ namespace FBX = fbxsdk;
 namespace Donya
 {
 	Loader::Loader() :
-		fileName(), fileDirectory(),
+		absFilePath(), fileName(), fileDirectory(),
 		meshes()
 	{
 
@@ -147,10 +146,10 @@ namespace Donya
 
 	bool Loader::Load( const std::string &filePath, std::string *outputErrorString )
 	{
-		fileDirectory = filePath;
-		fileDirectory = AcquireDirectoryFromFullPath( fileDirectory );
+		fileDirectory	= AcquireDirectoryFromFullPath( filePath );
+		fileName		= filePath.substr( fileDirectory.size() );
 
-		MakeFileName( filePath );
+		MakeAbsoluteFilePath( filePath );
 
 		FBX::FbxManager		*pManager		= FBX::FbxManager::Create();
 		FBX::FbxIOSettings	*pIOSettings	= FBX::FbxIOSettings::Create( pManager, IOSROOT );
@@ -166,7 +165,7 @@ namespace Donya
 		#pragma region Import
 		{
 			FBX::FbxImporter *pImporter		= FBX::FbxImporter::Create( pManager, "" );
-			if ( !pImporter->Initialize( fileName.c_str(), -1, pManager->GetIOSettings() ) )
+			if ( !pImporter->Initialize( absFilePath.c_str(), -1, pManager->GetIOSettings() ) )
 			{
 				if ( outputErrorString != nullptr )
 				{
@@ -238,11 +237,11 @@ namespace Donya
 
 		return convertedStr;
 	}
-	void Loader::MakeFileName( const std::string &filePath )
+	void Loader::MakeAbsoluteFilePath( const std::string &filePath )
 	{
 		constexpr size_t FILE_PATH_LENGTH = 512U;
 
-		fileName = GetUTF8FullPath( filePath, FILE_PATH_LENGTH );
+		absFilePath = GetUTF8FullPath( filePath, FILE_PATH_LENGTH );
 	}
 
 	void Loader::FetchVertices( size_t meshIndex, const FBX::FbxMesh *pMesh, const std::vector<BoneInfluencesPerControlPoint> &fetchedInfluences )
@@ -504,7 +503,7 @@ namespace Donya
 		ConvertFloat4x4( &meshes[meshIndex].globalTransform, globalTransform );
 	}
 
-	#if USE_IMGUI
+	#if USE_IMGUI && DEBUG_MODE
 	void Loader::EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const
 	{
 		ImVec2 childFrameSize( 0.0f, 0.0f );
@@ -516,61 +515,69 @@ namespace Donya
 			std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
 			if ( ImGui::TreeNode( meshCaption.c_str() ) )
 			{
-				if ( ImGui::TreeNode( "Positions" ) )
-				{
-					auto &ref = mesh.positions;
+				size_t verticesCount = mesh.indices.size();
+				std::string verticesCaption = "Vertices[Count:" + std::to_string( verticesCount ) + "]";
 
-					ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-					size_t end = ref.size();
-					for ( size_t i = 0; i < end; ++i )
+				if ( ImGui::TreeNode( verticesCaption.c_str() ) )
+				{
+					if ( ImGui::TreeNode( "Positions" ) )
 					{
-						ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
+						auto &ref = mesh.positions;
+
+						ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+						size_t end = ref.size();
+						for ( size_t i = 0; i < end; ++i )
+						{
+							ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
+						}
+						ImGui::EndChild();
+
+						ImGui::TreePop();
 					}
-					ImGui::EndChild();
 
-					ImGui::TreePop();
-				}
-
-				if ( ImGui::TreeNode( "Normals" ) )
-				{
-					auto &ref = mesh.normals;
-
-					ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-					size_t end = ref.size();
-					for ( size_t i = 0; i < end; ++i )
+					if ( ImGui::TreeNode( "Normals" ) )
 					{
-						ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
+						auto &ref = mesh.normals;
+
+						ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+						size_t end = ref.size();
+						for ( size_t i = 0; i < end; ++i )
+						{
+							ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
+						}
+						ImGui::EndChild();
+
+						ImGui::TreePop();
 					}
-					ImGui::EndChild();
 
-					ImGui::TreePop();
-				}
-
-				if ( ImGui::TreeNode( "Indices" ) )
-				{
-					ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-					size_t end = mesh.indices.size();
-					for ( size_t i = 0; i < end; ++i )
+					if ( ImGui::TreeNode( "Indices" ) )
 					{
-						ImGui::Text( "[No:%d][%d]", i, mesh.indices[i] );
+						ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+						size_t end = mesh.indices.size();
+						for ( size_t i = 0; i < end; ++i )
+						{
+							ImGui::Text( "[No:%d][%d]", i, mesh.indices[i] );
+						}
+						ImGui::EndChild();
+
+						ImGui::TreePop();
 					}
-					ImGui::EndChild();
 
-					ImGui::TreePop();
-				}
-
-				if ( ImGui::TreeNode( "TexCoords" ) )
-				{
-					auto &ref = mesh.texCoords;
-
-					ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-					size_t end = ref.size();
-					for ( size_t i = 0; i < end; ++i )
+					if ( ImGui::TreeNode( "TexCoords" ) )
 					{
-						ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f]", i, ref[i].x, ref[i].y );
+						auto &ref = mesh.texCoords;
+
+						ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+						size_t end = ref.size();
+						for ( size_t i = 0; i < end; ++i )
+						{
+							ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f]", i, ref[i].x, ref[i].y );
 					
+						}
+						ImGui::EndChild();
+
+						ImGui::TreePop();
 					}
-					ImGui::EndChild();
 
 					ImGui::TreePop();
 				}
@@ -696,5 +703,5 @@ namespace Donya
 			}
 		} // meshes loop.
 	}
-	#endif // USE_IMGUI
+	#endif // USE_IMGUI && DEBUG_MODE
 }

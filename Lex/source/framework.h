@@ -14,6 +14,7 @@
 #include "Loader.h"
 #include "HighResolutionTimer.h"
 #include "SkinnedMesh.h"
+#include "Vector.h"
 
 #define scast static_cast
 
@@ -29,6 +30,12 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	d3dDepthStencilView;
 private:
 	Camera camera;
+	struct Light
+	{
+		Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		Donya::Vector4 direction{ 0.0f, 6.0f, 0.0f, 0.0f };
+	};
+	Light light;
 	struct MeshAndInfo
 	{
 		Donya::Loader loader;
@@ -61,5 +68,9 @@ private:
 	void SetMouseCapture();
 	void ReleaseMouseCapture();
 	void PutLimitMouseMoveArea();
+private:
+	void ShowMouseInfo();
+	void ShowModelInfo();
+	void ChangeLightByImGui();
 };
 

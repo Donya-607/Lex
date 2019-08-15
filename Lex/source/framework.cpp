@@ -26,7 +26,9 @@ static constexpr char *ImGuiWindowName = "File Information";
 
 Framework::Framework( HWND hwnd ) :
 	hWnd( hwnd ),
-	camera(), meshes(),
+	camera(),
+	light(),
+	meshes(),
 	pressMouseButton( NULL ),
 	isCaptureWindow( false ),
 	isSolidState( true )
@@ -511,51 +513,31 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	Donya::Vector3 origin{ 0.0f, 0.0f, 0.0f };
 	camera.Update( origin );
 
-#if USE_IMGUI
+#if USE_IMGUI && DEBUG_MODE
 
-	if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
+	if ( ImGui::BeginIfAllowed() )
 	{
-		{
-			int x{}, y{};
-			Donya::Mouse::GetMouseCoord( &x, &y );
-			
-			ImGui::Text( "Mouse[X:%d][Y%d]", x, y );
-			ImGui::Text( "Wheel[%d]", Donya::Mouse::GetMouseWheelRot() );
-			ImGui::Text( "" );
-		}
+		ShowMouseInfo();
+		
+		camera.ShowParametersToImGui();
+		ImGui::Text( "" );
+
+		ChangeLightByImGui();
+		ImGui::Text( "" );
 
 		if ( ImGui::Button( "Open FBX File" ) )
 		{
 			OpenCommonDialogAndFile();
 		}
-
 		ImGui::Text( "" );
 
-		for ( auto &it = meshes.begin(); it != meshes.end(); )
-		{
-			std::string nodeCaption ="[" + it->loader.GetFileName() + "]";
-			if( ImGui::TreeNode( nodeCaption.c_str() ) )
-			{
-				if ( ImGui::Button( "Remove" ) )
-				{
-					it = meshes.erase( it );
-
-					ImGui::TreePop();
-					continue;
-				}
-				// else
-
-				it->loader.EnumPreservingDataToImGui( ImGuiWindowName );
-				ImGui::TreePop();
-			}
-
-			++it;
-		}
+		ShowModelInfo();
+		ImGui::Text( "" );
 
 		ImGui::End();
 	}
 
-#endif // USE_IMGUI
+#endif // USE_IMGUI && DEBUG_MODE
 }
 
 void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
@@ -647,8 +629,6 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	XMFLOAT4X4 world{};
 	XMStoreFloat4x4( &world, W );
 
-	static XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-	static XMFLOAT4 lightDirection{ 0.0f, 6.0f, 0.0f, 0.0f };
 	XMFLOAT4 cameraPos{};
 	{
 		XMFLOAT3 ref = camera.GetPos();
@@ -658,23 +638,11 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		cameraPos.w = 1.0f;
 	}
 
-#if USE_IMGUI
-
-	if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
-	{
-		ImGui::ColorEdit4( "Light Color", &lightColor.x );
-		ImGui::SliderFloat3( "Light Direction", &lightDirection.x, -8.0f, 8.0f );
-
-		ImGui::End();
-	}
-
-#endif // USE_IMGUI
-
 	for ( auto &it : meshes )
 	{
 		if ( it.pMesh )
 		{
-			it.pMesh->Render( worldViewProjection, world, cameraPos, lightColor, lightDirection, isSolidState );
+			it.pMesh->Render( worldViewProjection, world, cameraPos, light.color, light.direction, isSolidState );
 		}
 	}
 
@@ -794,21 +762,72 @@ void Framework::PutLimitMouseMoveArea()
 		POINT client = GetClientCoordinate( hWnd );
 
 		SetCursorPos( client.x + mx, client.y + my );
-
-		if ( 0 )
-		{
-			WINDOWPLACEMENT wp{};
-			GetWindowPlacement( hWnd, &wp );
-
-			RECT wndRect = wp.rcNormalPosition;
-
-			// Adjust diff of window-area and client-area.
-			int diff = ( wndRect.bottom - wndRect.top ) - Common::ScreenHeight();
-			wndRect.top += diff >> 1; // diff is little-big.
-
-			// SetCursorPos() expect position is screen-space.
-			// but "mx" and "my" is client-space.
-			SetCursorPos( wndRect.left + mx, wndRect.top + my );
-		}
 	}
+}
+
+void Framework::ShowMouseInfo()
+{
+#if USE_IMGUI && DEBUG_MODE
+
+	if ( ImGui::BeginIfAllowed() )
+	{
+		int x{}, y{};
+		Donya::Mouse::GetMouseCoord( &x, &y );
+
+		ImGui::Text( "Mouse[X:%d][Y%d]", x, y );
+		ImGui::Text( "Wheel[%d]", Donya::Mouse::GetMouseWheelRot() );
+
+		ImGui::End();
+	}
+
+#endif // USE_IMGUI && DEBUG_MODE
+}
+void Framework::ShowModelInfo()
+{
+#if USE_IMGUI && DEBUG_MODE
+
+	if ( ImGui::BeginIfAllowed() )
+	{
+		size_t modelCount = meshes.size();
+		ImGui::Text( "Model Count:[%d]", modelCount );
+
+		for ( auto &it = meshes.begin(); it != meshes.end(); )
+		{
+			std::string nodeCaption = "[" + it->loader.GetOnlyFileName() + "]";
+			if ( ImGui::TreeNode( nodeCaption.c_str() ) )
+			{
+				if ( ImGui::Button( "Remove" ) )
+				{
+					it = meshes.erase( it );
+
+					ImGui::TreePop();
+					continue;
+				}
+				// else
+
+				it->loader.EnumPreservingDataToImGui( ImGuiWindowName );
+				ImGui::TreePop();
+			}
+
+			++it;
+		}
+
+		ImGui::End();
+	}
+
+#endif // USE_IMGUI && DEBUG_MODE
+}
+void Framework::ChangeLightByImGui()
+{
+#if USE_IMGUI && DEBUG_MODE
+
+	if ( ImGui::BeginIfAllowed() )
+	{
+		ImGui::ColorEdit4( "Light Color", &light.color.x );
+		ImGui::SliderFloat3( "Light Direction", &light.direction.x, -8.0f, 8.0f );
+
+		ImGui::End();
+	}
+
+#endif // USE_IMGUI && DEBUG_MODE
 }

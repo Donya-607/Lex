@@ -118,7 +118,8 @@ namespace Donya
 			Mesh( const Mesh & ) = default;
 		};
 	private:
-		std::string			fileName;
+		std::string			absFilePath;
+		std::string			fileName;		// only file-name, the directory is not contain.
 		std::string			fileDirectory;	// '/' terminated.
 		std::vector<Mesh>	meshes;
 	public:
@@ -130,10 +131,11 @@ namespace Donya
 		/// </summary>
 		bool Load( const std::string &filePath, std::string *outputErrorString );
 	public:
-		std::string GetFileName() const { return fileName; }
-		const std::vector<Mesh> *GetMeshes() const { return &meshes; }
+		std::string GetAbsoluteFilePath()		const { return absFilePath;	}
+		std::string GetOnlyFileName()			const { return fileName;	}
+		const std::vector<Mesh> *GetMeshes()	const { return &meshes;		}
 	private:
-		void MakeFileName( const std::string &filePath );
+		void MakeAbsoluteFilePath( const std::string &filePath );
 
 		void FetchVertices( size_t meshIndex, const fbxsdk::FbxMesh *pMesh, const std::vector<BoneInfluencesPerControlPoint> &fetchedInfluencesPerControlPoints );
 		void FetchMaterial( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );

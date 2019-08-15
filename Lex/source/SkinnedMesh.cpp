@@ -342,6 +342,7 @@ namespace Donya
 			static DirectX::XMFLOAT4X4 coordConversion = identity;	// I'm not want to initialize to identity every frame.
 
 			if ( ImGui::BeginIfAllowed( "SkinnedMesh" ) )
+			// if ( ImGui::BeginIfAllowed() )
 			{
 				if ( ImGui::TreeNode( "CoordinateConversion" ) )
 				{

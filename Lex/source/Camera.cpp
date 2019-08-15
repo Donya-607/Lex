@@ -108,12 +108,6 @@ void Camera::Update( const Donya::Vector3 &targetPos )
 	ChangeMode();
 
 	Move( targetPos );
-
-#if DEBUG_MODE
-
-	ShowParametersToImGui();
-
-#endif // DEBUG_MODE
 }
 
 // Interpolate is not used in current implement.
@@ -434,38 +428,63 @@ void Camera::ShowParametersToImGui()
 	{
 		if ( ImGui::TreeNode( "Camera" ) )
 		{
-			std::string vec3Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f]" };
-			std::string vec4Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]" };
-			auto ShowVec3 =
-			[&vec3Info]( std::string name, const Donya::Vector3 &param )
+			if ( ImGui::TreeNode( "Usage" ) )
 			{
-				ImGui::Text( ( name + vec3Info ).c_str(), param.x, param.y, param.z );
-			};
-			auto ShowVec4 =
-			[&vec4Info]( std::string name, const Donya::Vector4 &param )
+				std::string key		{ "\"R\" key : Reset position and focus. " };
+				std::string zoom	{ "Mouse-Wheel : Zoom In-Out." };
+				std::string rotate	{ "Left-click(+Move) : Rotate around focus." };
+				std::string pan		{ "Push-Wheel(+Move) or\nRight-click(+Move) : Move position and focus." };
+
+				auto ShowString = []( const std::string &str )
+				{
+					ImGui::Text( str.c_str() );
+				};
+
+				ShowString( key		);
+				ShowString( zoom	);
+				ShowString( rotate	);
+				ShowString( pan		);
+
+				ImGui::TreePop();
+			}
+
+			if ( ImGui::TreeNode( "Parameter" ) )
 			{
-				ImGui::Text( ( name + vec4Info ).c_str(), param.x, param.y, param.z, param.w );
-			};
+				std::string vec3Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f]" };
+				std::string vec4Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]" };
+				auto ShowVec3 =
+				[&vec3Info]( std::string name, const Donya::Vector3 &param )
+				{
+					ImGui::Text( ( name + vec3Info ).c_str(), param.x, param.y, param.z );
+				};
+				auto ShowVec4 =
+				[&vec4Info]( std::string name, const Donya::Vector4 &param )
+				{
+					ImGui::Text( ( name + vec4Info ).c_str(), param.x, param.y, param.z, param.w );
+				};
 
-			Donya::Vector3 up		= posture.RotateVector( Donya::Vector3::Up()	);
-			Donya::Vector3 right	= posture.RotateVector( Donya::Vector3::Right()	);
-			Donya::Vector3 front	= posture.RotateVector( Donya::Vector3::Front()	);
+				Donya::Vector3 up		= posture.RotateVector( Donya::Vector3::Up()	);
+				Donya::Vector3 right	= posture.RotateVector( Donya::Vector3::Right()	);
+				Donya::Vector3 front	= posture.RotateVector( Donya::Vector3::Front()	);
 
-			ShowVec3( "Pos",	pos		);
-			ShowVec3( "Focus",	focus	);
-			ShowVec3( "Up",		up		);
-			ShowVec3( "Right",	right	);
-			ShowVec3( "Front",	front	);
+				ShowVec3( "Pos",	pos		);
+				ShowVec3( "Focus",	focus	);
+				ShowVec3( "Up",		up		);
+				ShowVec3( "Right",	right	);
+				ShowVec3( "Front",	front	);
 			
-			Donya::Vector4 vec4Posture
-			{
-				posture.x,
-				posture.y,
-				posture.z,
-				posture.w
-			};
-			ShowVec4( "Posture", vec4Posture );
-			ImGui::Text( "Norm[%5.3f]", posture.Length() );
+				Donya::Vector4 vec4Posture
+				{
+					posture.x,
+					posture.y,
+					posture.z,
+					posture.w
+				};
+				ShowVec4( "Posture", vec4Posture );
+				ImGui::Text( "Norm[%5.3f]", posture.Length() );
+
+				ImGui::TreePop();
+			}
 
 			ImGui::TreePop();
 		}
