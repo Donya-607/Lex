@@ -19,9 +19,10 @@ float4 main( VS_OUT pin ) : SV_TARGET
 	// else
 
 	float3 color = NormalizedLambert( mtlDiffuse.rgb * diffuseColor.rgb, pin.normal.rgb, lightDir.rgb );
+	// color = ( color * 0.5f ) + 0.5f;
 
 	float4 output;
-	output.rgb	= color;
+	output.rgb	= color/* + mtlAmbient.rgb*/;
 	output.a	= diffuseColor.a;
 
 	return output * pin.color * lightColor;

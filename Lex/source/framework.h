@@ -10,6 +10,8 @@
 #include <vector>
 #include <wrl.h>
 
+#include <mutex>
+
 #include "Camera.h"
 #include "Loader.h"
 #include "HighResolutionTimer.h"
@@ -46,6 +48,9 @@ private:
 	int pressMouseButton; // contain value is: None:0, Left:VK_LBUTTON, Middle:VK_MBUTTON, Right:VK_RBUTTON.
 	bool isCaptureWindow;
 	bool isSolidState;
+private:
+	std::mutex mtx;
+	int loadingModelCount;
 public:
 	Framework( HWND hwnd );
 	~Framework();
@@ -63,6 +68,8 @@ private:
 private:
 	HighResolutionTimer highResoTimer;
 	void CalcFrameStats();
+private:
+	void LoadAndCreateModel( std::string filePath );
 private:
 	bool OpenCommonDialogAndFile();
 	void SetMouseCapture();

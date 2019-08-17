@@ -1,6 +1,7 @@
 #include "Framework.h"
 
 #include <array>
+#include <thread>
 
 #include "Benchmark.h"
 #include "Camera.h"
@@ -31,7 +32,9 @@ Framework::Framework( HWND hwnd ) :
 	meshes(),
 	pressMouseButton( NULL ),
 	isCaptureWindow( false ),
-	isSolidState( true )
+	isSolidState( true ),
+	mtx(),
+	loadingModelCount( 0 )
 {
 	DragAcceptFiles( hWnd, TRUE );
 }
@@ -656,6 +659,18 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	HRESULT hr = dxgiSwapChain->Present( 0, 0 );
 	_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Present()" );
+}
+
+void Framework::LoadAndCreateModel( std::string filePath )
+{
+	loadingModelCount++;
+
+	meshes.push_back( {} );
+	bool result = meshes.back().loader.Load( filePath.c_str(), nullptr );
+	if ( result )
+	{
+		Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+	}
 }
 
 bool Framework::OpenCommonDialogAndFile()

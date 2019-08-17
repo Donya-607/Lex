@@ -195,8 +195,11 @@ namespace Donya
 		}
 		#pragma endregion
 
+	#ifdef USE_TRIANGULATE
 		FBX::FbxGeometryConverter geometryConverter( pManager );
-		geometryConverter.Triangulate( pScene, /* replace = */ true );
+		bool replace = true;
+		geometryConverter.Triangulate( pScene, replace );
+	#endif
 
 		std::vector<FBX::FbxNode *> fetchedMeshes{};
 		Traverse( pScene->GetRootNode(), &fetchedMeshes );

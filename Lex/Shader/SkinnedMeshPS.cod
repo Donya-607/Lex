@@ -103,7 +103,7 @@
 #line 21
     mov r0.xyz, r0  // ::color<0,1,2>
 
-#line 24
+#line 25
     mov r0.xyz, r0  // ::output<0,1,2>
     mov r0.w, r0.w  // ::output<3>
     mul r0, r0, t0
@@ -155,13 +155,13 @@ mul r0.xyz, r1.xyzx, l(0.318310, 0.318310, 0.318310, 0.000000)  // r0.x <- <Norm
 #line 21
 mov r0.xyz, r0.xyzx  // r0.x <- color.x; r0.y <- color.y; r0.z <- color.z
 
-#line 24
+#line 25
 mov r0.xyz, r0.xyzx  // r0.x <- output.x; r0.y <- output.y; r0.z <- output.z
 
-#line 25
+#line 26
 mov r0.w, r0.w  // r0.w <- output.w
 
-#line 27
+#line 28
 mul r0.xyzw, r0.xyzw, v1.xyzw
 mul o0.xyzw, r0.xyzw, cb0[8].xyzw
 ret 
