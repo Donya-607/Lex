@@ -1,6 +1,7 @@
 #include "Framework.h"
 
 #include <array>
+#include <algorithm>
 #include <thread>
 
 #include "Benchmark.h"
@@ -34,7 +35,7 @@ Framework::Framework( HWND hwnd ) :
 	isCaptureWindow( false ),
 	isSolidState( true ),
 	mtx(),
-	loadingModelCount( 0 )
+	loadingData()
 {
 	DragAcceptFiles( hWnd, TRUE );
 }
@@ -471,35 +472,23 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		{
 			std::string filePath = prePath + number + postPath;
 
-			meshes.push_back( {} );
-			bool result = meshes.back().loader.Load( filePath, nullptr );
-			if ( result )
-			{
-				Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
-			}
+			// LoadAndCreateModel( filePath );
+			StartLoadThread( filePath );
 		}
 	}
 	if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( 'F' ) && meshes.empty() )
 	{
 		constexpr const char *BLUE_FALCON = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\BLue Falcon\\Blue Falcon.FBX";
 
-		meshes.push_back( {} );
-		bool result = meshes.back().loader.Load( BLUE_FALCON, nullptr );
-		if ( result )
-		{
-			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
-		}
+		// LoadAndCreateModel( BLUE_FALCON );
+		StartLoadThread( BLUE_FALCON );
 	}
 	if ( Donya::Keyboard::Press( 'J' ) && Donya::Keyboard::Press( 'I' ) && Donya::Keyboard::Trigger( 'G' ) && meshes.empty() )
 	{
 		constexpr const char *JIGGLYPUFF = "D:\\D-Download\\ASSET_Models\\Free\\Jigglypuff\\Fixed\\JigglypuffNEW.FBX";
 
-		meshes.push_back( {} );
-		bool result = meshes.back().loader.Load( JIGGLYPUFF, nullptr );
-		if ( result )
-		{
-			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
-		}
+		// LoadAndCreateModel( JIGGLYPUFF );
+		StartLoadThread( JIGGLYPUFF );
 	}
 	if ( Donya::Keyboard::Trigger( 'Q' ) && !meshes.empty() )
 	{
@@ -512,6 +501,8 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	{
 		isSolidState = !isSolidState;
 	}
+
+	AppendModelIfLoadFinished();
 
 	Donya::Vector3 origin{ 0.0f, 0.0f, 0.0f };
 	camera.Update( origin );
@@ -661,16 +652,88 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Present()" );
 }
 
-void Framework::LoadAndCreateModel( std::string filePath )
+void Framework::AppendModelIfLoadFinished()
 {
-	loadingModelCount++;
+	size_t loadingCount = loadingData.size();
+	for ( size_t i = 0; i < loadingCount; ++i )
+	// for ( const auto &it : loadingData )
+	{
+		auto itr = std::next( loadingData.begin(), i );
 
+		// if ( !loadingData[i].isFinished ) { continue; }
+		// if ( !it.isFinished ) { continue; }
+		if ( !itr->isFinished ) { continue; }
+		// else
+
+		// meshes.emplace_back( std::move( loadingData[i].tmpLoadStorage ) );
+		// meshes.emplace_back( std::move( it.tmpLoadStorage ) );
+		meshes.emplace_back( std::move( itr->future.get() ) );
+	}
+
+	auto result = std::remove_if
+	(
+		loadingData.begin(), loadingData.end(),
+		[]( AsyncLoad &elem )
+		{
+			return ( elem.isFinished ) ? true : false;
+		}
+	);
+	loadingData.erase( result, loadingData.end() );
+}
+
+void Framework::LoadAndCreateModel( std::string filePath, AsyncLoad *pData )
+{
+	std::lock_guard<std::mutex> lock( mtx );
+
+	pData->filePath		= filePath;
+	pData->isFinished	= false;
+
+	MeshAndInfo storage{};
+
+	bool result = storage.loader.Load( filePath.c_str(), nullptr );
+	if ( result )
+	{
+		Donya::SkinnedMesh::Create
+		(
+			&storage.loader,
+			&storage.pMesh
+		);
+	}
+	else
+	{
+		storage.pMesh.reset( nullptr );
+	}
+
+	pData->isFinished	= true;
+	pData->promise.set_value( storage );
+
+	/*
 	meshes.push_back( {} );
 	bool result = meshes.back().loader.Load( filePath.c_str(), nullptr );
 	if ( result )
 	{
 		Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
 	}
+	*/
+}
+void Framework::StartLoadThread( std::string filePath )
+{
+	loadingData.emplace_back();
+	AsyncLoad &elem = loadingData.back();
+
+	elem.future = elem.promise.get_future();
+
+	std::thread thread
+	(
+		[&]
+		{
+			LoadAndCreateModel( filePath, &elem );
+		}
+	);
+	// thread.join();
+	thread.detach();
+
+	// LoadAndCreateModel( filePath );
 }
 
 bool Framework::OpenCommonDialogAndFile()

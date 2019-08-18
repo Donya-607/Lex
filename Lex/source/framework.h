@@ -10,7 +10,9 @@
 #include <vector>
 #include <wrl.h>
 
+#include <future>
 #include <mutex>
+#include <list>
 
 #include "Camera.h"
 #include "Loader.h"
@@ -38,7 +40,7 @@ private:
 		Donya::Vector4 direction{ 0.0f, 6.0f, 0.0f, 0.0f };
 	};
 	Light light;
-	struct MeshAndInfo
+	struct MeshAndInfo // if "pMesh" is nullptr, that express to failed to load.
 	{
 		Donya::Loader loader;
 		std::unique_ptr<Donya::SkinnedMesh> pMesh;
@@ -50,7 +52,15 @@ private:
 	bool isSolidState;
 private:
 	std::mutex mtx;
-	int loadingModelCount;
+	struct AsyncLoad
+	{
+		std::string filePath{};		// absolute-path.
+		std::future<MeshAndInfo>  future;
+		std::promise<MeshAndInfo> promise;
+		bool isFinished{};
+	};
+	// Note:If it is vector, I can't pass the pointer of element.
+	std::list<AsyncLoad> loadingData;
 public:
 	Framework( HWND hwnd );
 	~Framework();
@@ -69,7 +79,9 @@ private:
 	HighResolutionTimer highResoTimer;
 	void CalcFrameStats();
 private:
-	void LoadAndCreateModel( std::string filePath );
+	void AppendModelIfLoadFinished();
+	void LoadAndCreateModel( std::string filePath, AsyncLoad *pLoadingData );
+	void StartLoadThread( std::string filePath );
 private:
 	bool OpenCommonDialogAndFile();
 	void SetMouseCapture();
