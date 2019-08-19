@@ -57,7 +57,8 @@ private:
 		std::unique_ptr<std::mutex>		mtx{};
 		std::unique_ptr<std::thread>	pThread{};
 		MeshAndInfo						meshInfo{};
-		bool isFinished = false;
+		bool isFinished  = false;
+		bool isSucceeded = false;
 	};
 	// Note:If it is vector, I can't pass the pointer of element.
 	std::list<AsyncLoad> loadingData;
@@ -80,7 +81,7 @@ private:
 	void CalcFrameStats();
 private:
 	void AppendModelIfLoadFinished();
-	void LoadAndCreateModel( std::string filePath );
+	void CreateModel( std::string filePath );
 	void StartLoadThread( std::string filePath );
 private:
 	bool OpenCommonDialogAndFile();

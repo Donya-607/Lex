@@ -479,7 +479,6 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		{
 			std::string filePath = prePath + number + postPath;
 
-			// LoadAndCreateModel( filePath );
 			StartLoadThread( filePath );
 		}
 	}
@@ -487,14 +486,12 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	{
 		constexpr const char *BLUE_FALCON = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\BLue Falcon\\Blue Falcon.FBX";
 
-		// LoadAndCreateModel( BLUE_FALCON );
 		StartLoadThread( BLUE_FALCON );
 	}
 	if ( Donya::Keyboard::Press( 'J' ) && Donya::Keyboard::Press( 'I' ) && Donya::Keyboard::Trigger( 'G' ) && meshes.empty() )
 	{
 		constexpr const char *JIGGLYPUFF = "D:\\D-Download\\ASSET_Models\\Free\\Jigglypuff\\Fixed\\JigglypuffNEW.FBX";
 
-		// LoadAndCreateModel( JIGGLYPUFF );
 		StartLoadThread( JIGGLYPUFF );
 	}
 	if ( Donya::Keyboard::Trigger( 'Q' ) && !meshes.empty() )
@@ -654,8 +651,6 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 void Framework::AppendModelIfLoadFinished()
 {
-#if 1
-
 	for ( auto it = loadingData.begin(); it != loadingData.end(); )
 	{
 		if ( !it->isFinished )
@@ -665,112 +660,57 @@ void Framework::AppendModelIfLoadFinished()
 		}
 		// else
 
-		meshes.emplace_back( std::move( it->meshInfo ) );
-
 		if ( it->pThread && it->pThread->joinable() )
 		{
 			it->pThread->join();
 		}
+
+		if ( it->isSucceeded )
+		{
+			meshes.emplace_back( std::move( it->meshInfo ) );
+		}
+
 		it = loadingData.erase( it );
 	}
-
-#else
-
-	size_t loadingCount = loadingData.size();
-	for ( size_t i = 0; i < loadingCount; ++i )
-	// for ( const auto &it : loadingData )
-	{
-		auto itr = std::next( loadingData.begin(), i );
-
-		// if ( !loadingData[i].isFinished ) { continue; }
-		// if ( !it.isFinished ) { continue; }
-		if ( !itr->isFinished ) { continue; }
-		// else
-
-		// meshes.emplace_back( std::move( loadingData[i].tmpLoadStorage ) );
-		// meshes.emplace_back( std::move( it.tmpLoadStorage ) );
-		// meshes.emplace_back( std::move( itr->future.get()->meshInfo ) );
-		// meshes.emplace_back( std::move( itr->future->get().meshInfo ) );
-		meshes.emplace_back( std::move( itr->meshInfo ) );
-	}
-
-	auto result = std::remove_if
-	(
-		loadingData.begin(), loadingData.end(),
-		[]( AsyncLoad &elem )
-		{
-			return ( elem.isFinished ) ? true : false;
-		}
-	);
-	loadingData.erase( result, loadingData.end() );
-
-#endif // 0
 }
 
-void Framework::LoadAndCreateModel( std::string filePath )
+void Framework::CreateModel( std::string filePath )
 {
-#if 1
-	// std::lock_guard<std::mutex> lock( mtx );
-
-	AsyncLoad storage{};
-	storage.filePath	= filePath;
-	storage.isFinished	= false;
-
-	bool result = storage.meshInfo.loader.Load( filePath.c_str(), nullptr );
-	if ( result )
-	{
-		Donya::SkinnedMesh::Create
-		(
-			&storage.meshInfo.loader,
-			&storage.meshInfo.mesh
-		);
-	}
-
-	storage.isFinished = true;
-
-	// loadPromise.set_value( storage );
-	// loadPromise.set_value( std::make_unique<AsyncLoad>( storage ) );
-#else
 	meshes.push_back( {} );
 	bool result = meshes.back().loader.Load( filePath.c_str(), nullptr );
 	if ( result )
 	{
 		Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().mesh );
 	}
-#endif // 0
 }
+
 void Framework::StartLoadThread( std::string filePath )
 {
 	loadingData.push_back( {} );
 	auto &elem = loadingData.back();
 	elem.mtx = std::make_unique<std::mutex>();
 
-	auto Function =
-	[&elem]( std::string filePath )
+	auto Load =
+	[]( std::string filePath, AsyncLoad *pElement )
 	{
-		std::lock_guard<std::mutex> lock( *( elem.mtx ) );
+		std::lock_guard<std::mutex> lock( *( pElement->mtx ) );
 
-		elem.filePath = filePath;
+		pElement->filePath = filePath;
 
-		bool result = elem.meshInfo.loader.Load( filePath.c_str(), nullptr );
+		bool result = pElement->meshInfo.loader.Load( filePath.c_str(), nullptr );
 		if ( result )
 		{
-			Donya::SkinnedMesh::Create
+			pElement->isSucceeded = Donya::SkinnedMesh::Create
 			(
-				&elem.meshInfo.loader,
-				&elem.meshInfo.mesh
+				&pElement->meshInfo.loader,
+				&pElement->meshInfo.mesh
 			);
 		}
 
-		elem.isFinished = true;
-		// LoadAndCreateModel( filePath );
+		pElement->isFinished = true;
 	};
 
-	elem.pThread = std::make_unique<std::thread>( Function, filePath );
-	// thread.join();
-	// thread.detach();
-
-	// LoadAndCreateModel( filePath );
+	elem.pThread = std::make_unique<std::thread>( Load, filePath, &elem );
 }
 
 bool Framework::OpenCommonDialogAndFile()
