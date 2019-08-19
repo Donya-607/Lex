@@ -34,7 +34,6 @@ Framework::Framework( HWND hwnd ) :
 	pressMouseButton( NULL ),
 	isCaptureWindow( false ),
 	isSolidState( true ),
-	mtx(),
 	loadingData()
 {
 	DragAcceptFiles( hWnd, TRUE );
@@ -48,6 +47,14 @@ Framework::~Framework()
 
 	meshes.clear();
 	meshes.shrink_to_fit();
+
+	for ( auto &it : loadingData )
+	{
+		if ( it.pThread && it.pThread->joinable() )
+		{
+			it.pThread->join();
+		}
+	}
 };
 
 LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
@@ -647,6 +654,28 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 void Framework::AppendModelIfLoadFinished()
 {
+#if 1
+
+	for ( auto it = loadingData.begin(); it != loadingData.end(); )
+	{
+		if ( !it->isFinished )
+		{
+			++it;
+			continue;
+		}
+		// else
+
+		meshes.emplace_back( std::move( it->meshInfo ) );
+
+		if ( it->pThread && it->pThread->joinable() )
+		{
+			it->pThread->join();
+		}
+		it = loadingData.erase( it );
+	}
+
+#else
+
 	size_t loadingCount = loadingData.size();
 	for ( size_t i = 0; i < loadingCount; ++i )
 	// for ( const auto &it : loadingData )
@@ -660,7 +689,9 @@ void Framework::AppendModelIfLoadFinished()
 
 		// meshes.emplace_back( std::move( loadingData[i].tmpLoadStorage ) );
 		// meshes.emplace_back( std::move( it.tmpLoadStorage ) );
-		// meshes.emplace_back( std::move( itr->future.get() ) );
+		// meshes.emplace_back( std::move( itr->future.get()->meshInfo ) );
+		// meshes.emplace_back( std::move( itr->future->get().meshInfo ) );
+		meshes.emplace_back( std::move( itr->meshInfo ) );
 	}
 
 	auto result = std::remove_if
@@ -672,34 +703,33 @@ void Framework::AppendModelIfLoadFinished()
 		}
 	);
 	loadingData.erase( result, loadingData.end() );
+
+#endif // 0
 }
 
-void Framework::LoadAndCreateModel( std::string filePath, AsyncLoad *pData )
+void Framework::LoadAndCreateModel( std::string filePath )
 {
-#if 0
-	std::lock_guard<std::mutex> lock( mtx );
+#if 1
+	// std::lock_guard<std::mutex> lock( mtx );
 
-	pData->filePath		= filePath;
-	pData->isFinished	= false;
+	AsyncLoad storage{};
+	storage.filePath	= filePath;
+	storage.isFinished	= false;
 
-	MeshAndInfo storage{};
-
-	bool result = storage.loader.Load( filePath.c_str(), nullptr );
+	bool result = storage.meshInfo.loader.Load( filePath.c_str(), nullptr );
 	if ( result )
 	{
 		Donya::SkinnedMesh::Create
 		(
-			&storage.loader,
-			&storage.pMesh
+			&storage.meshInfo.loader,
+			&storage.meshInfo.mesh
 		);
 	}
-	else
-	{
-		storage.pMesh.reset( nullptr );
-	}
 
-	pData->isFinished	= true;
-	pData->promise.set_value( storage );
+	storage.isFinished = true;
+
+	// loadPromise.set_value( storage );
+	// loadPromise.set_value( std::make_unique<AsyncLoad>( storage ) );
 #else
 	meshes.push_back( {} );
 	bool result = meshes.back().loader.Load( filePath.c_str(), nullptr );
@@ -711,20 +741,34 @@ void Framework::LoadAndCreateModel( std::string filePath, AsyncLoad *pData )
 }
 void Framework::StartLoadThread( std::string filePath )
 {
-	loadingData.emplace_back();
-	AsyncLoad &elem = loadingData.back();
+	loadingData.push_back( {} );
+	auto &elem = loadingData.back();
+	elem.mtx = std::make_unique<std::mutex>();
 
-	// elem.future = elem.promise.get_future();
+	auto Function =
+	[&elem]( std::string filePath )
+	{
+		std::lock_guard<std::mutex> lock( *( elem.mtx ) );
 
-	std::thread thread
-	(
-		[&]
+		elem.filePath = filePath;
+
+		bool result = elem.meshInfo.loader.Load( filePath.c_str(), nullptr );
+		if ( result )
 		{
-			LoadAndCreateModel( filePath, &elem );
+			Donya::SkinnedMesh::Create
+			(
+				&elem.meshInfo.loader,
+				&elem.meshInfo.mesh
+			);
 		}
-	);
+
+		elem.isFinished = true;
+		// LoadAndCreateModel( filePath );
+	};
+
+	elem.pThread = std::make_unique<std::thread>( Function, filePath );
 	// thread.join();
-	thread.detach();
+	// thread.detach();
 
 	// LoadAndCreateModel( filePath );
 }

@@ -10,9 +10,9 @@
 #include <vector>
 #include <wrl.h>
 
-#include <future>
 #include <mutex>
 #include <list>
+#include <thread>
 
 #include "Camera.h"
 #include "Loader.h"
@@ -51,13 +51,13 @@ private:
 	bool isCaptureWindow;
 	bool isSolidState;
 private:
-	std::mutex mtx;
 	struct AsyncLoad
 	{
-		std::string filePath{};		// absolute-path.
-		//std::future<MeshAndInfo>  future;
-		//std::promise<MeshAndInfo> promise;
-		bool isFinished{};
+		std::string						filePath{};	// absolute-path.
+		std::unique_ptr<std::mutex>		mtx{};
+		std::unique_ptr<std::thread>	pThread{};
+		MeshAndInfo						meshInfo{};
+		bool isFinished = false;
 	};
 	// Note:If it is vector, I can't pass the pointer of element.
 	std::list<AsyncLoad> loadingData;
@@ -80,7 +80,7 @@ private:
 	void CalcFrameStats();
 private:
 	void AppendModelIfLoadFinished();
-	void LoadAndCreateModel( std::string filePath, AsyncLoad *pLoadingData );
+	void LoadAndCreateModel( std::string filePath );
 	void StartLoadThread( std::string filePath );
 private:
 	bool OpenCommonDialogAndFile();
