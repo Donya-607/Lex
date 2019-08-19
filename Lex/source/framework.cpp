@@ -667,7 +667,7 @@ void Framework::AppendModelIfLoadFinished()
 
 		// meshes.emplace_back( std::move( loadingData[i].tmpLoadStorage ) );
 		// meshes.emplace_back( std::move( it.tmpLoadStorage ) );
-		meshes.emplace_back( std::move( itr->future.get() ) );
+		// meshes.emplace_back( std::move( itr->future.get() ) );
 	}
 
 	auto result = std::remove_if
@@ -683,6 +683,7 @@ void Framework::AppendModelIfLoadFinished()
 
 void Framework::LoadAndCreateModel( std::string filePath, AsyncLoad *pData )
 {
+#if 0
 	std::lock_guard<std::mutex> lock( mtx );
 
 	pData->filePath		= filePath;
@@ -706,22 +707,21 @@ void Framework::LoadAndCreateModel( std::string filePath, AsyncLoad *pData )
 
 	pData->isFinished	= true;
 	pData->promise.set_value( storage );
-
-	/*
+#else
 	meshes.push_back( {} );
 	bool result = meshes.back().loader.Load( filePath.c_str(), nullptr );
 	if ( result )
 	{
 		Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
 	}
-	*/
+#endif // 0
 }
 void Framework::StartLoadThread( std::string filePath )
 {
 	loadingData.emplace_back();
 	AsyncLoad &elem = loadingData.back();
 
-	elem.future = elem.promise.get_future();
+	// elem.future = elem.promise.get_future();
 
 	std::thread thread
 	(

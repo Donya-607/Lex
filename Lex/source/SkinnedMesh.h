@@ -135,9 +135,10 @@ namespace Donya
 		COM_PTR<ID3D11DepthStencilState>	iDepthStencilState;
 	#undef	COM_PTR
 	public:
-		SkinnedMesh( const std::vector<std::vector<size_t>> &allMeshesIndex, const std::vector<std::vector<SkinnedMesh::Vertex>> &allMeshesVertices, const std::vector<SkinnedMesh::Mesh> &loadedMeshes );
+		SkinnedMesh();
 		~SkinnedMesh();
 	public:
+		void Init( const std::vector<std::vector<size_t>> &allMeshesIndex, const std::vector<std::vector<SkinnedMesh::Vertex>> &allMeshesVertices, const std::vector<SkinnedMesh::Mesh> &loadedMeshes );
 		void Render
 		(
 			const DirectX::XMFLOAT4X4	&worldViewProjection,

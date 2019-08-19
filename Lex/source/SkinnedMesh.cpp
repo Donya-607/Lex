@@ -1,6 +1,7 @@
 #include "SkinnedMesh.h"
 
 #include "Common.h"
+#include "Direct3DUtil.h"
 #include "Donya.h"
 #include "Resource.h"
 #include "Useful.h"
@@ -100,21 +101,28 @@ namespace Donya
 			}
 		} // meshs loop
 
-		*ppOutput =
-		std::make_unique<SkinnedMesh>
-		(
-			argIndices,
-			argVertices,
-			meshes
-		);
+		*ppOutput = std::make_unique<SkinnedMesh>();
+		( *ppOutput )->Init( argIndices, argVertices, meshes );
 
 		return true;
 	}
 
 #endif // IS_SUPPORT_LEX_LOADER
 
-	SkinnedMesh::SkinnedMesh( const std::vector<std::vector<size_t>> &allIndices, const std::vector<std::vector<Vertex>> &allVertices, const std::vector<Mesh> &loadedMeshes )
-		: meshes(), iConstantBuffer(), iMaterialConstantBuffer(), iInputLayout(), iVertexShader(), iPixelShader(), iRasterizerStateWire(), iRasterizerStateSurface(), iDepthStencilState()
+	SkinnedMesh::SkinnedMesh() : meshes(),
+		iConstantBuffer(), iMaterialConstantBuffer(),
+		iInputLayout(), iVertexShader(), iPixelShader(),
+		iRasterizerStateWire(), iRasterizerStateSurface(), iDepthStencilState()
+	{
+
+	}
+	SkinnedMesh::~SkinnedMesh()
+	{
+		meshes.clear();
+		meshes.shrink_to_fit();
+	}
+
+	void SkinnedMesh::Init( const std::vector<std::vector<size_t>> &allIndices, const std::vector<std::vector<Vertex>> &allVertices, const std::vector<Mesh> &loadedMeshes )
 	{
 		HRESULT hr = S_OK;
 		ID3D11Device *pDevice = Donya::GetDevice();
@@ -125,23 +133,10 @@ namespace Donya
 		// Create VertexBuffers
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
-			D3D11_BUFFER_DESC bufferDesc{};
-			bufferDesc.ByteWidth			= sizeof( Vertex ) * allVertices[i].size();
-			bufferDesc.Usage				= D3D11_USAGE_IMMUTABLE;
-			bufferDesc.BindFlags			= D3D11_BIND_VERTEX_BUFFER;
-			bufferDesc.CPUAccessFlags		= 0;
-			bufferDesc.MiscFlags			= 0;
-			bufferDesc.StructureByteStride	= 0;
-
-			D3D11_SUBRESOURCE_DATA subResource{};
-			subResource.pSysMem				= allVertices[i].data();
-			subResource.SysMemPitch			= 0;
-			subResource.SysMemSlicePitch	= 0;
-
-			hr = pDevice->CreateBuffer
+			hr = CreateVertexBuffer<Vertex>
 			(
-				&bufferDesc,
-				&subResource,
+				pDevice,
+				allVertices[i],
 				meshes[i].iVertexBuffer.GetAddressOf()
 			);
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer" );
@@ -149,18 +144,26 @@ namespace Donya
 		// Create IndexBuffers
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
+			hr = CreateIndexBuffer
+			(
+				pDevice,
+				allIndices[i],
+				meshes[i].iIndexBuffer.GetAddressOf()
+			);
+			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer" );
+
 			D3D11_BUFFER_DESC bufferDesc{};
-			bufferDesc.ByteWidth			= sizeof( size_t ) * allIndices[i].size();
-			bufferDesc.Usage				= D3D11_USAGE_IMMUTABLE;
-			bufferDesc.BindFlags			= D3D11_BIND_INDEX_BUFFER;
-			bufferDesc.CPUAccessFlags		= 0;
-			bufferDesc.MiscFlags			= 0;
-			bufferDesc.StructureByteStride	= 0;
+			bufferDesc.ByteWidth = sizeof( size_t ) * allIndices[i].size();
+			bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+			bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+			bufferDesc.CPUAccessFlags = 0;
+			bufferDesc.MiscFlags = 0;
+			bufferDesc.StructureByteStride = 0;
 
 			D3D11_SUBRESOURCE_DATA subResource{};
-			subResource.pSysMem				= allIndices[i].data();
-			subResource.SysMemPitch			= 0;
-			subResource.SysMemSlicePitch	= 0;
+			subResource.pSysMem = allIndices[i].data();
+			subResource.SysMemPitch = 0;
+			subResource.SysMemSlicePitch = 0;
 
 			hr = pDevice->CreateBuffer
 			(
@@ -173,17 +176,17 @@ namespace Donya
 		// Create ConstantBuffers
 		{
 			D3D11_BUFFER_DESC bufferDesc{};
-			bufferDesc.ByteWidth			= sizeof( ConstantBuffer );
-			bufferDesc.Usage				= D3D11_USAGE_DEFAULT;
-			bufferDesc.BindFlags			= D3D11_BIND_CONSTANT_BUFFER;
-			bufferDesc.CPUAccessFlags		= 0;
-			bufferDesc.MiscFlags			= 0;
-			bufferDesc.StructureByteStride	= 0;
+			bufferDesc.ByteWidth = sizeof( ConstantBuffer );
+			bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+			bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			bufferDesc.CPUAccessFlags = 0;
+			bufferDesc.MiscFlags = 0;
+			bufferDesc.StructureByteStride = 0;
 
 			hr = pDevice->CreateBuffer( &bufferDesc, nullptr, iConstantBuffer.GetAddressOf() );
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
 
-			bufferDesc.ByteWidth			= sizeof( MaterialConstantBuffer );
+			bufferDesc.ByteWidth = sizeof( MaterialConstantBuffer );
 
 			hr = pDevice->CreateBuffer( &bufferDesc, nullptr, iMaterialConstantBuffer.GetAddressOf() );
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
@@ -223,21 +226,21 @@ namespace Donya
 		// Create Rasterizer States
 		{
 			D3D11_RASTERIZER_DESC d3d11ResterizerDescBase{};
-			d3d11ResterizerDescBase.CullMode					= D3D11_CULL_FRONT;
-			d3d11ResterizerDescBase.FrontCounterClockwise		= FALSE;
-			d3d11ResterizerDescBase.DepthBias					= 0;
-			d3d11ResterizerDescBase.DepthBiasClamp				= 0;
-			d3d11ResterizerDescBase.SlopeScaledDepthBias		= 0;
-			d3d11ResterizerDescBase.DepthClipEnable				= TRUE;
-			d3d11ResterizerDescBase.ScissorEnable				= FALSE;
-			d3d11ResterizerDescBase.MultisampleEnable			= FALSE;
-			d3d11ResterizerDescBase.AntialiasedLineEnable		= TRUE;
+			d3d11ResterizerDescBase.CullMode = D3D11_CULL_FRONT;
+			d3d11ResterizerDescBase.FrontCounterClockwise = FALSE;
+			d3d11ResterizerDescBase.DepthBias = 0;
+			d3d11ResterizerDescBase.DepthBiasClamp = 0;
+			d3d11ResterizerDescBase.SlopeScaledDepthBias = 0;
+			d3d11ResterizerDescBase.DepthClipEnable = TRUE;
+			d3d11ResterizerDescBase.ScissorEnable = FALSE;
+			d3d11ResterizerDescBase.MultisampleEnable = FALSE;
+			d3d11ResterizerDescBase.AntialiasedLineEnable = TRUE;
 
-			D3D11_RASTERIZER_DESC d3d11ResterizerWireDesc		= d3d11ResterizerDescBase;
-			D3D11_RASTERIZER_DESC d3d11ResterizerSurfaceDesc	= d3d11ResterizerDescBase;
-			d3d11ResterizerWireDesc.FillMode					= D3D11_FILL_WIREFRAME;
-			d3d11ResterizerSurfaceDesc.FillMode					= D3D11_FILL_SOLID;
-			d3d11ResterizerSurfaceDesc.AntialiasedLineEnable	= FALSE;
+			D3D11_RASTERIZER_DESC d3d11ResterizerWireDesc = d3d11ResterizerDescBase;
+			D3D11_RASTERIZER_DESC d3d11ResterizerSurfaceDesc = d3d11ResterizerDescBase;
+			d3d11ResterizerWireDesc.FillMode = D3D11_FILL_WIREFRAME;
+			d3d11ResterizerSurfaceDesc.FillMode = D3D11_FILL_SOLID;
+			d3d11ResterizerSurfaceDesc.AntialiasedLineEnable = FALSE;
 
 			hr = pDevice->CreateRasterizerState( &d3d11ResterizerWireDesc, iRasterizerStateWire.GetAddressOf() );
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateRasterizerState()" );
@@ -248,10 +251,10 @@ namespace Donya
 		// Create DepthsStencilState
 		{
 			D3D11_DEPTH_STENCIL_DESC d3dDepthStencilDesc{};
-			d3dDepthStencilDesc.DepthEnable		= TRUE;
-			d3dDepthStencilDesc.DepthWriteMask	= D3D11_DEPTH_WRITE_MASK_ALL;
-			d3dDepthStencilDesc.DepthFunc		= D3D11_COMPARISON_LESS;
-			d3dDepthStencilDesc.StencilEnable	= false;
+			d3dDepthStencilDesc.DepthEnable = TRUE;
+			d3dDepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+			d3dDepthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
+			d3dDepthStencilDesc.StencilEnable = false;
 
 			hr = pDevice->CreateDepthStencilState
 			(
@@ -263,16 +266,16 @@ namespace Donya
 		// Create Texture
 		{
 			D3D11_SAMPLER_DESC samplerDesc{};
-			samplerDesc.Filter			= D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-			samplerDesc.AddressU		= D3D11_TEXTURE_ADDRESS_WRAP;
-			samplerDesc.AddressV		= D3D11_TEXTURE_ADDRESS_WRAP;
-			samplerDesc.AddressW		= D3D11_TEXTURE_ADDRESS_WRAP;
-			samplerDesc.ComparisonFunc	= D3D11_COMPARISON_ALWAYS;
-			samplerDesc.MinLOD			= 0;
-			samplerDesc.MaxLOD			= D3D11_FLOAT32_MAX;
+			samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+			samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+			samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+			samplerDesc.MinLOD = 0;
+			samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 			auto CreateSamplerAndTextures =
-			[&]( SkinnedMesh::Material *pMtl )
+				[&]( SkinnedMesh::Material *pMtl )
 			{
 				size_t textureCount = pMtl->textures.size();
 				if ( !textureCount )
@@ -318,19 +321,14 @@ namespace Donya
 				size_t subsetCount = meshes[i].subsets.size();
 				for ( size_t j = 0; j < subsetCount; ++j )
 				{
-					CreateSamplerAndTextures( &meshes[i].subsets[j].ambient		);
-					CreateSamplerAndTextures( &meshes[i].subsets[j].bump		);
-					CreateSamplerAndTextures( &meshes[i].subsets[j].diffuse		);
-					CreateSamplerAndTextures( &meshes[i].subsets[j].emissive	);
-					CreateSamplerAndTextures( &meshes[i].subsets[j].specular	);
+					CreateSamplerAndTextures( &meshes[i].subsets[j].ambient );
+					CreateSamplerAndTextures( &meshes[i].subsets[j].bump );
+					CreateSamplerAndTextures( &meshes[i].subsets[j].diffuse );
+					CreateSamplerAndTextures( &meshes[i].subsets[j].emissive );
+					CreateSamplerAndTextures( &meshes[i].subsets[j].specular );
 				}
 			}
 		}
-	}
-	SkinnedMesh::~SkinnedMesh()
-	{
-		meshes.clear();
-		meshes.shrink_to_fit();
 	}
 
 	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )

@@ -55,8 +55,8 @@ private:
 	struct AsyncLoad
 	{
 		std::string filePath{};		// absolute-path.
-		std::future<MeshAndInfo>  future;
-		std::promise<MeshAndInfo> promise;
+		//std::future<MeshAndInfo>  future;
+		//std::promise<MeshAndInfo> promise;
 		bool isFinished{};
 	};
 	// Note:If it is vector, I can't pass the pointer of element.

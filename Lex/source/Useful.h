@@ -7,18 +7,6 @@ struct ID3D11Buffer;
 
 namespace Donya
 {
-	/// <summary>
-	/// I doing ID3D11Device::CreateBuffer to vertex buffer, index buffer, constant buffer.<para></para>
-	/// You can setting nullptr in ID3D11Buffer. in that case, I skip CreateBuffer.<para></para>
-	/// If I can't created, returns false.
-	/// </summary>
-	bool CreateBuffers
-	(
-		ID3D11Buffer **vertexBuffer,	unsigned int verticesWholeByteWidth,	const void *verticesRawData,
-		ID3D11Buffer **indexBuffer,		unsigned int indecesWholeByteWidth,		const void *indicesRawData,
-		ID3D11Buffer **constantBuffer,	unsigned int sizeofConstantBuffer
-	);
-
 	bool Equal( float L, float R, float maxRelativeDiff = 1.192092896e-07F/* FLT_EPSILON */ );
 
 	/// <summary>
