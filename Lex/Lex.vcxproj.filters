@@ -93,6 +93,9 @@
     <ClInclude Include="source\WindowsUtil.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="source\Direct3DUtil.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Common.cpp">

@@ -1,5 +1,4 @@
-#ifndef _INCLUDED_LOADER_H_
-#define _INCLUDED_LOADER_H_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -9,25 +8,26 @@
 #include "UseImGui.h"
 #include "Vector.h"
 
+#define USE_FBX_SDK ( true )
+
+#if USE_FBX_SDK
 namespace fbxsdk
 {
 	class FbxMesh;
 	class FbxSurfaceMaterial;
 }
+#endif // USE_FBX_SDK
 
 namespace Donya
 {
 	/// <summary>
-	/// Loader can load a FBX file.<para></para>
-	/// also preserve:<para></para>
-	/// indices count,<para></para>
-	/// normals,<para></para>
-	/// positions,<para></para>
-	/// texCoords.
+	/// 
 	/// </summary>
 	class Loader
 	{
 	public:
+	#pragma region Structs
+
 		struct Material
 		{
 			Donya::Vector4 color;	// w channel is used as shininess by only specular.
@@ -117,6 +117,9 @@ namespace Donya
 			{}
 			Mesh( const Mesh & ) = default;
 		};
+
+		// region Structs
+	#pragma endregion
 	private:
 		std::string			absFilePath;
 		std::string			fileName;		// only file-name, the directory is not contain.
@@ -135,12 +138,16 @@ namespace Donya
 		std::string GetOnlyFileName()			const { return fileName;	}
 		const std::vector<Mesh> *GetMeshes()	const { return &meshes;		}
 	private:
+	#if USE_FBX_SDK
+		bool LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString );
+
 		void MakeAbsoluteFilePath( const std::string &filePath );
 
 		void FetchVertices( size_t meshIndex, const fbxsdk::FbxMesh *pMesh, const std::vector<BoneInfluencesPerControlPoint> &fetchedInfluencesPerControlPoints );
 		void FetchMaterial( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
 		void AnalyseProperty( size_t meshIndex, int mtlIndex, fbxsdk::FbxSurfaceMaterial *pMaterial );
 		void FetchGlobalTransform( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
+	#endif // USE_FBX_SDK
 		
 	#if USE_IMGUI
 	public:
@@ -154,5 +161,3 @@ namespace Donya
 	};
 
 }
-
-#endif // _INCLUDED_LOADER_H_

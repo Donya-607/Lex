@@ -3,22 +3,17 @@
 #include "Common.h"
 #include "Direct3DUtil.h"
 #include "Donya.h"
+#include "Loader.h"
 #include "Resource.h"
 #include "Useful.h"
-
-#if IS_SUPPORT_LEX_LOADER
-#include "Loader.h"
-#endif // IS_SUPPORT_LEX_LOADER
 
 using namespace DirectX;
 
 namespace Donya
 {
-#if IS_SUPPORT_LEX_LOADER
-
-	bool SkinnedMesh::Create( const Loader *loader, std::unique_ptr<SkinnedMesh> *ppOutput )
+	bool SkinnedMesh::Create( const Loader *loader, SkinnedMesh *pOutput )
 	{
-		if ( !loader || !ppOutput ) { return false; }
+		if ( !loader || !pOutput ) { return false; }
 		// else
 
 		const std::vector<Loader::Mesh> *pLoadedMeshes = loader->GetMeshes();
@@ -101,16 +96,13 @@ namespace Donya
 			}
 		} // meshs loop
 
-		*ppOutput = std::make_unique<SkinnedMesh>();
-		( *ppOutput )->Init( argIndices, argVertices, meshes );
+		pOutput->Init( argIndices, argVertices, meshes );
 
 		return true;
 	}
 
-#endif // IS_SUPPORT_LEX_LOADER
-
 	SkinnedMesh::SkinnedMesh() : meshes(),
-		iConstantBuffer(), iMaterialConstantBuffer(),
+		iConstantBuffer(), iMaterialCBuffer(),
 		iInputLayout(), iVertexShader(), iPixelShader(),
 		iRasterizerStateWire(), iRasterizerStateSurface(), iDepthStencilState()
 	{
@@ -151,45 +143,24 @@ namespace Donya
 				meshes[i].iIndexBuffer.GetAddressOf()
 			);
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer" );
-
-			D3D11_BUFFER_DESC bufferDesc{};
-			bufferDesc.ByteWidth = sizeof( size_t ) * allIndices[i].size();
-			bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-			bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-			bufferDesc.CPUAccessFlags = 0;
-			bufferDesc.MiscFlags = 0;
-			bufferDesc.StructureByteStride = 0;
-
-			D3D11_SUBRESOURCE_DATA subResource{};
-			subResource.pSysMem = allIndices[i].data();
-			subResource.SysMemPitch = 0;
-			subResource.SysMemSlicePitch = 0;
-
-			hr = pDevice->CreateBuffer
-			(
-				&bufferDesc,
-				&subResource,
-				meshes[i].iIndexBuffer.GetAddressOf()
-			);
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Index-Buffer" );
 		}
 		// Create ConstantBuffers
 		{
-			D3D11_BUFFER_DESC bufferDesc{};
-			bufferDesc.ByteWidth = sizeof( ConstantBuffer );
-			bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-			bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-			bufferDesc.CPUAccessFlags = 0;
-			bufferDesc.MiscFlags = 0;
-			bufferDesc.StructureByteStride = 0;
+			hr = CreateConstantBuffer
+			(
+				pDevice,
+				sizeof( ConstantBuffer ),
+				iConstantBuffer.GetAddressOf()
+			);
+			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Constant-Buffer" );
 
-			hr = pDevice->CreateBuffer( &bufferDesc, nullptr, iConstantBuffer.GetAddressOf() );
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
-
-			bufferDesc.ByteWidth = sizeof( MaterialConstantBuffer );
-
-			hr = pDevice->CreateBuffer( &bufferDesc, nullptr, iMaterialConstantBuffer.GetAddressOf() );
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer" );
+			hr = CreateConstantBuffer
+			(
+				pDevice,
+				sizeof( MaterialConstantBuffer ),
+				iMaterialCBuffer.GetAddressOf()
+			);
+			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Constant-Buffer" );
 		}
 		// Create VertexShader and InputLayout
 		{
@@ -455,10 +426,10 @@ namespace Donya
 					mtlCB.emissive	= subset.emissive.color;
 					mtlCB.specular	= subset.specular.color;
 
-					pImmediateContext->UpdateSubresource( iMaterialConstantBuffer.Get(), 0, nullptr, &mtlCB, 0, 0 );
+					pImmediateContext->UpdateSubresource( iMaterialCBuffer.Get(), 0, nullptr, &mtlCB, 0, 0 );
 				}
-				pImmediateContext->VSSetConstantBuffers( 1, 1, iMaterialConstantBuffer.GetAddressOf() );
-				pImmediateContext->PSSetConstantBuffers( 1, 1, iMaterialConstantBuffer.GetAddressOf() );
+				pImmediateContext->VSSetConstantBuffers( 1, 1, iMaterialCBuffer.GetAddressOf() );
+				pImmediateContext->PSSetConstantBuffers( 1, 1, iMaterialCBuffer.GetAddressOf() );
 
 				// TODO:diffuseˆÈŠO‚Ì‚à‚Ì‚à“K—p‚·‚é
 

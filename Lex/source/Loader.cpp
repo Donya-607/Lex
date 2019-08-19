@@ -1,10 +1,14 @@
 #include "Loader.h"
 
-#include <fbxsdk.h>
+#include <array>
 #include <crtdbg.h>
 #include <Shlwapi.h>
 #include <Windows.h>
 #include <memory>
+
+#if USE_FBX_SDK
+#include <fbxsdk.h>
+#endif // USE_FBX_SDK
 
 #include "Benchmark.h"
 #include "Common.h"
@@ -15,7 +19,9 @@
 #undef min
 #undef max
 
+#if USE_FBX_SDK
 namespace FBX = fbxsdk;
+#endif // USE_FBX_SDK
 
 namespace Donya
 {
@@ -30,6 +36,8 @@ namespace Donya
 		meshes.clear();
 		meshes.shrink_to_fit();
 	}
+
+#if USE_FBX_SDK
 
 	Donya::Vector2 Convert( const FBX::FbxDouble2 &source )
 	{
@@ -87,21 +95,6 @@ namespace Donya
 		}
 	}
 
-	std::string AcquireDirectoryFromFullPath( std::string fullPath )
-	{
-		size_t pathLength = fullPath.size();
-		std::unique_ptr<char[]> directory = std::make_unique<char[]>( pathLength );
-		for ( size_t i = 0; i < pathLength; ++i )
-		{
-			directory[i] = fullPath[i];
-		}
-
-		PathRemoveFileSpecA( directory.get() );
-		PathAddBackslashA( directory.get() );
-
-		return std::string{ directory.get() };
-	}
-
 	void FetchBoneInfluences( const fbxsdk::FbxMesh *pMesh, std::vector<Loader::BoneInfluencesPerControlPoint> &influences )
 	{
 		const int ctrlPointCount = pMesh->GetControlPointsCount();
@@ -144,7 +137,57 @@ namespace Donya
 		}
 	}
 
+#endif // USE_FBX_SDK
+
+	std::string AcquireDirectoryFromFullPath( std::string fullPath )
+	{
+		size_t pathLength = fullPath.size();
+		std::unique_ptr<char[]> directory = std::make_unique<char[]>( pathLength );
+		for ( size_t i = 0; i < pathLength; ++i )
+		{
+			directory[i] = fullPath[i];
+		}
+
+		PathRemoveFileSpecA( directory.get() );
+		PathAddBackslashA( directory.get() );
+
+		return std::string{ directory.get() };
+	}
+
 	bool Loader::Load( const std::string &filePath, std::string *outputErrorString )
+	{
+		auto ShouldUseFBXSDK =
+		[]( const std::string &filePath )
+		{
+			constexpr std::array<const char *, 4> EXTENSIONS
+			{
+				".obj", ".OBJ",
+				".fbx", ".FBX"
+			};
+
+			for ( size_t i = 0; i < EXTENSIONS.size(); ++i )
+			{
+				if ( filePath.find( EXTENSIONS[i] ) != std::string::npos )
+				{
+					return true;
+				}
+			}
+
+			return false;
+		};
+
+		if ( ShouldUseFBXSDK( filePath ) )
+		{
+			return LoadByFBXSDK( filePath, outputErrorString );
+		}
+		// else
+
+		return false;
+	}
+
+#if USE_FBX_SDK
+
+	bool Loader::LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString )
 	{
 		fileDirectory	= AcquireDirectoryFromFullPath( filePath );
 		fileName		= filePath.substr( fileDirectory.size() );
@@ -505,6 +548,8 @@ namespace Donya
 		FBX::FbxAMatrix globalTransform = pMesh->GetNode()->EvaluateGlobalTransform( 0 );
 		ConvertFloat4x4( &meshes[meshIndex].globalTransform, globalTransform );
 	}
+
+#endif // USE_FBX_SDK
 
 	#if USE_IMGUI && DEBUG_MODE
 	void Loader::EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const

@@ -8,25 +8,18 @@
 #include <vector>
 #include <wrl.h>
 
-// If your project isn't using Donya::Loader, you should set to false.
-#define IS_SUPPORT_LEX_LOADER ( true )
-
 namespace Donya
 {
-#if IS_SUPPORT_LEX_LOADER
 	class Loader;
-#endif // IS_SUPPORT_LEX_LOADER
 
 	class SkinnedMesh
 	{
-	#if IS_SUPPORT_LEX_LOADER
 	public:
 		/// <summary>
 		/// Create from Loader object.<para></para>
 		/// if create successed, return true.
 		/// </summary>
-		static bool Create( const Loader *loader, std::unique_ptr<SkinnedMesh> *ppOutput );
-	#endif // IS_SUPPORT_LEX_LOADER
+		static bool Create( const Loader *loader, SkinnedMesh *pOutput );
 	public:
 		static constexpr const int MAX_BONE_INFLUENCES = 4;
 		struct Vertex
@@ -126,7 +119,7 @@ namespace Donya
 		std::vector<Mesh> meshes;
 	#define	COM_PTR Microsoft::WRL::ComPtr
 		COM_PTR<ID3D11Buffer>				iConstantBuffer;
-		COM_PTR<ID3D11Buffer>				iMaterialConstantBuffer;
+		COM_PTR<ID3D11Buffer>				iMaterialCBuffer;
 		COM_PTR<ID3D11InputLayout>			iInputLayout;
 		COM_PTR<ID3D11VertexShader>			iVertexShader;
 		COM_PTR<ID3D11PixelShader>			iPixelShader;

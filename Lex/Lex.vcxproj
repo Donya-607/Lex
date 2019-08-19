@@ -159,6 +159,7 @@
     <ClInclude Include="Source\Benchmark.h" />
     <ClInclude Include="source\Camera.h" />
     <ClInclude Include="Source\Common.h" />
+    <ClInclude Include="source\Direct3DUtil.h" />
     <ClInclude Include="Source\Donya.h" />
     <ClInclude Include="Source\framework.h" />
     <ClInclude Include="Source\HighResolutionTimer.h" />
