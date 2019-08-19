@@ -131,7 +131,7 @@ namespace Donya
 		SkinnedMesh();
 		~SkinnedMesh();
 	public:
-		void Init( const std::vector<std::vector<size_t>> &allMeshesIndex, const std::vector<std::vector<SkinnedMesh::Vertex>> &allMeshesVertices, const std::vector<SkinnedMesh::Mesh> &loadedMeshes );
+		bool Init( const std::vector<std::vector<size_t>> &allMeshesIndex, const std::vector<std::vector<SkinnedMesh::Vertex>> &allMeshesVertices, const std::vector<SkinnedMesh::Mesh> &loadedMeshes );
 		void Render
 		(
 			const DirectX::XMFLOAT4X4	&worldViewProjection,

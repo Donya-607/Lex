@@ -89,7 +89,7 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 					continue;
 				}
 				// else
-				Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+				Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().mesh );
 			}
 
 			DragFinish( hDrop );
@@ -536,10 +536,6 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 {
-#ifdef USE_IMGUI
-
-#endif
-
 	// ClearRenderTargetView, ClearDepthStencilView
 	{
 		const FLOAT fillColor[4] = { 0.1f, 0.2f, 0.1f, 1.0f };	// RGBA
@@ -634,10 +630,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	for ( auto &it : meshes )
 	{
-		if ( it.pMesh )
-		{
-			it.pMesh->Render( worldViewProjection, world, cameraPos, light.color, light.direction, isSolidState );
-		}
+		it.mesh.Render( worldViewProjection, world, cameraPos, light.color, light.direction, isSolidState );
 	}
 
 #if USE_IMGUI
@@ -712,7 +705,7 @@ void Framework::LoadAndCreateModel( std::string filePath, AsyncLoad *pData )
 	bool result = meshes.back().loader.Load( filePath.c_str(), nullptr );
 	if ( result )
 	{
-		Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+		Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().mesh );
 	}
 #endif // 0
 }
@@ -764,7 +757,7 @@ bool Framework::OpenCommonDialogAndFile()
 
 	meshes.push_back( {} );
 	meshes.back().loader.Load( filePath, &errorMessage );
-	Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+	Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().mesh );
 
 	return true;
 }

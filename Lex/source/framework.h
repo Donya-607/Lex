@@ -40,10 +40,10 @@ private:
 		Donya::Vector4 direction{ 0.0f, 6.0f, 0.0f, 0.0f };
 	};
 	Light light;
-	struct MeshAndInfo // if "pMesh" is nullptr, that express to failed to load.
+	struct MeshAndInfo
 	{
-		Donya::Loader loader;
-		std::unique_ptr<Donya::SkinnedMesh> pMesh;
+		Donya::Loader		loader;
+		Donya::SkinnedMesh	mesh;
 	};
 	std::vector<MeshAndInfo> meshes;
 private:

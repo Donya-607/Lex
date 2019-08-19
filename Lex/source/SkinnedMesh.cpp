@@ -114,8 +114,11 @@ namespace Donya
 		meshes.shrink_to_fit();
 	}
 
-	void SkinnedMesh::Init( const std::vector<std::vector<size_t>> &allIndices, const std::vector<std::vector<Vertex>> &allVertices, const std::vector<Mesh> &loadedMeshes )
+	bool SkinnedMesh::Init( const std::vector<std::vector<size_t>> &allIndices, const std::vector<std::vector<Vertex>> &allVertices, const std::vector<Mesh> &loadedMeshes )
 	{
+		if ( !meshes.empty() ) { return false; }
+		// else
+
 		HRESULT hr = S_OK;
 		ID3D11Device *pDevice = Donya::GetDevice();
 
@@ -300,10 +303,15 @@ namespace Donya
 				}
 			}
 		}
+
+		return true;
 	}
 
 	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
 	{
+		if ( meshes.empty() ) { return; }
+		// else
+
 	#if USE_IMGUI && DEBUG_MODE
 		{
 			DirectX::XMFLOAT4X4 identity{}; DirectX::XMStoreFloat4x4( &identity, DirectX::XMMatrixIdentity() );
