@@ -51,10 +51,10 @@ private:
 	bool isCaptureWindow;
 	bool isSolidState;
 private:
+	std::mutex mutex;
 	struct AsyncLoad
 	{
 		std::string						filePath{};	// absolute-path.
-		std::unique_ptr<std::mutex>		mtx{};
 		std::unique_ptr<std::thread>	pThread{};
 		MeshAndInfo						meshInfo{};
 		bool isFinished  = false;	// Is finished the loading process ?

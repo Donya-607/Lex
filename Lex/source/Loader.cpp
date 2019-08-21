@@ -169,6 +169,8 @@ namespace Donya
 
 #if USE_FBX_SDK
 
+#define USE_TRIANGULATE ( false )
+
 	bool Loader::LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString )
 	{
 		fileDirectory	= AcquireDirectoryFromFullPath( filePath );
@@ -221,9 +223,11 @@ namespace Donya
 		#pragma endregion
 
 	#ifdef USE_TRIANGULATE
-		FBX::FbxGeometryConverter geometryConverter( pManager );
-		bool replace = true;
-		geometryConverter.Triangulate( pScene, replace );
+		{
+			FBX::FbxGeometryConverter geometryConverter( pManager );
+			bool replace = true;
+			geometryConverter.Triangulate( pScene, replace );
+		}
 	#endif
 
 		std::vector<FBX::FbxNode *> fetchedMeshes{};

@@ -16,9 +16,11 @@ namespace Donya
 		HWND hwnd;
 		Microsoft::WRL::ComPtr<ID3D11Device>			device;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext>		immediateContext;
-		// Microsoft::WRL::ComPtr<IDXGISwapChain>			swapChain;
-		// Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	renderTargetView;
-		// Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	depthStencilView;
+	public:
+		SystemMemberGathering() :
+			hwnd(),
+			device(), immediateContext()
+		{}
 	};
 	static std::unique_ptr<SystemMemberGathering> smg{};
 

@@ -34,7 +34,7 @@ Framework::Framework( HWND hwnd ) :
 	pressMouseButton( NULL ),
 	isCaptureWindow( false ),
 	isSolidState( true ),
-	loadingData()
+	mutex(), loadingData()
 {
 	DragAcceptFiles( hWnd, TRUE );
 }
@@ -472,7 +472,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	if ( meshes.empty() )
 	{
-		std::string prePath  = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\";
+		std::string prePath  = "D:\\D-Download\\ASSET_Models\\Free\\Distribution_FBX\\BLue Falcon";
 		std::string number{};
 		if ( Donya::Keyboard::Trigger( '1' ) ) { number = "001"; }
 		if ( Donya::Keyboard::Trigger( '2' ) ) { number = "002"; }
@@ -490,7 +490,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	}
 	if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( 'F' ) && meshes.empty() )
 	{
-		constexpr const char *BLUE_FALCON = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\BLue Falcon\\Blue Falcon.FBX";
+		constexpr const char *BLUE_FALCON = "D:\\D-Download\\ASSET_Models\\Free\\Distribution_FBX\\BLue Falcon\\Blue Falcon.FBX";
 
 		StartLoadThread( BLUE_FALCON );
 	}
@@ -660,12 +660,14 @@ void Framework::StartLoadThread( std::string filePath )
 {
 	loadingData.push_back( {} );
 	auto &elem = loadingData.back();
-	elem.mtx = std::make_unique<std::mutex>();
 
 	auto Load =
-	[]( std::string filePath, AsyncLoad *pElement )
+	[]( std::string filePath, std::mutex *pMutex, AsyncLoad *pElement )
 	{
-		std::lock_guard<std::mutex> lock( *( pElement->mtx ) );
+		if ( !pMutex || !pElement ) { return; }
+		// else
+
+		std::lock_guard<std::mutex> lock( *pMutex );
 
 		HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE );
 		if ( FAILED( hr ) )
@@ -691,7 +693,7 @@ void Framework::StartLoadThread( std::string filePath )
 		CoUninitialize();
 	};
 
-	elem.pThread = std::make_unique<std::thread>( Load, filePath, &elem );
+	elem.pThread = std::make_unique<std::thread>( Load, filePath, &mutex, &elem );
 }
 
 void Framework::AppendModelIfLoadFinished()
