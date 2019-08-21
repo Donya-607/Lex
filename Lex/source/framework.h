@@ -57,8 +57,8 @@ private:
 		std::unique_ptr<std::mutex>		mtx{};
 		std::unique_ptr<std::thread>	pThread{};
 		MeshAndInfo						meshInfo{};
-		bool isFinished  = false;
-		bool isSucceeded = false;
+		bool isFinished  = false;	// Is finished the loading process ?
+		bool isSucceeded = false;	// Is Succeeded
 	};
 	// Note:If it is vector, I can't pass the pointer of element.
 	std::list<AsyncLoad> loadingData;
@@ -80,9 +80,9 @@ private:
 	HighResolutionTimer highResoTimer;
 	void CalcFrameStats();
 private:
-	void AppendModelIfLoadFinished();
-	void CreateModel( std::string filePath );
 	void StartLoadThread( std::string filePath );
+	void AppendModelIfLoadFinished();
+	void ShowNowLoadingModels();
 private:
 	bool OpenCommonDialogAndFile();
 	void SetMouseCapture();

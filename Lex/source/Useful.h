@@ -1,5 +1,4 @@
-#ifndef _INCLUDED_USEFUL_H_
-#define _INCLUDED_USEFUL_H_
+#pragma once
 
 #include <string>
 
@@ -46,8 +45,19 @@ namespace Donya
 	/// </summary>
 	std::string		WideToUTF8( const std::wstring	&source );
 
+	/// <summary>
+	/// Convert std::string( UTF-8 ) to std::string( Shift_JIS( ANSI ) ).
+	/// </summary>
+	std::string		MultiToUTF8( const std::string &source );
+	/// <summary>
+	/// Convert std::string( Shift_JIS( ANSI ) ). std::string( UTF-8 ).
+	/// </summary>
+	std::string		UTF8ToMulti( const std::string &source );
+
 #pragma endregion
 
+	/// <summary>
+	/// If fullPath is invalid, returns "";
+	/// </summary>
+	std::string AcquireDirectoryFromFullPath( std::string fullPath );
 }
-
-#endif // _INCLUDED_USEFUL_H_

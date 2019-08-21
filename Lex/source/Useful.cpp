@@ -5,11 +5,14 @@
 #include <d3d11.h>
 #include <float.h>
 #include <locale>
+#include <Shlwapi.h>	// Use PathRemoveFileSpecA(), PathAddBackslashA(), In AcquireDirectoryFromFullPath().
 #include <vector>
 #include <Windows.h>
 
 #include "Common.h"
 #include "Donya.h"
+
+#pragma comment( lib, "shlwapi.lib" ) // Use PathRemoveFileSpecA(), PathAddBackslashA(), In AcquireDirectoryFromFullPath().
 
 namespace Donya
 {
@@ -251,9 +254,36 @@ namespace Donya
 		return WideToMulti( source, CP_UTF8 );
 	}
 
+	std::string		MultiToUTF8( const std::string &source )
+	{
+		return WideToUTF8( MultiToWide( source ) );
+	}
+	std::string		UTF8ToMulti( const std::string &source )
+	{
+		return WideToMulti( UTF8ToWide( source ) );
+	}
+
 #undef IS_SETTING_LOCALE_NOW
 #undef USE_WIN_API
 
 #pragma endregion
+
+	std::string AcquireDirectoryFromFullPath( std::string fullPath )
+	{
+		size_t pathLength = fullPath.size();
+		if ( !pathLength ) { return ""; }
+		// else
+
+		std::unique_ptr<char[]> directory = std::make_unique<char[]>( pathLength );
+		for ( size_t i = 0; i < pathLength; ++i )
+		{
+			directory[i] = fullPath[i];
+		}
+
+		PathRemoveFileSpecA( directory.get() );
+		PathAddBackslashA( directory.get() );
+
+		return std::string{ directory.get() };
+	}
 
 }

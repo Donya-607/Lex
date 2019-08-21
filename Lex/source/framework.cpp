@@ -86,9 +86,12 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 			
 			for ( size_t i = 0; i < fileCount; ++i )
 			{
-				meshes.push_back( {} );
-
 				DragQueryFileA( hDrop, i, filename.get(), FILE_PATH_LENGTH );
+
+				StartLoadThread( std::string{ filename.get() } );
+
+				/*
+				meshes.push_back( {} );
 				bool result = meshes.back().loader.Load( filename.get(), &errorMessage );
 				if ( !result )
 				{
@@ -97,6 +100,7 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 				}
 				// else
 				Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().mesh );
+				*/
 			}
 
 			DragFinish( hDrop );
@@ -451,7 +455,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 #if DEBUG_MODE
 
-	if ( Donya::Keyboard::State( 'C' ) )
+	if ( Donya::Keyboard::Trigger( 'C' ) && ( Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL ) ) )
 	{
 		bool breakPoint{};
 	}
@@ -509,6 +513,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	}
 
 	AppendModelIfLoadFinished();
+	ShowNowLoadingModels();
 
 	Donya::Vector3 origin{ 0.0f, 0.0f, 0.0f };
 	camera.Update( origin );
@@ -651,6 +656,44 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Present()" );
 }
 
+void Framework::StartLoadThread( std::string filePath )
+{
+	loadingData.push_back( {} );
+	auto &elem = loadingData.back();
+	elem.mtx = std::make_unique<std::mutex>();
+
+	auto Load =
+	[]( std::string filePath, AsyncLoad *pElement )
+	{
+		std::lock_guard<std::mutex> lock( *( pElement->mtx ) );
+
+		HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE );
+		if ( FAILED( hr ) )
+		{
+			pElement->isFinished  = true;
+			pElement->isSucceeded = false;
+			return;
+		}
+
+		pElement->filePath = filePath;
+
+		bool result = pElement->meshInfo.loader.Load( pElement->filePath.c_str(), nullptr );
+		if ( result )
+		{
+			pElement->isSucceeded = Donya::SkinnedMesh::Create
+			(
+				&pElement->meshInfo.loader,
+				&pElement->meshInfo.mesh
+			);
+		}
+
+		pElement->isFinished = true;
+		CoUninitialize();
+	};
+
+	elem.pThread = std::make_unique<std::thread>( Load, filePath, &elem );
+}
+
 void Framework::AppendModelIfLoadFinished()
 {
 	for ( auto it = loadingData.begin(); it != loadingData.end(); )
@@ -676,52 +719,44 @@ void Framework::AppendModelIfLoadFinished()
 	}
 }
 
-void Framework::CreateModel( std::string filePath )
+void Framework::ShowNowLoadingModels()
 {
-	meshes.push_back( {} );
-	bool result = meshes.back().loader.Load( filePath.c_str(), nullptr );
-	if ( result )
+#if USE_IMGUI
+	
+	const Donya::Vector2 WINDOW_POS{ Common::HalfScreenWidthF(), Common::HalfScreenHeightF() };
+	const Donya::Vector2 WINDOW_SIZE{ 360.0f, 180.0f };
+	const Donya::Vector2 WINDOW_SHIFT{ 90.0f, 90.0f }; // When there are multiple-window, I shift there windows.
+	auto Convert = []( const Donya::Vector2 &vec )
 	{
-		Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().mesh );
-	}
-}
-
-void Framework::StartLoadThread( std::string filePath )
-{
-	loadingData.push_back( {} );
-	auto &elem = loadingData.back();
-	elem.mtx = std::make_unique<std::mutex>();
-
-	auto Load =
-	[]( std::string filePath, AsyncLoad *pElement )
-	{
-		std::lock_guard<std::mutex> lock( *( pElement->mtx ) );
-
-		HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE );
-		if ( FAILED( hr ) )
-		{
-			pElement->isFinished  = true;
-			pElement->isSucceeded = false;
-			return;
-		}
-
-		pElement->filePath = filePath;
-
-		bool result = pElement->meshInfo.loader.Load( filePath.c_str(), nullptr );
-		if ( result )
-		{
-			pElement->isSucceeded = Donya::SkinnedMesh::Create
-			(
-				&pElement->meshInfo.loader,
-				&pElement->meshInfo.mesh
-			);
-		}
-
-		pElement->isFinished = true;
-		CoUninitialize();
+		return ImVec2{ vec.x, vec.y };
 	};
 
-	elem.pThread = std::make_unique<std::thread>( Load, filePath, &elem );
+	size_t count = loadingData.size();
+	for ( size_t i = 0; i < count; ++i )
+	{
+		auto itr = std::next( loadingData.begin(), i );
+
+		std::string filePath = itr->filePath;
+		std::string fileDir  = Donya::AcquireDirectoryFromFullPath( filePath );
+		if ( fileDir == "" ) { continue; }
+		// else
+		std::string fileName = filePath.substr( fileDir.size() );
+		std::string strUTF8  = Donya::MultiToUTF8( fileName );
+
+		Donya::Vector2 windowPos = WINDOW_SIZE + ( WINDOW_SHIFT * scast<float>( i ) );
+		ImGui::SetNextWindowPos( Convert( windowPos ), ImGuiCond_Once );
+		ImGui::SetNextWindowSize( Convert( WINDOW_SIZE ), ImGuiCond_Once );
+
+		if ( ImGui::BeginIfAllowed( strUTF8.c_str() ) )
+		{
+			ImGui::Text( "Now Loading..." );
+			ImGui::Text( "[%s]", strUTF8.c_str()  );
+
+			ImGui::End();
+		}
+	}
+
+#endif // USE_IMGUI
 }
 
 bool Framework::OpenCommonDialogAndFile()
@@ -739,7 +774,7 @@ bool Framework::OpenCommonDialogAndFile()
 	ofn.nMaxFile		= MAX_PATH;
 	ofn.lpstrFileTitle	= chosenFileName;
 	ofn.nMaxFileTitle	= MAX_PATH;
-	ofn.Flags			= OFN_FILEMUSTEXIST;
+	ofn.Flags			= OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR; // If not set OFN_NOCHANGEDIR flag, the current directory will be changed, so the SkinnedMesh can't use current directory.
 
 	// TODO:Support multiple files.
 
@@ -748,11 +783,14 @@ bool Framework::OpenCommonDialogAndFile()
 	// else
 
 	std::string filePath( chosenFilesFullPath );
-	std::string errorMessage{};
 
+	StartLoadThread( filePath );
+	/*
+	std::string errorMessage{};
 	meshes.push_back( {} );
 	meshes.back().loader.Load( filePath, &errorMessage );
 	Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().mesh );
+	*/
 
 	return true;
 }

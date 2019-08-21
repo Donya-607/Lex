@@ -2,7 +2,6 @@
 
 #include <array>
 #include <crtdbg.h>
-#include <Shlwapi.h>
 #include <Windows.h>
 #include <memory>
 
@@ -13,8 +12,6 @@
 #include "Benchmark.h"
 #include "Common.h"
 #include "Useful.h"
-
-#pragma comment( lib, "shlwapi.lib" )
 
 #undef min
 #undef max
@@ -138,21 +135,6 @@ namespace Donya
 	}
 
 #endif // USE_FBX_SDK
-
-	std::string AcquireDirectoryFromFullPath( std::string fullPath )
-	{
-		size_t pathLength = fullPath.size();
-		std::unique_ptr<char[]> directory = std::make_unique<char[]>( pathLength );
-		for ( size_t i = 0; i < pathLength; ++i )
-		{
-			directory[i] = fullPath[i];
-		}
-
-		PathRemoveFileSpecA( directory.get() );
-		PathAddBackslashA( directory.get() );
-
-		return std::string{ directory.get() };
-	}
 
 	bool Loader::Load( const std::string &filePath, std::string *outputErrorString )
 	{
