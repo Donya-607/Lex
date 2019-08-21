@@ -2,8 +2,12 @@
 
 #include <d3d11.h>
 #include <memory>
+#include <roapi.h>
 #include <Windows.h>
+#include <Windows.Foundation.h>
 #include <wrl.h>
+
+#pragma comment( lib, "runtimeobject.lib" )
 
 namespace Donya
 {
@@ -33,6 +37,16 @@ namespace Donya
 
 		#pragma region Create ID3D11Device and ID3D11DeviceContext
 		{
+			// see https://docs.microsoft.com/en-us/windows/win32/api/roapi/nf-roapi-initialize
+
+			hr = Windows::Foundation::Initialize( RO_INIT_MULTITHREADED );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Windows::Foundation::Initialize()" );
+				exit( -1 );
+				return false;
+			}
+
 			// This flag is required in order to enable compatibility with Direct2D.
 			UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 		#if defined( _DEBUG )
@@ -88,6 +102,8 @@ namespace Donya
 	{
 		// This Function has not completely implemented yet.
 		smg.reset( nullptr );
+
+		Windows::Foundation::Uninitialize();
 	}
 
 	ID3D11Device		*GetDevice()			{ return smg->device.Get(); }

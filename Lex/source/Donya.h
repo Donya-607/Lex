@@ -10,6 +10,7 @@ namespace Donya
 	/// <para></para>
 	/// This Function has not completely implemented yet.<para></para>
 	/// <para></para>
+	/// Doing CoInitializeEx( COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE ).<para></para>
 	/// If initialize failed, returns false.<para></para>
 	/// In release mode, the isAppendFPS flag fixed to false.
 	/// </summary>

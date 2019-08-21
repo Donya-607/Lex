@@ -297,6 +297,8 @@ int Framework::Run()
 		dxgiSwapChain->SetFullscreenState( FALSE, 0 );
 	}
 
+	Donya::Uninit();
+
 	return static_cast<int>( msg.wParam );
 }
 
@@ -695,6 +697,14 @@ void Framework::StartLoadThread( std::string filePath )
 	{
 		std::lock_guard<std::mutex> lock( *( pElement->mtx ) );
 
+		HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE );
+		if ( FAILED( hr ) )
+		{
+			pElement->isFinished  = true;
+			pElement->isSucceeded = false;
+			return;
+		}
+
 		pElement->filePath = filePath;
 
 		bool result = pElement->meshInfo.loader.Load( filePath.c_str(), nullptr );
@@ -708,6 +718,7 @@ void Framework::StartLoadThread( std::string filePath )
 		}
 
 		pElement->isFinished = true;
+		CoUninitialize();
 	};
 
 	elem.pThread = std::make_unique<std::thread>( Load, filePath, &elem );
