@@ -271,12 +271,12 @@ namespace Donya
 
 	std::string AcquireDirectoryFromFullPath( std::string fullPath )
 	{
-		static std::mutex makePathMutex{};
-		std::lock_guard<std::mutex> lock( makePathMutex );
-
 		size_t pathLength = fullPath.size();
 		if ( !pathLength ) { return ""; }
 		// else
+
+		static std::mutex makePathMutex{};
+		std::lock_guard<std::mutex> lock( makePathMutex );
 
 		std::unique_ptr<char[]> directory = std::make_unique<char[]>( pathLength );
 		for ( size_t i = 0; i < pathLength; ++i )

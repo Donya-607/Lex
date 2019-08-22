@@ -13,6 +13,7 @@
 #include <mutex>
 #include <list>
 #include <thread>
+#include <queue>
 
 #include "Camera.h"
 #include "Loader.h"
@@ -51,27 +52,23 @@ private:
 	bool isCaptureWindow;
 	bool isSolidState;
 private:
-	std::mutex mutex;			// using main-thread.
-	std::mutex loadingMutex;	// using loading-thread.
+	std::unique_ptr<std::thread> pLoadThread{};
 	struct AsyncLoad
 	{
-		const std::string				filePath{};		// absolute-path.
-		std::unique_ptr<std::mutex>		pFlagMutex{};	// Lock isFinished, isSucceeded.
-		std::unique_ptr<std::mutex>		pLoadMutex{};	// Lock meshInfo.
-		std::unique_ptr<std::thread>	pThread{};
-		MeshAndInfo						meshInfo{};
-		bool							isFinished{};	// Is finished the loading process ?
-		bool							isSucceeded{};	// Is Succeeded the loading process ?
+		std::mutex	meshMutex{};
+		std::mutex	flagMutex{};
+		MeshAndInfo	meshInfo{};
+		bool		isFinished{};	// Is finished the loading process ?
+		bool		isSucceeded{};	// Is Succeeded the loading process ?
 	public:
-		AsyncLoad( std::string absoluteFilePath ) : filePath( absoluteFilePath ),
-			pFlagMutex( std::make_unique<std::mutex>() ), pLoadMutex( std::make_unique<std::mutex>() ),
-			pThread( nullptr ),
+		AsyncLoad() : meshMutex(), flagMutex(),
 			meshInfo(),
 			isFinished( false ), isSucceeded( false )
 		{}
 	};
-	// Note:If it is vector, I can't pass the pointer of element.
-	std::list<AsyncLoad> loadingData;
+	std::unique_ptr<AsyncLoad>	pCurrentLoading;
+	std::string					currentLoadingFilePath;
+	std::queue<std::string>		absFilePaths;
 public:
 	Framework( HWND hwnd );
 	~Framework();
@@ -90,7 +87,8 @@ private:
 	HighResolutionTimer highResoTimer;
 	void CalcFrameStats();
 private:
-	void StartLoadThread( std::string filePath );
+	void ReserveLoadFile( std::string filePath );
+	void StartLoadIfVacant();
 	void AppendModelIfLoadFinished();
 	void ShowNowLoadingModels();
 private:

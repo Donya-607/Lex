@@ -34,7 +34,11 @@ Framework::Framework( HWND hwnd ) :
 	pressMouseButton( NULL ),
 	isCaptureWindow( false ),
 	isSolidState( true ),
-	mutex(), loadingMutex(), loadingData()
+	// mutex(),
+	pLoadThread( nullptr ),
+	pCurrentLoading( nullptr ),
+	currentLoadingFilePath(),
+	absFilePaths()
 {
 	DragAcceptFiles( hWnd, TRUE );
 }
@@ -48,12 +52,9 @@ Framework::~Framework()
 	meshes.clear();
 	meshes.shrink_to_fit();
 
-	for ( auto &it : loadingData )
+	if ( pLoadThread && pLoadThread->joinable() )
 	{
-		if ( it.pThread && it.pThread->joinable() )
-		{
-			it.pThread->join();
-		}
+		pLoadThread->join();
 	}
 };
 
@@ -88,7 +89,7 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 			{
 				DragQueryFileA( hDrop, i, filename.get(), FILE_PATH_LENGTH );
 
-				StartLoadThread( std::string{ filename.get() } );
+				ReserveLoadFile( std::string{ filename.get() } );
 
 				/*
 				meshes.push_back( {} );
@@ -488,20 +489,20 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		{
 			std::string filePath = prePath + number + postPath;
 
-			StartLoadThread( filePath );
+			ReserveLoadFile( filePath );
 		}
 	}
 	if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( 'F' ) && isAccept )
 	{
 		constexpr const char *BLUE_FALCON = "D:\\D-Download\\ASSET_Models\\Free\\Distribution_FBX\\BLue Falcon\\Blue Falcon.FBX";
 
-		StartLoadThread( BLUE_FALCON );
+		ReserveLoadFile( BLUE_FALCON );
 	}
 	if ( Donya::Keyboard::Press( 'J' ) && Donya::Keyboard::Press( 'I' ) && Donya::Keyboard::Trigger( 'G' ) && isAccept )
 	{
 		constexpr const char *JIGGLYPUFF = "D:\\D-Download\\ASSET_Models\\Free\\Jigglypuff\\Fixed\\JigglypuffNEW.FBX";
 
-		StartLoadThread( JIGGLYPUFF );
+		ReserveLoadFile( JIGGLYPUFF );
 	}
 	if ( Donya::Keyboard::Trigger( 'Q' ) && !meshes.empty() )
 	{
@@ -516,6 +517,9 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	}
 
 	AppendModelIfLoadFinished();
+
+	StartLoadIfVacant();
+
 	ShowNowLoadingModels();
 
 	Donya::Vector3 origin{ 0.0f, 0.0f, 0.0f };
@@ -659,17 +663,42 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Present()" );
 }
 
-void Framework::StartLoadThread( std::string filePath )
+void Framework::ReserveLoadFile( std::string filePath )
 {
-	std::lock_guard<std::mutex> lock( mutex ); // lock for loadingData.
+	auto CanLoadFile = []( std::string filePath )->bool
+	{
+		constexpr std::array<const char *, 4> EXTENSIONS
+		{
+			".obj", ".OBJ",
+			".fbx", ".FBX"
+		};
 
-	loadingData.push_back( { filePath } );
-	auto &elem = loadingData.back();
+		for ( size_t i = 0; i < EXTENSIONS.size(); ++i )
+		{
+			if ( filePath.find( EXTENSIONS[i] ) != std::string::npos )
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	if ( CanLoadFile( filePath ) )
+	{
+		absFilePaths.push( filePath );
+	}
+}
+
+void Framework::StartLoadIfVacant()
+{
+	if ( pCurrentLoading )		{ return; }
+	if ( absFilePaths.empty() )	{ return; }
+	// else
 
 	auto Load =
-	[]( AsyncLoad *pElement )
+	[]( std::string filePath, AsyncLoad *pElement )
 	{
-		// if ( !pLoadModelMutex || !pElement ) { return; }
 		if ( !pElement ) { return; }
 		// else
 
@@ -677,26 +706,21 @@ void Framework::StartLoadThread( std::string filePath )
 
 		if ( FAILED( hr ) )
 		{
-			std::lock_guard<std::mutex> lock( *( pElement->pFlagMutex ) );
+			std::lock_guard<std::mutex> lock( pElement->flagMutex );
 
 			pElement->isFinished  = true;
 			pElement->isSucceeded = false;
 			return;
 		}
 
-		/*Donya::Loader looksDeferredLoader{};
-		bool loadResult = looksDeferredLoader.Load( filePath.c_str(), nullptr );
-		pElement->meshInfo.loader = looksDeferredLoader;*/
-
 		bool createResult = false; // Will be change by below process, if load succeeded.
 
 		// Load model, using lock_guard by pLoadMutex.
 		{
-			std::string fullPath = pElement->filePath;
-			Donya::Loader tmpHeavyLoad{}; // for reduce time of lock.
-			bool loadResult = tmpHeavyLoad.Load( fullPath, nullptr );
+			Donya::Loader tmpHeavyLoad{}; // For reduce time of lock.
+			bool loadResult = tmpHeavyLoad.Load( filePath, nullptr );
 
-			std::lock_guard<std::mutex> lock( *( pElement->pLoadMutex ) );
+			std::lock_guard<std::mutex> lock( pElement->meshMutex );
 
 			// bool loadResult  = pElement->meshInfo.loader.Load( fullPath, nullptr );
 			pElement->meshInfo.loader = tmpHeavyLoad; // Takes only assignment-time.
@@ -711,7 +735,7 @@ void Framework::StartLoadThread( std::string filePath )
 			}
 		}
 
-		std::lock_guard<std::mutex> lock( *( pElement->pFlagMutex ) );
+		std::lock_guard<std::mutex> lock( pElement->flagMutex );
 
 		pElement->isFinished  = true;
 		pElement->isSucceeded = createResult;
@@ -719,96 +743,95 @@ void Framework::StartLoadThread( std::string filePath )
 		CoUninitialize();
 	};
 
-	elem.pThread = std::make_unique<std::thread>( Load, &elem );
+	currentLoadingFilePath = absFilePaths.front();
+	absFilePaths.pop();
+
+	pCurrentLoading = std::make_unique<AsyncLoad>();
+	pLoadThread = std::make_unique<std::thread>( Load, currentLoadingFilePath, pCurrentLoading.get() );
 }
 
 void Framework::AppendModelIfLoadFinished()
 {
-	// Basically, I access to member of AsyncLoad when finished loading. so I think it access is safe.
+	if ( !pCurrentLoading ) { return; }
+	// else
 
-	for ( auto it = loadingData.begin(); it != loadingData.end(); )
 	{
+		std::lock_guard<std::mutex> flagLock( pCurrentLoading->flagMutex );
+
+		if ( !pCurrentLoading->isFinished ) { return; }
+		// else
+
+		if ( pLoadThread && pLoadThread->joinable() )
 		{
-			// The "pFlagMutex" must die before erase.
-			std::lock_guard<std::mutex> memberLock( *( it->pFlagMutex ) );
-
-			if ( !it->isFinished )
-			{
-				++it;
-				continue;
-			}
-			// else
-
-			if ( it->pThread && it->pThread->joinable() )
-			{
-				it->pThread->join();
-			}
-
-			if ( it->isSucceeded )
-			{
-				meshes.emplace_back( it->meshInfo );
-			}
+			pLoadThread->join();
 		}
 
-		// std::lock_guard<std::mutex> dataLock( mutex );
-		//std::lock_guard<std::mutex> dataLock( *( it->pLoadMutex ) );
-		it = loadingData.erase( it );
+		if ( pCurrentLoading->isSucceeded )
+		{
+			std::lock_guard<std::mutex> meshLock( pCurrentLoading->meshMutex );
+
+			meshes.emplace_back( pCurrentLoading->meshInfo );
+		}
 	}
+
+	pCurrentLoading.reset( nullptr );
 }
 
 void Framework::ShowNowLoadingModels()
 {
 #if USE_IMGUI
 
+	if ( !pCurrentLoading ) { return; }
+	// else
+
 	const Donya::Vector2 WINDOW_POS{ Common::HalfScreenWidthF(), Common::HalfScreenHeightF() };
 	const Donya::Vector2 WINDOW_SIZE{ 360.0f, 180.0f };
-	const Donya::Vector2 WINDOW_SHIFT{ 90.0f, 90.0f }; // When there are multiple-window, I shift there windows.
 	auto Convert = []( const Donya::Vector2 &vec )
 	{
 		return ImVec2{ vec.x, vec.y };
 	};
 
-	// std::lock_guard<std::mutex> lock( mutex );
-	auto MakeFileName = []( std::string fullPath )->std::string
-	{
-		const std::string fileDir = Donya::AcquireDirectoryFromFullPath( fullPath );
-		if ( fileDir == "" ) { return ""; }
-		if ( fullPath.size() <= fileDir.size() )
-		{
-			exit( -1 );
-			return "";
-		}
-		// else
-		const std::string fileName = fullPath.substr( fileDir.size() );
+	ImGui::SetNextWindowPos( Convert( WINDOW_POS ), ImGuiCond_Once );
+	ImGui::SetNextWindowSize( Convert( WINDOW_SIZE ), ImGuiCond_Once );
 
-		return fileName;
-	};
-
-	int i = 0;
-	for ( auto it = loadingData.begin(); it != loadingData.end(); ++it )
+	if ( ImGui::BeginIfAllowed( "Loading Files" ) )
 	{
-		std::string strUTF8{};
+		HWND hwndForError = hWnd;
+		auto MakeFileName = [hwndForError]( std::string fullPath )->std::string
 		{
-			std::lock_guard<std::mutex> lock( *( it->pFlagMutex ) );
-			//std::lock_guard<std::mutex> lock( *( it->pLoadMutex ) );
-			// const std::string filePath = it->filePath;
-			const std::string fileName = MakeFileName( it->filePath );
-			if ( fileName == "" ) { continue; }
+			const std::string fileDir = Donya::AcquireDirectoryFromFullPath( fullPath );
+			if ( fileDir == "" ) { return ""; }
 			// else
-			strUTF8 = Donya::MultiToUTF8( fileName );
-		}
+			const std::string fileName = fullPath.substr( fileDir.size() );
 
-		Donya::Vector2 windowPos = WINDOW_SIZE + ( WINDOW_SHIFT * scast<float>( i++ ) );
-		ImGui::SetNextWindowPos( Convert( windowPos ), ImGuiCond_Once );
-		ImGui::SetNextWindowSize( Convert( WINDOW_SIZE ), ImGuiCond_Once );
-
-		if ( ImGui::BeginIfAllowed( strUTF8.c_str() ) )
+			return fileName;
+		};
+		auto MakeUTF8Name = [&MakeFileName]( std::string fullPath )->std::string
 		{
-			ImGui::Text( "Now Loading..." );
-			ImGui::Text( "[%s]", strUTF8.c_str()  );
+			std::string fileName = MakeFileName( fullPath );
+			if ( fileName == "" ) { return "Error"; }
+			// else
 
-			ImGui::End();
+			return Donya::MultiToUTF8( fileName );
+		};
+
+		std::queue<std::string> fileList = absFilePaths;
+		ImGui::Text( "Reserving load file list : %d", fileList.size() + 1 );
+
+		ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( 0, 0 ) );
+
+		std::string fileNameUTF8 = MakeUTF8Name( currentLoadingFilePath );
+		ImGui::Text( "Now:[%s]", fileNameUTF8.c_str() );
+		while ( !fileList.empty() )
+		{
+			fileNameUTF8 = MakeUTF8Name( fileList.front() );
+			ImGui::Text( "[%s]", fileNameUTF8.c_str() );
+			fileList.pop();
 		}
+
+		ImGui::EndChild();
+
+		ImGui::End();
 	}
 
 #endif // USE_IMGUI
@@ -839,7 +862,7 @@ bool Framework::OpenCommonDialogAndFile()
 
 	std::string filePath( chosenFilesFullPath );
 
-	StartLoadThread( filePath );
+	ReserveLoadFile( filePath );
 	/*
 	std::string errorMessage{};
 	meshes.push_back( {} );
