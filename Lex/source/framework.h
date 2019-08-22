@@ -51,14 +51,24 @@ private:
 	bool isCaptureWindow;
 	bool isSolidState;
 private:
-	std::mutex mutex;
+	std::mutex mutex;			// using main-thread.
+	std::mutex loadingMutex;	// using loading-thread.
 	struct AsyncLoad
 	{
-		std::string						filePath{};	// absolute-path.
+		const std::string				filePath{};		// absolute-path.
+		std::unique_ptr<std::mutex>		pFlagMutex{};	// Lock isFinished, isSucceeded.
+		std::unique_ptr<std::mutex>		pLoadMutex{};	// Lock meshInfo.
 		std::unique_ptr<std::thread>	pThread{};
 		MeshAndInfo						meshInfo{};
-		bool isFinished  = false;	// Is finished the loading process ?
-		bool isSucceeded = false;	// Is Succeeded
+		bool							isFinished{};	// Is finished the loading process ?
+		bool							isSucceeded{};	// Is Succeeded the loading process ?
+	public:
+		AsyncLoad( std::string absoluteFilePath ) : filePath( absoluteFilePath ),
+			pFlagMutex( std::make_unique<std::mutex>() ), pLoadMutex( std::make_unique<std::mutex>() ),
+			pThread( nullptr ),
+			meshInfo(),
+			isFinished( false ), isSucceeded( false )
+		{}
 	};
 	// Note:If it is vector, I can't pass the pointer of element.
 	std::list<AsyncLoad> loadingData;

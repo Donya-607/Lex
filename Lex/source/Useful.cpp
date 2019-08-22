@@ -5,6 +5,7 @@
 #include <d3d11.h>
 #include <float.h>
 #include <locale>
+#include <mutex>
 #include <Shlwapi.h>	// Use PathRemoveFileSpecA(), PathAddBackslashA(), In AcquireDirectoryFromFullPath().
 #include <vector>
 #include <Windows.h>
@@ -270,6 +271,9 @@ namespace Donya
 
 	std::string AcquireDirectoryFromFullPath( std::string fullPath )
 	{
+		static std::mutex makePathMutex{};
+		std::lock_guard<std::mutex> lock( makePathMutex );
+
 		size_t pathLength = fullPath.size();
 		if ( !pathLength ) { return ""; }
 		// else

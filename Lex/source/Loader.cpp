@@ -3,7 +3,6 @@
 #include <array>
 #include <crtdbg.h>
 #include <Windows.h>
-#include <memory>
 
 #if USE_FBX_SDK
 #include <fbxsdk.h>
@@ -22,6 +21,10 @@ namespace FBX = fbxsdk;
 
 namespace Donya
 {
+#if USE_FBX_SDK
+	std::mutex Loader::fbxMutex{};
+#endif // USE_FBX_SDK
+
 	Loader::Loader() :
 		absFilePath(), fileName(), fileDirectory(),
 		meshes()
@@ -178,6 +181,9 @@ namespace Donya
 
 		MakeAbsoluteFilePath( filePath );
 
+		std::unique_ptr<std::lock_guard<std::mutex>> pLock{}; // Use scoped-lock without code-bracket.
+		pLock = std::make_unique<std::lock_guard<std::mutex>>( fbxMutex );
+
 		FBX::FbxManager		*pManager		= FBX::FbxManager::Create();
 		FBX::FbxIOSettings	*pIOSettings	= FBX::FbxIOSettings::Create( pManager, IOSROOT );
 		pManager->SetIOSettings( pIOSettings );
@@ -221,6 +227,8 @@ namespace Donya
 			pImporter->Destroy();
 		}
 		#pragma endregion
+
+		pLock.reset( nullptr );
 
 	#ifdef USE_TRIANGULATE
 		{

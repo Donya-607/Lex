@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -21,10 +22,14 @@ namespace fbxsdk
 namespace Donya
 {
 	/// <summary>
-	/// 
+	/// It can copy.
 	/// </summary>
 	class Loader
 	{
+	private:
+	#if USE_FBX_SDK
+		static std::mutex fbxMutex;
+	#endif // USE_FBX_SDK
 	public:
 	#pragma region Structs
 
