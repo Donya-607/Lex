@@ -5,6 +5,12 @@
 #include <string>
 #include <vector>
 
+#undef max
+#undef min
+
+#include <cereal/types/vector.hpp>
+
+#include "Serializer.h"
 #include "SkinnedMesh.h"
 #include "UseImGui.h"
 #include "Vector.h"
@@ -18,6 +24,36 @@ namespace fbxsdk
 	class FbxSurfaceMaterial;
 }
 #endif // USE_FBX_SDK
+
+namespace DirectX
+{
+	template<class Archive>
+	void serialize( Archive &archive, XMFLOAT4X4 &f4x4 )
+	{
+		archive
+		(
+			cereal::make_nvp( "_11", f4x4._11 ),
+			cereal::make_nvp( "_12", f4x4._12 ),
+			cereal::make_nvp( "_13", f4x4._13 ),
+			cereal::make_nvp( "_14", f4x4._14 ),
+			
+			cereal::make_nvp( "_21", f4x4._21 ),
+			cereal::make_nvp( "_22", f4x4._22 ),
+			cereal::make_nvp( "_23", f4x4._23 ),
+			cereal::make_nvp( "_24", f4x4._24 ),
+
+			cereal::make_nvp( "_31", f4x4._31 ),
+			cereal::make_nvp( "_32", f4x4._32 ),
+			cereal::make_nvp( "_33", f4x4._33 ),
+			cereal::make_nvp( "_34", f4x4._34 ),
+			
+			cereal::make_nvp( "_41", f4x4._41 ),
+			cereal::make_nvp( "_42", f4x4._42 ),
+			cereal::make_nvp( "_43", f4x4._43 ),
+			cereal::make_nvp( "_44", f4x4._44 )
+		);
+	}
+}
 
 namespace Donya
 {
@@ -52,6 +88,21 @@ namespace Donya
 			}
 			~Material()
 			{}
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( color ),
+					CEREAL_NVP( textureNames )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
 		};
 
 		struct Subset
@@ -70,6 +121,24 @@ namespace Donya
 			{}
 			~Subset()
 			{}
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( indexCount ), CEREAL_NVP( indexStart ),
+					CEREAL_NVP( reflection ), CEREAL_NVP( transparency ),
+					CEREAL_NVP( ambient ), CEREAL_NVP( bump ),
+					CEREAL_NVP( diffuse ), CEREAL_NVP( emissive ),
+					CEREAL_NVP( specular )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
 		};
 
 		struct BoneInfluence
@@ -79,6 +148,21 @@ namespace Donya
 		public:
 			BoneInfluence() : index(), weight() {}
 			BoneInfluence( int index, float weight ) : index( index ), weight( weight ) {}
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( index ),
+					CEREAL_NVP( weight )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
 		};
 		
 		struct BoneInfluencesPerControlPoint
@@ -87,6 +171,20 @@ namespace Donya
 		public:
 			BoneInfluencesPerControlPoint() : cluster() {}
 			BoneInfluencesPerControlPoint( const BoneInfluencesPerControlPoint &ref ) : cluster( ref.cluster ) {}
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( cluster )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
 		};
 
 		struct Mesh
@@ -121,6 +219,25 @@ namespace Donya
 			subsets(), indices(), normals(), positions(), texCoords()
 			{}
 			Mesh( const Mesh & ) = default;
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( coordinateConversion ),
+					CEREAL_NVP( globalTransform ),
+					CEREAL_NVP( subsets ),
+					CEREAL_NVP( indices ), CEREAL_NVP( normals ),
+					CEREAL_NVP( positions ), CEREAL_NVP( texCoords ),
+					CEREAL_NVP( influences )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
 		};
 
 		// region Structs
@@ -133,6 +250,23 @@ namespace Donya
 	public:
 		Loader();
 		~Loader();
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( absFilePath ),
+					CEREAL_NVP( fileName ),
+					CEREAL_NVP( fileDirectory ),
+					CEREAL_NVP( meshes )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
 	public:
 		/// <summary>
 		/// outputErrorString can set nullptr.
@@ -166,3 +300,10 @@ namespace Donya
 	};
 
 }
+
+CEREAL_CLASS_VERSION( Donya::Loader, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader::Material, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader::Subset, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader::BoneInfluence, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader::BoneInfluencesPerControlPoint, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader::Mesh, 0 )

@@ -168,6 +168,7 @@
     <ClInclude Include="Source\Mouse.h" />
     <ClInclude Include="source\Quaternion.h" />
     <ClInclude Include="Source\Resource.h" />
+    <ClInclude Include="source\Serializer.h" />
     <ClInclude Include="Source\SkinnedMesh.h" />
     <ClInclude Include="Source\Useful.h" />
     <ClInclude Include="Source\UseImGui.h" />

@@ -38,7 +38,7 @@ namespace Donya
 				const std::vector<Donya::Vector2> &texCoords = loadedMesh.texCoords;
 				const std::vector<Loader::BoneInfluencesPerControlPoint> &boneInfluences = loadedMesh.influences;
 
-				vertices.resize( max( normals.size(), positions.size() ) );
+				vertices.resize( std::max( normals.size(), positions.size() ) );
 				size_t end = vertices.size();
 				for ( size_t j = 0; j < end; ++j )
 				{
