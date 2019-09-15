@@ -82,7 +82,7 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 			HDROP	hDrop		= ( HDROP )wParam;
 			size_t	fileCount	= DragQueryFile( hDrop, -1, NULL, NULL );
 
-			std::string errorMessage{};
+			// std::string errorMessage{};
 			std::unique_ptr<char[]> filename = std::make_unique<char[]>( FILE_PATH_LENGTH );
 			
 			for ( size_t i = 0; i < fileCount; ++i )
@@ -667,10 +667,11 @@ void Framework::ReserveLoadFile( std::string filePath )
 {
 	auto CanLoadFile = []( std::string filePath )->bool
 	{
-		constexpr std::array<const char *, 4> EXTENSIONS
+		constexpr std::array<const char *, 5> EXTENSIONS
 		{
 			".obj", ".OBJ",
-			".fbx", ".FBX"
+			".fbx", ".FBX",
+			".bin"
 		};
 
 		for ( size_t i = 0; i < EXTENSIONS.size(); ++i )
@@ -873,6 +874,30 @@ bool Framework::OpenCommonDialogAndFile()
 	return true;
 }
 
+std::string GetSaveFileNameByCommonDialog( const HWND &hWnd )
+{
+	char fileNameBuffer[MAX_PATH]	= { 0 };
+	char titleBuffer[MAX_PATH]		= { 0 };
+
+	OPENFILENAMEA ofn{ 0 };
+	ofn.lStructSize		= sizeof( OPENFILENAME );
+	ofn.hwndOwner		= hWnd;
+	ofn.lpstrFilter		= "Binary-file(*.bin)\0*.bin\0"
+						  "\0";
+	ofn.lpstrFile		= fileNameBuffer;
+	ofn.nMaxFile		= MAX_PATH;
+	ofn.lpstrFileTitle	= titleBuffer;
+	ofn.nMaxFileTitle	= MAX_PATH;
+	ofn.Flags			= OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR; // If not set OFN_NOCHANGEDIR flag, the current directory will be changed, so the SkinnedMesh can't use current directory.
+
+	auto result = GetSaveFileNameA( &ofn );
+	if ( !result ) { return std::string{}; }
+	// else
+
+	std::string filePath( ofn.lpstrFile );
+	return filePath;
+}
+
 void Framework::SetMouseCapture()
 {
 	SetCapture( hWnd );
@@ -986,6 +1011,24 @@ void Framework::ShowModelInfo()
 					continue;
 				}
 				// else
+
+				if ( ImGui::Button( "Save" ) )
+				{
+					std::string saveName = GetSaveFileNameByCommonDialog( hWnd );
+					if ( saveName == std::string{} )
+					{
+						// Error.
+						char breakpoint = 0;
+					}
+					else
+					{
+						if ( saveName.find( ".bin" ) == std::string::npos )
+						{
+							saveName += ".bin";
+						}
+						it->loader.SaveByCereal( saveName );
+					}
+				}
 
 				it->loader.EnumPreservingDataToImGui( ImGuiWindowName );
 				ImGui::TreePop();

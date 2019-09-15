@@ -9,6 +9,7 @@
 #undef min
 
 #include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
 
 #include "Serializer.h"
 #include "SkinnedMesh.h"
@@ -63,6 +64,9 @@ namespace Donya
 	class Loader
 	{
 	private:
+		static constexpr const char *SERIAL_ID = "Loader";
+		static std::mutex cerealMutex;
+
 	#if USE_FBX_SDK
 		static std::mutex fbxMutex;
 	#endif // USE_FBX_SDK
@@ -269,14 +273,27 @@ namespace Donya
 			}
 	public:
 		/// <summary>
-		/// outputErrorString can set nullptr.
+		/// We can those load file extensions:<para></para>
+	#if USE_FBX_SDK
+		/// .fbx, .FBX,<para></para>
+		/// .obj, .OBJ,<para></para>
+	#endif // USE_FBX_SDK
+		/// .bin, .json(Expect, only file of saved by this Loader class).<para></para>
+		/// The "outputErrorString" can set nullptr.
 		/// </summary>
 		bool Load( const std::string &filePath, std::string *outputErrorString );
+
+		/// <summary>
+		/// We expect the "filePath" contain extension also.
+		/// </summary>
+		void SaveByCereal( const std::string &filePath ) const;
 	public:
 		std::string GetAbsoluteFilePath()		const { return absFilePath;	}
 		std::string GetOnlyFileName()			const { return fileName;	}
 		const std::vector<Mesh> *GetMeshes()	const { return &meshes;		}
 	private:
+		bool LoadByCereal( const std::string &filePath, std::string *outputErrorString );
+		
 	#if USE_FBX_SDK
 		bool LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString );
 

@@ -21,10 +21,6 @@ namespace FBX = fbxsdk;
 
 namespace Donya
 {
-#if USE_FBX_SDK
-	std::mutex Loader::fbxMutex{};
-#endif // USE_FBX_SDK
-
 	Loader::Loader() :
 		absFilePath(), fileName(), fileDirectory(),
 		meshes()
@@ -37,7 +33,10 @@ namespace Donya
 		meshes.shrink_to_fit();
 	}
 
+	std::mutex Loader::cerealMutex{};
+
 #if USE_FBX_SDK
+	std::mutex Loader::fbxMutex{};
 
 	Donya::Vector2 Convert( const FBX::FbxDouble2 &source )
 	{
@@ -141,8 +140,9 @@ namespace Donya
 
 	bool Loader::Load( const std::string &filePath, std::string *outputErrorString )
 	{
-		auto ShouldUseFBXSDK =
-		[]( const std::string &filePath )
+	#if USE_FBX_SDK
+
+		auto ShouldUseFBXSDK = []( const std::string &filePath )
 		{
 			constexpr std::array<const char *, 4> EXTENSIONS
 			{
@@ -167,7 +167,55 @@ namespace Donya
 		}
 		// else
 
+	#endif // USE_FBX_SDK
+
+		auto ShouldLoadByCereal = []( const std::string &filePath )->const char *
+		{
+			constexpr std::array<const char *, 1> EXTENSIONS
+			{
+				".bin"
+			};
+
+			for ( size_t i = 0; i < EXTENSIONS.size(); ++i )
+			{
+				if ( filePath.find( EXTENSIONS[i] ) != std::string::npos )
+				{
+					return EXTENSIONS[i];
+				}
+			}
+
+			return "NOT FOUND";
+		};
+
+		auto resultExt = ShouldLoadByCereal( filePath );
+		if ( !strcmp( ".bin", resultExt ) )
+		{
+			return LoadByCereal( filePath, outputErrorString );
+		}
+
 		return false;
+	}
+
+	void Loader::SaveByCereal( const std::string &filePath ) const
+	{
+		Serializer::Extension bin  = Serializer::Extension::BINARY;
+
+		std::lock_guard<std::mutex> lock( cerealMutex );
+		
+		Serializer seria;
+		seria.Save( bin, filePath.c_str(),  SERIAL_ID, *this );
+	}
+	
+	bool Loader::LoadByCereal( const std::string &filePath, std::string *outputErrorString )
+	{
+		Serializer::Extension ext = Serializer::Extension::BINARY;
+
+		std::lock_guard<std::mutex> lock( cerealMutex );
+		
+		Serializer seria;
+		seria.Load( ext, filePath.c_str(), SERIAL_ID, *this );
+
+		return true;
 	}
 
 #if USE_FBX_SDK
