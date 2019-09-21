@@ -426,14 +426,14 @@ void Camera::ShowParametersToImGui()
 
 	if ( ImGui::BeginIfAllowed() )
 	{
-		if ( ImGui::TreeNode( "Camera" ) )
+		if ( ImGui::TreeNode( u8"カメラ" ) )
 		{
-			if ( ImGui::TreeNode( "Usage" ) )
+			if ( ImGui::TreeNode( u8"操作方法" ) )
 			{
-				std::string key		{ "\"R\" key : Reset position and focus. " };
-				std::string zoom	{ "Mouse-Wheel : Zoom In-Out." };
-				std::string rotate	{ "Left-click(+Move) : Rotate around focus." };
-				std::string pan		{ "Push-Wheel(+Move) or\nRight-click(+Move) : Move position and focus." };
+				std::string key		{ u8"\"R\" キー : 位置と注視点をリセット. " };
+				std::string zoom	{ u8"マウスホイール : ズームイン・アウト." };
+				std::string rotate	{ u8"左クリック(＋移動) : 注視点を軸に回転移動." };
+				std::string pan		{ u8"ホイール押し込み（＋移動） or\n右クリック(＋移動) : 位置と注視点を移動." };
 
 				auto ShowString = []( const std::string &str )
 				{
@@ -452,13 +452,11 @@ void Camera::ShowParametersToImGui()
 			{
 				std::string vec3Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f]" };
 				std::string vec4Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]" };
-				auto ShowVec3 =
-				[&vec3Info]( std::string name, const Donya::Vector3 &param )
+				auto ShowVec3 = [&vec3Info]( std::string name, const Donya::Vector3 &param )
 				{
 					ImGui::Text( ( name + vec3Info ).c_str(), param.x, param.y, param.z );
 				};
-				auto ShowVec4 =
-				[&vec4Info]( std::string name, const Donya::Vector4 &param )
+				auto ShowVec4 = [&vec4Info]( std::string name, const Donya::Vector4 &param )
 				{
 					ImGui::Text( ( name + vec4Info ).c_str(), param.x, param.y, param.z, param.w );
 				};

@@ -67,8 +67,9 @@ private:
 		{}
 	};
 	std::unique_ptr<AsyncLoad>	pCurrentLoading;
-	std::string					currentLoadingFilePath;
-	std::queue<std::string>		absFilePaths;
+	std::string					currentLoadingFileNameUTF8;	// For UI.
+	std::queue<std::string>		reservedAbsFilePaths;
+	std::queue<std::string>		reservedFileNamesUTF8;		// For UI.
 public:
 	Framework( HWND hwnd );
 	~Framework();

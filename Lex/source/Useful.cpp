@@ -281,7 +281,7 @@ namespace Donya
 
 #pragma endregion
 
-	std::string AcquireDirectoryFromFullPath( std::string fullPath )
+	std::string ExtractFileDirectoryFromFullPath( std::string fullPath )
 	{
 		size_t pathLength = fullPath.size();
 		if ( !pathLength ) { return ""; }
@@ -302,4 +302,12 @@ namespace Donya
 		return std::string{ directory.get() };
 	}
 
+	std::string ExtractFileNameFromFullPath( std::string fullPath )
+	{
+		const std::string fileDirectory = ExtractFileDirectoryFromFullPath( fullPath );
+		if ( fileDirectory.empty() ) { return ""; }
+		// else
+
+		return fullPath.substr( fileDirectory.size() );
+	}
 }

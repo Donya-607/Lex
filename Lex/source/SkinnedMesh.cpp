@@ -341,7 +341,6 @@ namespace Donya
 		}
 	#endif // USE_IMGUI && DEBUG_MODE
 
-		HRESULT hr = S_OK;
 		ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
 
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState>	prevRasterizerState;
@@ -385,12 +384,9 @@ namespace Donya
 			pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xffffffff );
 		}
 
-		size_t meshCount = meshes.size();
-		for ( size_t i = 0; i < meshCount; ++i )
+		for ( auto &mesh : meshes )
 		{
-			auto &mesh = meshes[i];
-
-			// Update Subresource
+			// Update Constant Buffer
 			{
 				auto Mul4x4 =
 				[]( const DirectX::XMFLOAT4X4 &lhs, const DirectX::XMFLOAT4X4 &rhs )
@@ -421,11 +417,9 @@ namespace Donya
 			pImmediateContext->IASetVertexBuffers( 0, 1, mesh.iVertexBuffer.GetAddressOf(), &stride, &offset );
 			pImmediateContext->IASetIndexBuffer( mesh.iIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
 
-			size_t subsetCount = mesh.subsets.size();
-			for ( size_t j = 0; j < subsetCount; ++j )
+			for ( auto &subset : mesh.subsets )
 			{
-				auto &subset = mesh.subsets[j];
-				// Update Subresource
+				// Update Material-Constant Buffer
 				{
 					MaterialConstantBuffer mtlCB{};
 					mtlCB.ambient	= subset.ambient.color;
@@ -443,10 +437,9 @@ namespace Donya
 
 				pImmediateContext->PSSetSamplers( 0, 1, subset.diffuse.iSampler.GetAddressOf() );
 
-				size_t texCount = subset.diffuse.textures.size();
-				for ( size_t j = 0; j < texCount; ++j )
+				for ( auto &texture : subset.diffuse.textures )
 				{
-					pImmediateContext->PSSetShaderResources( 0, 1, subset.diffuse.textures[j].iSRV.GetAddressOf() );
+					pImmediateContext->PSSetShaderResources( 0, 1, texture.iSRV.GetAddressOf() );
 					
 					pImmediateContext->DrawIndexed( subset.indexCount, subset.indexStart, 0 );
 				}

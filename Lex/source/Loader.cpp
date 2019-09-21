@@ -224,7 +224,7 @@ namespace Donya
 
 	bool Loader::LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString )
 	{
-		fileDirectory	= AcquireDirectoryFromFullPath( filePath );
+		fileDirectory	= ExtractFileDirectoryFromFullPath( filePath );
 		fileName		= filePath.substr( fileDirectory.size() );
 
 		MakeAbsoluteFilePath( filePath );
@@ -506,10 +506,19 @@ namespace Donya
 					// else
 				
 					std::string relativePath = texture->GetRelativeFileName();
-					if ( relativePath.empty() ) { continue; }
-					// else
+					if ( relativePath.empty() )
+					{
+						std::string fullPath = texture->GetFileName();
 
-					pOutMtl->textureNames.push_back( fileDirectory + relativePath );
+						if ( !fullPath.empty() )
+						{
+							pOutMtl->textureNames.push_back( fullPath );
+						}
+					}
+					else
+					{
+						pOutMtl->textureNames.push_back( fileDirectory + relativePath );
+					}
 				}
 			};
 
@@ -604,7 +613,7 @@ namespace Donya
 
 #endif // USE_FBX_SDK
 
-	#if USE_IMGUI && DEBUG_MODE
+#if USE_IMGUI && DEBUG_MODE
 	void Loader::EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const
 	{
 		ImVec2 childFrameSize( 0.0f, 0.0f );
@@ -804,5 +813,5 @@ namespace Donya
 			}
 		} // meshes loop.
 	}
-	#endif // USE_IMGUI && DEBUG_MODE
+#endif // USE_IMGUI && DEBUG_MODE
 }

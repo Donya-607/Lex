@@ -60,7 +60,11 @@ namespace Donya
 #pragma endregion
 
 	/// <summary>
-	/// If fullPath is invalid, returns "";
+	/// If fullPath is invalid, returns ""(You can error-check with std::string::empty());
 	/// </summary>
-	std::string AcquireDirectoryFromFullPath( std::string fullPath );
+	std::string ExtractFileDirectoryFromFullPath( std::string fullPath );
+	/// <summary>
+	/// If fullPath is invalid, returns ""(You can error-check with std::string::empty());
+	/// </summary>
+	std::string ExtractFileNameFromFullPath( std::string fullPath );
 }

@@ -37,8 +37,9 @@ Framework::Framework( HWND hwnd ) :
 	// mutex(),
 	pLoadThread( nullptr ),
 	pCurrentLoading( nullptr ),
-	currentLoadingFilePath(),
-	absFilePaths()
+	currentLoadingFileNameUTF8(),
+	reservedAbsFilePaths(),
+	reservedFileNamesUTF8()
 {
 	DragAcceptFiles( hWnd, TRUE );
 }
@@ -687,18 +688,27 @@ void Framework::ReserveLoadFile( std::string filePath )
 
 	if ( CanLoadFile( filePath ) )
 	{
-		absFilePaths.push( filePath );
+		reservedAbsFilePaths.push( filePath );
+
+		const std::string fileName = Donya::ExtractFileNameFromFullPath( filePath );
+		if ( !fileName.empty() )
+		{
+			reservedFileNamesUTF8.push( Donya::MultiToUTF8( fileName ) );
+		}
+		else
+		{
+			reservedFileNamesUTF8.push( Donya::MultiToUTF8( filePath ) );
+		}
 	}
 }
 
 void Framework::StartLoadIfVacant()
 {
 	if ( pCurrentLoading )		{ return; }
-	if ( absFilePaths.empty() )	{ return; }
+	if ( reservedAbsFilePaths.empty() )	{ return; }
 	// else
 
-	auto Load =
-	[]( std::string filePath, AsyncLoad *pElement )
+	auto Load = []( std::string filePath, AsyncLoad *pElement )
 	{
 		if ( !pElement ) { return; }
 		// else
@@ -744,11 +754,14 @@ void Framework::StartLoadIfVacant()
 		CoUninitialize();
 	};
 
-	currentLoadingFilePath = absFilePaths.front();
-	absFilePaths.pop();
+	const std::string loadFilePath = reservedAbsFilePaths.front();
+	reservedAbsFilePaths.pop();
+	reservedFileNamesUTF8.pop();
+
+	currentLoadingFileNameUTF8 = Donya::ExtractFileNameFromFullPath( loadFilePath );
 
 	pCurrentLoading = std::make_unique<AsyncLoad>();
-	pLoadThread = std::make_unique<std::thread>( Load, currentLoadingFilePath, pCurrentLoading.get() );
+	pLoadThread = std::make_unique<std::thread>( Load, loadFilePath, pCurrentLoading.get() );
 }
 
 void Framework::AppendModelIfLoadFinished()
@@ -797,37 +810,18 @@ void Framework::ShowNowLoadingModels()
 
 	if ( ImGui::BeginIfAllowed( "Loading Files" ) )
 	{
-		HWND hwndForError = hWnd;
-		auto MakeFileName = [hwndForError]( std::string fullPath )->std::string
-		{
-			const std::string fileDir = Donya::AcquireDirectoryFromFullPath( fullPath );
-			if ( fileDir == "" ) { return ""; }
-			// else
-			const std::string fileName = fullPath.substr( fileDir.size() );
-
-			return fileName;
-		};
-		auto MakeUTF8Name = [&MakeFileName]( std::string fullPath )->std::string
-		{
-			std::string fileName = MakeFileName( fullPath );
-			if ( fileName == "" ) { return "Error"; }
-			// else
-
-			return Donya::MultiToUTF8( fileName );
-		};
-
-		std::queue<std::string> fileList = absFilePaths;
-		ImGui::Text( "Reserving load file list : %d", fileList.size() + 1 );
+		std::queue<std::string> fileListUTF8 = reservedFileNamesUTF8;
+		ImGui::Text( "Reserving load file list : %d", fileListUTF8.size() + 1 );
 
 		ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( 0, 0 ) );
 
-		std::string fileNameUTF8 = MakeUTF8Name( currentLoadingFilePath );
+		std::string fileNameUTF8 = currentLoadingFileNameUTF8;
 		ImGui::Text( "Now:[%s]", fileNameUTF8.c_str() );
-		while ( !fileList.empty() )
+		while ( !fileListUTF8.empty() )
 		{
-			fileNameUTF8 = MakeUTF8Name( fileList.front() );
+			fileNameUTF8 = fileListUTF8.front();
 			ImGui::Text( "[%s]", fileNameUTF8.c_str() );
-			fileList.pop();
+			fileListUTF8.pop();
 		}
 
 		ImGui::EndChild();
@@ -981,8 +975,8 @@ void Framework::ShowMouseInfo()
 		int x{}, y{};
 		Donya::Mouse::GetMouseCoord( &x, &y );
 
-		ImGui::Text( "Mouse[X:%d][Y%d]", x, y );
-		ImGui::Text( "Wheel[%d]", Donya::Mouse::GetMouseWheelRot() );
+		ImGui::Text( u8"マウス位置[X:%d][Y%d]", x, y );
+		ImGui::Text( u8"マウスホイール[%d]", Donya::Mouse::GetMouseWheelRot() );
 
 		ImGui::End();
 	}
