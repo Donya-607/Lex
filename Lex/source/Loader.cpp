@@ -489,22 +489,33 @@ namespace Donya
 			prop	= pMaterial->FindProperty( surfaceMtl );
 			factor	= pMaterial->FindProperty( surfaceMtlFactor );
 
+			auto FetchTextures = [&]()->void
+			{
+				if ( !prop.IsValid() ) { return; }
+				// else
+
+				int layerCount = prop.GetSrcObjectCount<FBX::FbxLayeredTexture>();
+				if ( layerCount ) { return; }
+				// else
+
+				int textureCount = prop.GetSrcObjectCount<FBX::FbxFileTexture>();
+				for ( int i = 0; i < textureCount; ++i )
+				{
+					FBX::FbxFileTexture *texture = prop.GetSrcObject<FBX::FbxFileTexture>( i );
+					if ( !texture ) { continue; }
+					// else
+				
+					std::string relativePath = texture->GetRelativeFileName();
+					if ( relativePath.empty() ) { continue; }
+					// else
+
+					pOutMtl->textureNames.push_back( fileDirectory + relativePath );
+				}
+			};
+
 			if ( prop.IsValid() )
 			{
-				int layerCount = prop.GetSrcObjectCount<FBX::FbxLayeredTexture>();
-				if ( !layerCount )
-				{
-					int textureCount = prop.GetSrcObjectCount<FBX::FbxFileTexture>();
-					for ( int i = 0; i < textureCount; ++i )
-					{
-						FBX::FbxFileTexture *texture = prop.GetSrcObject<FBX::FbxFileTexture>( i );
-						if ( texture )
-						{
-							std::string relativePath = texture->GetRelativeFileName();
-							pOutMtl->textureNames.push_back( fileDirectory + relativePath );
-						}
-					}
-				}
+				FetchTextures();
 
 				if ( factor.IsValid() )
 				{
