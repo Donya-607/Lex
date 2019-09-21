@@ -717,18 +717,26 @@ namespace Donya
 									return;
 								}
 								// else
-								std::string onlyFileName{};
+								std::string fileName{};
 								for ( size_t i = 0; i < texCount; ++i )
 								{
-									onlyFileName =
-									( mtl.textureNames[i].size() <= fileDirectory.size() )
-									? mtl.textureNames[i]
-									: mtl.textureNames[i].substr( fileDirectory.size() );
+									auto &textureName = mtl.textureNames[i];
+									fileName =
+									( textureName.size() <= fileDirectory.size() )
+									? textureName
+									: textureName.substr( fileDirectory.size() );
+
+									if ( !Donya::IsExistFile( textureName ) )
+									{
+										ImGui::Text( "!This texture was not found![%s]", textureName.c_str() );
+										continue;
+									}
+									// else
 
 									ImGui::Text
 									(
 										"Texture No.%d:[%s]",
-										i, onlyFileName.c_str()
+										i, fileName.c_str()
 									);
 								}
 							};
