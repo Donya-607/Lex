@@ -1,5 +1,4 @@
-#ifndef _INCLUDED_USEFUL_H_
-#define _INCLUDED_USEFUL_H_
+#pragma once
 
 #include <string>
 
@@ -7,19 +6,7 @@ struct ID3D11Buffer;
 
 namespace Donya
 {
-	/// <summary>
-	/// I doing ID3D11Device::CreateBuffer to vertex buffer, index buffer, constant buffer.<para></para>
-	/// You can setting nullptr in ID3D11Buffer. in that case, I skip CreateBuffer.<para></para>
-	/// If I can't created, returns false.
-	/// </summary>
-	bool CreateBuffers
-	(
-		ID3D11Buffer **vertexBuffer,	unsigned int verticesWholeByteWidth,	const void *verticesRawData,
-		ID3D11Buffer **indexBuffer,		unsigned int indecesWholeByteWidth,		const void *indicesRawData,
-		ID3D11Buffer **constantBuffer,	unsigned int sizeofConstantBuffer
-	);
-
-	bool Equal( float L, float R, float maxRelativeDiff );
+	bool Equal( float L, float R, float maxRelativeDiff = 1.192092896e-07F/* FLT_EPSILON */ );
 
 	/// <summary>
 	/// Wrapper of OutputDebugStringA().
@@ -29,6 +16,9 @@ namespace Donya
 	/// Wrapper of OutputDebugStringW().
 	/// </summary>
 	void OutputDebugStr( const wchar_t	*string );
+
+	bool IsExistFile( const std::string &wholePath );
+	bool IsExistFile( const std::wstring &wholePath );
 
 #pragma region Convert Character Functions
 
@@ -58,8 +48,23 @@ namespace Donya
 	/// </summary>
 	std::string		WideToUTF8( const std::wstring	&source );
 
+	/// <summary>
+	/// Convert std::string( UTF-8 ) to std::string( Shift_JIS( ANSI ) ).
+	/// </summary>
+	std::string		MultiToUTF8( const std::string &source );
+	/// <summary>
+	/// Convert std::string( Shift_JIS( ANSI ) ). std::string( UTF-8 ).
+	/// </summary>
+	std::string		UTF8ToMulti( const std::string &source );
+
 #pragma endregion
 
+	/// <summary>
+	/// If fullPath is invalid, returns ""(You can error-check with std::string::empty());
+	/// </summary>
+	std::string ExtractFileDirectoryFromFullPath( std::string fullPath );
+	/// <summary>
+	/// If fullPath is invalid, returns ""(You can error-check with std::string::empty());
+	/// </summary>
+	std::string ExtractFileNameFromFullPath( std::string fullPath );
 }
-
-#endif // _INCLUDED_USEFUL_H_

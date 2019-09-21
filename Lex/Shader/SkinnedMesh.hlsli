@@ -2,7 +2,7 @@ struct VS_OUT
 {
 	float4 pos		: SV_POSITION;
 	float4 color	: COLOR;
-	float4 normal	: TEXCOORD0;
+	float4 normal	: NORMAL;
 	float2 texCoord	: TEXCOORD1;
 };
 
@@ -16,9 +16,9 @@ cbuffer CONSTANT_BUFFER : register( b0 )
 
 cbuffer MATERIAL_CONSTANT_BUFFER : register( b1 )
 {
-	float4	ambient;
-	float4	bump;
-	float4	diffuse;
-	float4	emissive;
-	float4	specular;
+	float4	mtlAmbient;
+	float4	mtlBump;
+	float4	mtlDiffuse;
+	float4	mtlEmissive;
+	float4	mtlSpecular;
 }

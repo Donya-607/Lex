@@ -244,3 +244,10 @@ ModelManifest.xml
 # Edit by EmEditor.
 imgui.ini
 External/
+
+ShortcutTo*
+
+*.cso
+*.cod
+
+.gitignore

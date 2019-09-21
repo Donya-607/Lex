@@ -10,16 +10,18 @@
 #include <vector>
 #include <wrl.h>
 
+#include <mutex>
+#include <list>
+#include <thread>
+#include <queue>
+
+#include "Camera.h"
 #include "Loader.h"
 #include "HighResolutionTimer.h"
 #include "SkinnedMesh.h"
+#include "Vector.h"
 
 #define scast static_cast
-
-namespace Donya
-{
-	class Camera;
-}
 
 class Framework
 {
@@ -32,15 +34,42 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	d3dRenderTargetView;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	d3dDepthStencilView;
 private:
-	std::unique_ptr<Donya::Camera>		pCamera;
+	Camera camera;
+	struct Light
+	{
+		Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		Donya::Vector4 direction{ 0.0f, 6.0f, 0.0f, 0.0f };
+	};
+	Light light;
 	struct MeshAndInfo
 	{
-		Donya::Loader loader;
-		std::unique_ptr<Donya::SkinnedMesh> pMesh;
+		Donya::Loader		loader;
+		Donya::SkinnedMesh	mesh;
 	};
 	std::vector<MeshAndInfo> meshes;
 private:
-	bool isFillDraw;
+	int pressMouseButton; // contain value is: None:0, Left:VK_LBUTTON, Middle:VK_MBUTTON, Right:VK_RBUTTON.
+	bool isCaptureWindow;
+	bool isSolidState;
+private:
+	std::unique_ptr<std::thread> pLoadThread{};
+	struct AsyncLoad
+	{
+		std::mutex	meshMutex{};
+		std::mutex	flagMutex{};
+		MeshAndInfo	meshInfo{};
+		bool		isFinished{};	// Is finished the loading process ?
+		bool		isSucceeded{};	// Is Succeeded the loading process ?
+	public:
+		AsyncLoad() : meshMutex(), flagMutex(),
+			meshInfo(),
+			isFinished( false ), isSucceeded( false )
+		{}
+	};
+	std::unique_ptr<AsyncLoad>	pCurrentLoading;
+	std::string					currentLoadingFileNameUTF8;	// For UI.
+	std::queue<std::string>		reservedAbsFilePaths;
+	std::queue<std::string>		reservedFileNamesUTF8;		// For UI.
 public:
 	Framework( HWND hwnd );
 	~Framework();
@@ -59,6 +88,18 @@ private:
 	HighResolutionTimer highResoTimer;
 	void CalcFrameStats();
 private:
+	void ReserveLoadFile( std::string filePath );
+	void StartLoadIfVacant();
+	void AppendModelIfLoadFinished();
+	void ShowNowLoadingModels();
+private:
 	bool OpenCommonDialogAndFile();
+	void SetMouseCapture();
+	void ReleaseMouseCapture();
+	void PutLimitMouseMoveArea();
+private:
+	void ShowMouseInfo();
+	void ShowModelInfo();
+	void ChangeLightByImGui();
 };
 

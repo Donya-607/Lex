@@ -157,19 +157,23 @@
     <ClInclude Include="..\External\ImGui\imstb_textedit.h" />
     <ClInclude Include="..\External\ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Benchmark.h" />
-    <ClInclude Include="Source\Camera.h" />
+    <ClInclude Include="source\Camera.h" />
     <ClInclude Include="Source\Common.h" />
+    <ClInclude Include="source\Direct3DUtil.h" />
     <ClInclude Include="Source\Donya.h" />
     <ClInclude Include="Source\framework.h" />
     <ClInclude Include="Source\HighResolutionTimer.h" />
     <ClInclude Include="Source\Keyboard.h" />
     <ClInclude Include="Source\Loader.h" />
     <ClInclude Include="Source\Mouse.h" />
+    <ClInclude Include="source\Quaternion.h" />
     <ClInclude Include="Source\Resource.h" />
+    <ClInclude Include="source\Serializer.h" />
     <ClInclude Include="Source\SkinnedMesh.h" />
     <ClInclude Include="Source\Useful.h" />
     <ClInclude Include="Source\UseImGui.h" />
     <ClInclude Include="Source\Vector.h" />
+    <ClInclude Include="source\WindowsUtil.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\External\ImGui\imgui.cpp" />
@@ -178,7 +182,7 @@
     <ClCompile Include="..\External\ImGui\imgui_impl_dx11.cpp" />
     <ClCompile Include="..\External\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="..\External\ImGui\imgui_widgets.cpp" />
-    <ClCompile Include="Source\Camera.cpp" />
+    <ClCompile Include="source\Camera.cpp" />
     <ClCompile Include="Source\Common.cpp" />
     <ClCompile Include="Source\Donya.cpp" />
     <ClCompile Include="Source\framework.cpp" />
@@ -186,11 +190,13 @@
     <ClCompile Include="Source\Loader.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Mouse.cpp" />
+    <ClCompile Include="source\Quaternion.cpp" />
     <ClCompile Include="Source\Resource.cpp" />
     <ClCompile Include="Source\SkinnedMesh.cpp" />
     <ClCompile Include="Source\Useful.cpp" />
     <ClCompile Include="Source\UseImGui.cpp" />
     <ClCompile Include="Source\Vector.cpp" />
+    <ClCompile Include="source\WindowsUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\SkinnedMesh.hlsli" />

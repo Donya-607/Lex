@@ -8,6 +8,7 @@
 #include "Common.h"
 #include "Framework.h"
 #include "Useful.h"
+#include "WindowsUtil.h"
 
 void RegisterWindowClass( HINSTANCE instance );
 LRESULT CALLBACK fnWndProc( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam );
@@ -39,16 +40,21 @@ INT WINAPI wWinMain( HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_lin
 		};
 		AdjustWindowRect( &rect, WS_OVERLAPPEDWINDOW, FALSE );
 
+		int width  = rect.right  - rect.left;
+		int height = rect.bottom - rect.top;
+
+		RECT rectDesk = GetDesktopRect();
+
 		std::wstring title = Donya::MultiToWide( std::string{ Framework::TITLE_BAR_CAPTION } );
 		hwnd = CreateWindow
 		(
 			title.data(),
 			L"",
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-			256, // CW_USEDEFAULT,
-			128, // CW_USEDEFAULT,
-			rect.right  - rect.left,
-			rect.bottom - rect.top,
+			( rectDesk.right  >> 1 ) - ( width  >> 1 ),
+			( rectDesk.bottom >> 1 ) - ( height >> 1 ) - GetCaptionBarHeight(),
+			width,
+			height,
 			NULL,
 			NULL,
 			instance,

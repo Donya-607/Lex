@@ -1,5 +1,9 @@
 #include "Framework.h"
 
+#include <array>
+#include <algorithm>
+#include <thread>
+
 #include "Benchmark.h"
 #include "Camera.h"
 #include "Common.h"
@@ -10,6 +14,7 @@
 #include "Resource.h"
 #include "UseImGui.h"
 #include "Useful.h"
+#include "WindowsUtil.h"
 
 #if USE_IMGUI
 
@@ -19,21 +24,39 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler( HWND hWnd, UINT msg, WPARAM wpara
 
 using namespace DirectX;
 
-namespace Do = Donya;
-
-constexpr char *ImGuiWindowName = "File Information";
+static constexpr char *ImGuiWindowName = "File Information";
 
 Framework::Framework( HWND hwnd ) :
 	hWnd( hwnd ),
-	pCamera( nullptr ), meshes(),
-	isFillDraw( true )
+	camera(),
+	light(),
+	meshes(),
+	pressMouseButton( NULL ),
+	isCaptureWindow( false ),
+	isSolidState( true ),
+	// mutex(),
+	pLoadThread( nullptr ),
+	pCurrentLoading( nullptr ),
+	currentLoadingFileNameUTF8(),
+	reservedAbsFilePaths(),
+	reservedFileNamesUTF8()
 {
 	DragAcceptFiles( hWnd, TRUE );
 }
 Framework::~Framework()
 {
+	if ( isCaptureWindow )
+	{
+		ReleaseMouseCapture();
+	}
+
 	meshes.clear();
 	meshes.shrink_to_fit();
+
+	if ( pLoadThread && pLoadThread->joinable() )
+	{
+		pLoadThread->join();
+	}
 };
 
 LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
@@ -60,14 +83,17 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 			HDROP	hDrop		= ( HDROP )wParam;
 			size_t	fileCount	= DragQueryFile( hDrop, -1, NULL, NULL );
 
-			std::string errorMessage{};
+			// std::string errorMessage{};
 			std::unique_ptr<char[]> filename = std::make_unique<char[]>( FILE_PATH_LENGTH );
 			
 			for ( size_t i = 0; i < fileCount; ++i )
 			{
-				meshes.push_back( {} );
-
 				DragQueryFileA( hDrop, i, filename.get(), FILE_PATH_LENGTH );
+
+				ReserveLoadFile( std::string{ filename.get() } );
+
+				/*
+				meshes.push_back( {} );
 				bool result = meshes.back().loader.Load( filename.get(), &errorMessage );
 				if ( !result )
 				{
@@ -75,7 +101,8 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 					continue;
 				}
 				// else
-				Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+				Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().mesh );
+				*/
 			}
 
 			DragFinish( hDrop );
@@ -102,15 +129,75 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 			}
 		}
 		break;
+	#pragma region Mouse Process
 	case WM_MOUSEMOVE:
 		Donya::Mouse::UpdateMouseCoordinate( lParam );
+		if ( isCaptureWindow )
+		{
+			PutLimitMouseMoveArea();
+		}
 		break;
 	case WM_MOUSEWHEEL:
-		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
-		break;
-	case WM_MOUSEHWHEEL:
 		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ true, wParam, lParam );
 		break;
+	case WM_MOUSEHWHEEL:
+		Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
+		break;
+	case WM_LBUTTONDOWN:
+		if ( !pressMouseButton )
+		{
+			pressMouseButton = VK_LBUTTON;
+			SetMouseCapture();
+		}
+		break;
+	case WM_MBUTTONDOWN:
+		if ( !pressMouseButton )
+		{
+			pressMouseButton = VK_MBUTTON;
+			SetMouseCapture();
+		}
+		break;
+	case WM_RBUTTONDOWN:
+		if ( !pressMouseButton )
+		{
+			pressMouseButton = VK_RBUTTON;
+			SetMouseCapture();
+		}
+		break;
+	case WM_LBUTTONUP:
+		if ( isCaptureWindow )
+		{
+			if ( pressMouseButton == VK_LBUTTON || !pressMouseButton )
+			{
+				ReleaseMouseCapture();
+			}
+
+			pressMouseButton = NULL;
+		}
+		break;
+	case WM_MBUTTONUP:
+		if ( isCaptureWindow )
+		{
+			if ( pressMouseButton == VK_MBUTTON || !pressMouseButton )
+			{
+				ReleaseMouseCapture();
+			}
+
+			pressMouseButton = NULL;
+		}
+		break;
+	case WM_RBUTTONUP:
+		if ( isCaptureWindow )
+		{
+			if ( pressMouseButton == VK_RBUTTON || !pressMouseButton )
+			{
+				ReleaseMouseCapture();
+			}
+
+			pressMouseButton = NULL;
+		}
+		break;
+	#pragma endregion
 	case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
@@ -165,14 +252,14 @@ int Framework::Run()
 
 	ImGui_ImplWin32_Init( hWnd );
 	ImGui_ImplDX11_Init( Donya::GetDevice(), Donya::GetImmediateContext() );
-	//ImGui::StyleColorsClassic();
-	//ImGui::StyleColorsLight();
+	// ImGui::StyleColorsClassic();
+	// ImGui::StyleColorsLight();
 	ImGui::StyleColorsDark();
 
 	ImGuiIO &io = ImGui::GetIO();
-	//io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\meiryo.ttc", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-	io.Fonts->AddFontFromFileTTF( "c:\\Windows\\Fonts\\consolab.ttf", 10.0f, NULL, io.Fonts->GetGlyphRangesJapanese() );
-	//io.Fonts->AddFontFromFileTTF(".\\Inconsolata-Bold.ttf", 12.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+	io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\meiryo.ttc", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+	// io.Fonts->AddFontFromFileTTF( "c:\\Windows\\Fonts\\consolab.ttf", 10.0f, NULL, io.Fonts->GetGlyphRangesJapanese() );
+	// io.Fonts->AddFontFromFileTTF(".\\Inconsolata-Bold.ttf", 12.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
 
 #endif
 
@@ -192,6 +279,8 @@ int Framework::Run()
 			highResoTimer.Tick();
 			CalcFrameStats();
 			Update( highResoTimer.timeInterval() );
+
+			Donya::Mouse::ResetMouseWheelRot();
 
 			Render( highResoTimer.timeInterval() );
 		}
@@ -213,6 +302,8 @@ int Framework::Run()
 	{
 		dxgiSwapChain->SetFullscreenState( FALSE, 0 );
 	}
+
+	Donya::Uninit();
 
 	return static_cast<int>( msg.wParam );
 }
@@ -348,12 +439,8 @@ bool Framework::Init()
 
 	#pragma endregion
 
-	// std::string projectDir = "./";
-	std::string projectDir = "D:\\学校関連\\VS_Projects\\FBXLex\\Lex\\Lex\\";
-	Donya::Resource::RegisterDirectoryOfVertexShader( ( projectDir + "Shader/" ).c_str() );
-	Donya::Resource::RegisterDirectoryOfPixelShader ( ( projectDir + "Shader/" ).c_str() );
-
-	pCamera = std::make_unique<Do::Camera>();
+	camera.SetToHomePosition( { 0.0f, 0.0f, -16.0f} );
+	camera.SetPerspectiveProjectionMatrix( Common::ScreenWidthF() / Common::ScreenHeightF() );
 
 	return true;
 }
@@ -370,32 +457,53 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 #if DEBUG_MODE
 
-	if ( Donya::Keyboard::State( 'C' ) )
+	if ( Donya::Keyboard::Trigger( 'C' ) && ( Donya::Keyboard::Press( VK_LCONTROL ) || Donya::Keyboard::Press( VK_RCONTROL ) ) )
 	{
 		bool breakPoint{};
 	}
 
-	if ( Donya::Keyboard::Trigger( '2' ) && meshes.empty() )
+	if ( Donya::Keyboard::Trigger( 'T' ) )
 	{
-		constexpr const char *CUBE_02 = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\002_cube.fbx";
+		Donya::TogguleShowStateOfImGui();
+	}
 
-		meshes.push_back( {} );
-		bool result = meshes.back().loader.Load( CUBE_02, nullptr );
-		if ( result )
+	if ( Donya::Keyboard::Trigger( 'R' ) )
+	{
+		camera.SetToHomePosition( { 0.0f, 0.0f, -16.0f } );
+	}
+
+	// bool isAccept = meshes.empty();
+	bool isAccept = true;
+
+	if ( isAccept )
+	{
+		std::string prePath  = "D:\\D-Download\\ASSET_Models\\Free\\Distribution_FBX\\BLue Falcon";
+		std::string number{};
+		if ( Donya::Keyboard::Trigger( '1' ) ) { number = "001"; }
+		if ( Donya::Keyboard::Trigger( '2' ) ) { number = "002"; }
+		if ( Donya::Keyboard::Trigger( '3' ) ) { number = "003"; }
+		if ( Donya::Keyboard::Trigger( '4' ) ) { number = "004"; }
+		if ( Donya::Keyboard::Trigger( '5' ) ) { number = "005"; }
+		std::string postPath = "_cube.fbx";
+
+		if ( number != "" )
 		{
-			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+			std::string filePath = prePath + number + postPath;
+
+			ReserveLoadFile( filePath );
 		}
 	}
-	if ( Donya::Keyboard::Trigger( '3' ) && meshes.empty() )
+	if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( 'F' ) && isAccept )
 	{
-		constexpr const char *CUBE_03 = "D:\\学校関連\\3Dゲームプログラミング - DX11_描画エンジン開発\\学生配布\\FBX\\003_cube.fbx";
+		constexpr const char *BLUE_FALCON = "D:\\D-Download\\ASSET_Models\\Free\\Distribution_FBX\\BLue Falcon\\Blue Falcon.FBX";
 
-		meshes.push_back( {} );
-		bool result = meshes.back().loader.Load( CUBE_03, nullptr );
-		if ( result )
-		{
-			Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
-		}
+		ReserveLoadFile( BLUE_FALCON );
+	}
+	if ( Donya::Keyboard::Press( 'J' ) && Donya::Keyboard::Press( 'I' ) && Donya::Keyboard::Trigger( 'G' ) && isAccept )
+	{
+		constexpr const char *JIGGLYPUFF = "D:\\D-Download\\ASSET_Models\\Free\\Jigglypuff\\Fixed\\JigglypuffNEW.FBX";
+
+		ReserveLoadFile( JIGGLYPUFF );
 	}
 	if ( Donya::Keyboard::Trigger( 'Q' ) && !meshes.empty() )
 	{
@@ -404,57 +512,49 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 #endif // DEBUG_MODE
 
-	if ( Donya::Keyboard::Trigger( 'F' ) )
+	if ( Donya::Keyboard::Trigger( 'F' ) && !Donya::Keyboard::Press( 'B' ) )
 	{
-		isFillDraw = !isFillDraw;
+		isSolidState = !isSolidState;
 	}
 
-	pCamera->Update();
+	AppendModelIfLoadFinished();
 
-#if USE_IMGUI
+	StartLoadIfVacant();
 
-	if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
+	ShowNowLoadingModels();
+
+	Donya::Vector3 origin{ 0.0f, 0.0f, 0.0f };
+	camera.Update( origin );
+
+#if USE_IMGUI && DEBUG_MODE
+
+	if ( ImGui::BeginIfAllowed() )
 	{
+		ShowMouseInfo();
+		
+		camera.ShowParametersToImGui();
+		ImGui::Text( "" );
+
+		ChangeLightByImGui();
+		ImGui::Text( "" );
+
 		if ( ImGui::Button( "Open FBX File" ) )
 		{
 			OpenCommonDialogAndFile();
 		}
-
 		ImGui::Text( "" );
 
-		for ( auto &it = meshes.begin(); it != meshes.end(); )
-		{
-			std::string nodeCaption ="[" + it->loader.GetFileName() + "]";
-			if( ImGui::TreeNode( nodeCaption.c_str() ) )
-			{
-				if ( ImGui::Button( "Remove" ) )
-				{
-					it = meshes.erase( it );
-
-					ImGui::TreePop();
-					continue;
-				}
-				// else
-
-				it->loader.EnumPreservingDataToImGui( ImGuiWindowName );
-				ImGui::TreePop();
-			}
-
-			++it;
-		}
+		ShowModelInfo();
+		ImGui::Text( "" );
 
 		ImGui::End();
 	}
 
-#endif // USE_IMGUI
+#endif // USE_IMGUI && DEBUG_MODE
 }
 
 void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 {
-#ifdef USE_IMGUI
-
-#endif
-
 	// ClearRenderTargetView, ClearDepthStencilView
 	{
 		const FLOAT fillColor[4] = { 0.1f, 0.2f, 0.1f, 1.0f };	// RGBA
@@ -482,134 +582,77 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	);
 	*/
 	
-	// Geometric-Cube, StaticMesh Render
-	if ( 1 )
+	XMMATRIX W{};
 	{
-		XMMATRIX matWorld{};
-		{
-			static float scale	= 0.1f;
-			static float angleX	= -10.0f;
-			static float angleY	= -160.0f;
-			static float angleZ	= 0;
-			static float moveX	= 2.0f;
-			static float moveY	= -2.0f;
-			static float moveZ	= 0;
+		static float scale	= 0.1f; // 0.1f;
+		static float angleX	= 0.0f; // -10.0f;
+		static float angleY	= 0.0f; // -160.0f;
+		static float angleZ	= 0.0f; // 0;
+		static float moveX	= 0.0f; // 2.0f;
+		static float moveY	= 0.0f; // -2.0f;
+		static float moveZ	= 0.0f; // 0;
 
-			{
-				constexpr float SCALE_ADD = 0.0012f;
-				constexpr float ANGLE_ADD = 0.12f;
-				constexpr float MOVE_ADD  = 0.04f;
-
-				if ( Donya::Keyboard::Press( 'W'		) ) { scale  += SCALE_ADD; }
-				if ( Donya::Keyboard::Press( 'S'		) ) { scale  -= SCALE_ADD; }
-				if ( Donya::Keyboard::Press( VK_UP		) ) { angleX += ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( VK_DOWN	) ) { angleX -= ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( VK_LEFT	) ) { angleY += ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( VK_RIGHT	) ) { angleY -= ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( 'A'		) ) { angleZ += ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( 'D'		) ) { angleZ -= ANGLE_ADD; }
-				if ( Donya::Keyboard::Press( 'I'		) ) { moveY  += MOVE_ADD;  }
-				if ( Donya::Keyboard::Press( 'K'		) ) { moveY  -= MOVE_ADD;  }
-				if ( Donya::Keyboard::Press( 'L'		) ) { moveX  += MOVE_ADD;  }
-				if ( Donya::Keyboard::Press( 'J'		) ) { moveX  -= MOVE_ADD;  }
-			}
-
-			XMMATRIX scaling		= XMMatrixScaling( scale, scale, scale );
-			XMMATRIX rotX			= XMMatrixRotationX( ToRadian( angleX ) );
-			XMMATRIX rotY			= XMMatrixRotationY( ToRadian( angleY ) );
-			XMMATRIX rotZ			= XMMatrixRotationZ( ToRadian( angleZ ) );
-			XMMATRIX rotation		= ( rotZ * rotY ) * rotX;
-			XMMATRIX translation	= XMMatrixTranslation( moveX, moveY, moveZ );
-
-			matWorld = scaling * rotation * translation;
-		}
-		XMMATRIX matView = pCamera->CalcViewMatrix();
-
-		XMFLOAT4X4 worldViewProjection{};
-		{
-			XMMATRIX matProjPerspective{};
-			XMMATRIX matProjOrthographic{};
-			{
-				constexpr float FOV = ToRadian( 30.0f );
-				float width		= Common::ScreenWidthF();
-				float height	= Common::ScreenHeightF();
-				float aspect	= width / height;
-				float zNear		= 0.01f;
-				float zFar		= 1000.0f;
-			
-				XMFLOAT4X4 projection{};
-				projection = pCamera->AssignPerspectiveProjection( FOV, aspect, zNear, zFar );
-				matProjPerspective = XMLoadFloat4x4( &projection );
-
-				projection = pCamera->AssignOrthographicProjection( 16.0f, 9.0f, zNear, zFar );
-				matProjOrthographic = XMLoadFloat4x4( &projection );
-			}
-
-			XMMATRIX &useProjection = matProjOrthographic;
-
-			XMStoreFloat4x4
-			(
-				&worldViewProjection,
-				DirectX::XMMatrixMultiply( matWorld, DirectX::XMMatrixMultiply( matView, useProjection ) )
-			);
-		}
-
-		XMFLOAT4X4 world{};
-		XMStoreFloat4x4( &world, matWorld );
-
-		static XMFLOAT4 lightColor{ 1.0f, 1.0f, 1.0f, 1.0f };
-		static XMFLOAT4 lightDirection{ 0.0f, -1.0f, 1.0f, 0.0f };
-		XMFLOAT4 cameraPos{};
-		{
-			XMFLOAT3 ref = pCamera->GetPosition();
-			cameraPos.x = ref.x;
-			cameraPos.y = ref.y;
-			cameraPos.z = ref.z;
-			cameraPos.w = 1.0f;
-		}
-
-		if ( ImGui::BeginIfAllowed( ImGuiWindowName ) )
-		{
-			ImGui::ColorEdit4( "Light Color", &lightColor.x );
-			ImGui::SliderFloat3( "Light Direction", &lightDirection.x, -2.0f, 2.0f );
-
-			ImGui::End();
-		}
-
-		for ( auto &it : meshes )
-		{
-			if ( it.pMesh )
-			{
-				it.pMesh->Render( worldViewProjection, world, cameraPos, lightColor, lightDirection, isFillDraw );
-			}
-		}
-
-		/*
 		if ( 0 )
 		{
-			pGeomtrPrimitive->Render
-			(
-				worldViewProjection,
-				world,
-				lightDirection, materialColor,
-				isFillDraw
-			);
+			constexpr float SCALE_ADD = 0.0012f;
+			constexpr float ANGLE_ADD = 0.12f;
+			constexpr float MOVE_ADD  = 0.04f;
+
+			if ( Donya::Keyboard::Press( 'W'		) ) { scale  += SCALE_ADD; }
+			if ( Donya::Keyboard::Press( 'S'		) ) { scale  -= SCALE_ADD; }
+			if ( Donya::Keyboard::Press( VK_UP		) ) { angleX += ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( VK_DOWN	) ) { angleX -= ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( VK_LEFT	) ) { angleY += ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( VK_RIGHT	) ) { angleY -= ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( 'A'		) ) { angleZ += ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( 'D'		) ) { angleZ -= ANGLE_ADD; }
+			if ( Donya::Keyboard::Press( 'I'		) ) { moveY  += MOVE_ADD;  }
+			if ( Donya::Keyboard::Press( 'K'		) ) { moveY  -= MOVE_ADD;  }
+			if ( Donya::Keyboard::Press( 'L'		) ) { moveX  += MOVE_ADD;  }
+			if ( Donya::Keyboard::Press( 'J'		) ) { moveX  -= MOVE_ADD;  }
 		}
-		if ( 1 )
-		{
-			pStaticMesh->Render
-			(
-				worldViewProjection,
-				world,
-				lightDirection, materialColor,
-				cameraPos,
-				isFillDraw
-			);
-		}
-		*/
+
+		XMMATRIX S	= XMMatrixScaling( scale, scale, scale );
+		XMMATRIX RX	= XMMatrixRotationX( ToRadian( angleX ) );
+		XMMATRIX RY	= XMMatrixRotationY( ToRadian( angleY ) );
+		XMMATRIX RZ	= XMMatrixRotationZ( ToRadian( angleZ ) );
+		XMMATRIX R	= ( RZ * RY ) * RX;
+		XMMATRIX T	= XMMatrixTranslation( moveX, moveY, moveZ );
+
+		W = S * R * T;
 	}
 
-#ifdef USE_IMGUI
+	XMMATRIX V = camera.CalcViewMatrix();
+
+	XMFLOAT4X4 worldViewProjection{};
+	{
+		XMMATRIX projPerspective = camera.GetProjectionMatrix();
+
+		XMStoreFloat4x4
+		(
+			&worldViewProjection,
+			DirectX::XMMatrixMultiply( W, DirectX::XMMatrixMultiply( V, projPerspective ) )
+		);
+	}
+
+	XMFLOAT4X4 world{};
+	XMStoreFloat4x4( &world, W );
+
+	XMFLOAT4 cameraPos{};
+	{
+		XMFLOAT3 ref = camera.GetPos();
+		cameraPos.x = ref.x;
+		cameraPos.y = ref.y;
+		cameraPos.z = ref.z;
+		cameraPos.w = 1.0f;
+	}
+
+	for ( auto &it : meshes )
+	{
+		it.mesh.Render( worldViewProjection, world, cameraPos, light.color, light.direction, isSolidState );
+	}
+
+#if USE_IMGUI
 
 	ImGui::Render();
 
@@ -619,6 +662,174 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	HRESULT hr = dxgiSwapChain->Present( 0, 0 );
 	_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Present()" );
+}
+
+void Framework::ReserveLoadFile( std::string filePath )
+{
+	auto CanLoadFile = []( std::string filePath )->bool
+	{
+		constexpr std::array<const char *, 5> EXTENSIONS
+		{
+			".obj", ".OBJ",
+			".fbx", ".FBX",
+			".bin"
+		};
+
+		for ( size_t i = 0; i < EXTENSIONS.size(); ++i )
+		{
+			if ( filePath.find( EXTENSIONS[i] ) != std::string::npos )
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	if ( CanLoadFile( filePath ) )
+	{
+		reservedAbsFilePaths.push( filePath );
+
+		const std::string fileName = Donya::ExtractFileNameFromFullPath( filePath );
+		if ( !fileName.empty() )
+		{
+			reservedFileNamesUTF8.push( Donya::MultiToUTF8( fileName ) );
+		}
+		else
+		{
+			reservedFileNamesUTF8.push( Donya::MultiToUTF8( filePath ) );
+		}
+	}
+}
+
+void Framework::StartLoadIfVacant()
+{
+	if ( pCurrentLoading )		{ return; }
+	if ( reservedAbsFilePaths.empty() )	{ return; }
+	// else
+
+	auto Load = []( std::string filePath, AsyncLoad *pElement )
+	{
+		if ( !pElement ) { return; }
+		// else
+
+		HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE );
+
+		if ( FAILED( hr ) )
+		{
+			std::lock_guard<std::mutex> lock( pElement->flagMutex );
+
+			pElement->isFinished  = true;
+			pElement->isSucceeded = false;
+			return;
+		}
+
+		bool createResult = false; // Will be change by below process, if load succeeded.
+
+		// Load model, using lock_guard by pLoadMutex.
+		{
+			Donya::Loader tmpHeavyLoad{}; // For reduce time of lock.
+			bool loadResult = tmpHeavyLoad.Load( filePath, nullptr );
+
+			std::lock_guard<std::mutex> lock( pElement->meshMutex );
+
+			// bool loadResult  = pElement->meshInfo.loader.Load( fullPath, nullptr );
+			pElement->meshInfo.loader = tmpHeavyLoad; // Takes only assignment-time.
+			if ( loadResult )
+			{
+				createResult = Donya::SkinnedMesh::Create
+				(
+					&pElement->meshInfo.loader,
+					&pElement->meshInfo.mesh
+				);
+
+			}
+		}
+
+		std::lock_guard<std::mutex> lock( pElement->flagMutex );
+
+		pElement->isFinished  = true;
+		pElement->isSucceeded = createResult;
+
+		CoUninitialize();
+	};
+
+	const std::string loadFilePath = reservedAbsFilePaths.front();
+	reservedAbsFilePaths.pop();
+	reservedFileNamesUTF8.pop();
+
+	currentLoadingFileNameUTF8 = Donya::ExtractFileNameFromFullPath( loadFilePath );
+
+	pCurrentLoading = std::make_unique<AsyncLoad>();
+	pLoadThread = std::make_unique<std::thread>( Load, loadFilePath, pCurrentLoading.get() );
+}
+
+void Framework::AppendModelIfLoadFinished()
+{
+	if ( !pCurrentLoading ) { return; }
+	// else
+
+	{
+		std::lock_guard<std::mutex> flagLock( pCurrentLoading->flagMutex );
+
+		if ( !pCurrentLoading->isFinished ) { return; }
+		// else
+
+		if ( pLoadThread && pLoadThread->joinable() )
+		{
+			pLoadThread->join();
+		}
+
+		if ( pCurrentLoading->isSucceeded )
+		{
+			std::lock_guard<std::mutex> meshLock( pCurrentLoading->meshMutex );
+
+			meshes.emplace_back( pCurrentLoading->meshInfo );
+		}
+	}
+
+	pCurrentLoading.reset( nullptr );
+}
+
+void Framework::ShowNowLoadingModels()
+{
+#if USE_IMGUI
+
+	if ( !pCurrentLoading ) { return; }
+	// else
+
+	const Donya::Vector2 WINDOW_POS{ Common::HalfScreenWidthF(), Common::HalfScreenHeightF() };
+	const Donya::Vector2 WINDOW_SIZE{ 360.0f, 180.0f };
+	auto Convert = []( const Donya::Vector2 &vec )
+	{
+		return ImVec2{ vec.x, vec.y };
+	};
+
+	ImGui::SetNextWindowPos( Convert( WINDOW_POS ), ImGuiCond_Once );
+	ImGui::SetNextWindowSize( Convert( WINDOW_SIZE ), ImGuiCond_Once );
+
+	if ( ImGui::BeginIfAllowed( "Loading Files" ) )
+	{
+		std::queue<std::string> fileListUTF8 = reservedFileNamesUTF8;
+		ImGui::Text( "Reserving load file list : %d", fileListUTF8.size() + 1 );
+
+		ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( 0, 0 ) );
+
+		std::string fileNameUTF8 = currentLoadingFileNameUTF8;
+		ImGui::Text( "Now:[%s]", fileNameUTF8.c_str() );
+		while ( !fileListUTF8.empty() )
+		{
+			fileNameUTF8 = fileListUTF8.front();
+			ImGui::Text( "[%s]", fileNameUTF8.c_str() );
+			fileListUTF8.pop();
+		}
+
+		ImGui::EndChild();
+
+		ImGui::End();
+	}
+
+#endif // USE_IMGUI
 }
 
 bool Framework::OpenCommonDialogAndFile()
@@ -636,7 +847,7 @@ bool Framework::OpenCommonDialogAndFile()
 	ofn.nMaxFile		= MAX_PATH;
 	ofn.lpstrFileTitle	= chosenFileName;
 	ofn.nMaxFileTitle	= MAX_PATH;
-	ofn.Flags			= OFN_FILEMUSTEXIST;
+	ofn.Flags			= OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR; // If not set OFN_NOCHANGEDIR flag, the current directory will be changed, so the SkinnedMesh can't use current directory.
 
 	// TODO:Support multiple files.
 
@@ -645,11 +856,197 @@ bool Framework::OpenCommonDialogAndFile()
 	// else
 
 	std::string filePath( chosenFilesFullPath );
-	std::string errorMessage{};
 
+	ReserveLoadFile( filePath );
+	/*
+	std::string errorMessage{};
 	meshes.push_back( {} );
 	meshes.back().loader.Load( filePath, &errorMessage );
-	Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().pMesh );
+	Donya::SkinnedMesh::Create( &meshes.back().loader, &meshes.back().mesh );
+	*/
 
 	return true;
+}
+
+std::string GetSaveFileNameByCommonDialog( const HWND &hWnd )
+{
+	char fileNameBuffer[MAX_PATH]	= { 0 };
+	char titleBuffer[MAX_PATH]		= { 0 };
+
+	OPENFILENAMEA ofn{ 0 };
+	ofn.lStructSize		= sizeof( OPENFILENAME );
+	ofn.hwndOwner		= hWnd;
+	ofn.lpstrFilter		= "Binary-file(*.bin)\0*.bin\0"
+						  "\0";
+	ofn.lpstrFile		= fileNameBuffer;
+	ofn.nMaxFile		= MAX_PATH;
+	ofn.lpstrFileTitle	= titleBuffer;
+	ofn.nMaxFileTitle	= MAX_PATH;
+	ofn.Flags			= OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR; // If not set OFN_NOCHANGEDIR flag, the current directory will be changed, so the SkinnedMesh can't use current directory.
+
+	auto result = GetSaveFileNameA( &ofn );
+	if ( !result ) { return std::string{}; }
+	// else
+
+	std::string filePath( ofn.lpstrFile );
+	return filePath;
+}
+
+void Framework::SetMouseCapture()
+{
+	SetCapture( hWnd );
+	isCaptureWindow = true;
+}
+void Framework::ReleaseMouseCapture()
+{
+	bool result = ReleaseCapture();
+	isCaptureWindow = false;
+
+#if DEBUG_MODE
+
+	static unsigned int errorCount = 0;
+	if ( !result ) { errorCount++; }
+
+#endif // DEBUG_MODE
+}
+
+void Framework::PutLimitMouseMoveArea()
+{
+	constexpr int ADJUST = 8;
+	const POINT MOUSE_SIZE = Donya::Mouse::GetMouseSize();
+
+	// [0]:Left, [1]:Right.
+	const std::array<int, 2> EDGE_X
+	{
+		0 + MOUSE_SIZE.x,
+		Common::ScreenWidth() - MOUSE_SIZE.x
+	};
+
+	// [0]:Up, [1]:Down.
+	const std::array<int, 2> EDGE_Y
+	{
+		0 + MOUSE_SIZE.y,
+		Common::ScreenHeight() - MOUSE_SIZE.y
+	};
+
+	int mx{}, my{};
+	Donya::Mouse::GetMouseCoord( &mx, &my );
+
+	bool isReset = false;
+
+	if ( mx < EDGE_X[0] )
+	{
+		mx = EDGE_X[1] - ADJUST;
+		isReset = true;
+	}
+	else
+	if ( EDGE_X[1] < mx )
+	{
+		mx = EDGE_X[0] + ADJUST;
+		isReset = true;
+	}
+
+	if ( my < EDGE_Y[0] )
+	{
+		my = EDGE_Y[1] - ADJUST;
+		isReset = true;
+	}
+	else
+	if ( EDGE_Y[1] < my )
+	{
+		my = EDGE_Y[0] + ADJUST;
+		isReset = true;
+	}
+
+	if ( isReset )
+	{
+		POINT client = GetClientCoordinate( hWnd );
+
+		SetCursorPos( client.x + mx, client.y + my );
+	}
+}
+
+void Framework::ShowMouseInfo()
+{
+#if USE_IMGUI && DEBUG_MODE
+
+	if ( ImGui::BeginIfAllowed() )
+	{
+		int x{}, y{};
+		Donya::Mouse::GetMouseCoord( &x, &y );
+
+		ImGui::Text( u8"マウス位置[X:%d][Y%d]", x, y );
+		ImGui::Text( u8"マウスホイール[%d]", Donya::Mouse::GetMouseWheelRot() );
+
+		ImGui::End();
+	}
+
+#endif // USE_IMGUI && DEBUG_MODE
+}
+void Framework::ShowModelInfo()
+{
+#if USE_IMGUI && DEBUG_MODE
+
+	if ( ImGui::BeginIfAllowed() )
+	{
+		size_t modelCount = meshes.size();
+		ImGui::Text( "Model Count:[%d]", modelCount );
+
+		for ( auto &it = meshes.begin(); it != meshes.end(); )
+		{
+			std::string nodeCaption = "[" + it->loader.GetOnlyFileName() + "]";
+			if ( ImGui::TreeNode( nodeCaption.c_str() ) )
+			{
+				if ( ImGui::Button( "Remove" ) )
+				{
+					it = meshes.erase( it );
+
+					ImGui::TreePop();
+					continue;
+				}
+				// else
+
+				if ( ImGui::Button( "Save" ) )
+				{
+					std::string saveName = GetSaveFileNameByCommonDialog( hWnd );
+					if ( saveName == std::string{} )
+					{
+						// Error.
+						char breakpoint = 0;
+					}
+					else
+					{
+						if ( saveName.find( ".bin" ) == std::string::npos )
+						{
+							saveName += ".bin";
+						}
+						it->loader.SaveByCereal( saveName );
+					}
+				}
+
+				it->loader.EnumPreservingDataToImGui( ImGuiWindowName );
+				ImGui::TreePop();
+			}
+
+			++it;
+		}
+
+		ImGui::End();
+	}
+
+#endif // USE_IMGUI && DEBUG_MODE
+}
+void Framework::ChangeLightByImGui()
+{
+#if USE_IMGUI && DEBUG_MODE
+
+	if ( ImGui::BeginIfAllowed() )
+	{
+		ImGui::ColorEdit4( "Light Color", &light.color.x );
+		ImGui::SliderFloat3( "Light Direction", &light.direction.x, -8.0f, 8.0f );
+
+		ImGui::End();
+	}
+
+#endif // USE_IMGUI && DEBUG_MODE
 }

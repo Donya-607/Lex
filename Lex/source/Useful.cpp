@@ -4,12 +4,17 @@
 #include <crtdbg.h>
 #include <d3d11.h>
 #include <float.h>
+#include <fstream>
 #include <locale>
+#include <mutex>
+#include <Shlwapi.h>	// Use PathRemoveFileSpecA(), PathAddBackslashA(), In AcquireDirectoryFromFullPath().
 #include <vector>
 #include <Windows.h>
 
 #include "Common.h"
 #include "Donya.h"
+
+#pragma comment( lib, "shlwapi.lib" ) // Use PathRemoveFileSpecA(), PathAddBackslashA(), In AcquireDirectoryFromFullPath().
 
 namespace Donya
 {
@@ -78,7 +83,7 @@ namespace Donya
 		return true;
 	}
 
-	inline bool Equal( float L, float R, float maxRelativeDiff = FLT_EPSILON )
+	bool Equal( float L, float R, float maxRelativeDiff )
 	{
 	#if		0 // reference is https://marycore.jp/prog/c-lang/compare-floating-point-number/
 
@@ -107,6 +112,17 @@ namespace Donya
 	void OutputDebugStr( const wchar_t	*string )
 	{
 		OutputDebugStringW( string );
+	}
+
+	bool IsExistFile( const std::string &wholePath )
+	{
+		std::ifstream ifs( wholePath );
+		return ifs.is_open();
+	}
+	bool IsExistFile( const std::wstring &wholePath )
+	{
+		std::wifstream ifs( wholePath );
+		return ifs.is_open();
 	}
 
 #pragma region Convert Character Functions
@@ -251,9 +267,47 @@ namespace Donya
 		return WideToMulti( source, CP_UTF8 );
 	}
 
+	std::string		MultiToUTF8( const std::string &source )
+	{
+		return WideToUTF8( MultiToWide( source ) );
+	}
+	std::string		UTF8ToMulti( const std::string &source )
+	{
+		return WideToMulti( UTF8ToWide( source ) );
+	}
+
 #undef IS_SETTING_LOCALE_NOW
 #undef USE_WIN_API
 
 #pragma endregion
 
+	std::string ExtractFileDirectoryFromFullPath( std::string fullPath )
+	{
+		size_t pathLength = fullPath.size();
+		if ( !pathLength ) { return ""; }
+		// else
+
+		static std::mutex makePathMutex{};
+		std::lock_guard<std::mutex> lock( makePathMutex );
+
+		std::unique_ptr<char[]> directory = std::make_unique<char[]>( pathLength );
+		for ( size_t i = 0; i < pathLength; ++i )
+		{
+			directory[i] = fullPath[i];
+		}
+
+		PathRemoveFileSpecA( directory.get() );
+		PathAddBackslashA( directory.get() );
+
+		return std::string{ directory.get() };
+	}
+
+	std::string ExtractFileNameFromFullPath( std::string fullPath )
+	{
+		const std::string fileDirectory = ExtractFileDirectoryFromFullPath( fullPath );
+		if ( fileDirectory.empty() ) { return ""; }
+		// else
+
+		return fullPath.substr( fileDirectory.size() );
+	}
 }

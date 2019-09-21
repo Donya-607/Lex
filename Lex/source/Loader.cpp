@@ -1,37 +1,42 @@
 #include "Loader.h"
 
-#include <fbxsdk.h>
+#include <array>
 #include <crtdbg.h>
-#include <Shlwapi.h>
 #include <Windows.h>
-#include <memory>
+
+#if USE_FBX_SDK
+#include <fbxsdk.h>
+#endif // USE_FBX_SDK
 
 #include "Benchmark.h"
+#include "Common.h"
 #include "Useful.h"
 
-#pragma comment( lib, "shlwapi.lib" )
+#undef min
+#undef max
 
-#define scast static_cast
-
+#if USE_FBX_SDK
 namespace FBX = fbxsdk;
+#endif // USE_FBX_SDK
 
 namespace Donya
 {
 	Loader::Loader() :
-		vertexCount( 0 ),
-		fileName(),
-		indices(),
-		normals(),
-		positions()
+		absFilePath(), fileName(), fileDirectory(),
+		meshes()
 	{
 
 	}
 	Loader::~Loader()
 	{
-		std::vector<size_t>().swap( indices );
-		std::vector<Donya::Vector3>().swap( positions );
-		std::vector<Donya::Vector3>().swap( normals );
+		meshes.clear();
+		meshes.shrink_to_fit();
 	}
+
+	std::mutex Loader::cerealMutex{};
+
+#if USE_FBX_SDK
+	std::mutex Loader::fbxMutex{};
 
 	Donya::Vector2 Convert( const FBX::FbxDouble2 &source )
 	{
@@ -69,7 +74,8 @@ namespace Donya
 		FBX::FbxNodeAttribute *pNodeAttr = pNode->GetNodeAttribute();
 		if ( pNodeAttr )
 		{
-			switch ( pNodeAttr->GetAttributeType() )
+			auto eType = pNodeAttr->GetAttributeType();
+			switch ( eType )
 			{
 			case FBX::FbxNodeAttribute::eMesh:
 				{
@@ -81,33 +87,150 @@ namespace Donya
 			}
 		}
 
-		for ( int i = 0; i < pNode->GetChildCount(); ++i )
+		int end = pNode->GetChildCount();
+		for ( int i = 0; i < end; ++i )
 		{
 			Traverse( pNode->GetChild( i ), pFetchedMeshes );
 		}
 	}
 
-	std::string AcquireDirectoryFromFullPath( std::string fullPath )
+	void FetchBoneInfluences( const fbxsdk::FbxMesh *pMesh, std::vector<Loader::BoneInfluencesPerControlPoint> &influences )
 	{
-		size_t pathLength = fullPath.size();
-		std::unique_ptr<char[]> directory = std::make_unique<char[]>( pathLength );
-		for ( size_t i = 0; i < pathLength; ++i )
+		const int ctrlPointCount = pMesh->GetControlPointsCount();
+		influences.resize( ctrlPointCount );
+
+		auto FetchInfluenceFromCluster =
+		[]( std::vector<Loader::BoneInfluencesPerControlPoint> &influences, const FBX::FbxCluster *pCluster, int clustersIndex )
 		{
-			directory[i] = fullPath[i];
+			const int		ctrlPointIndicesSize	= pCluster->GetControlPointIndicesCount();
+			const int		*ctrlPointIndices		= pCluster->GetControlPointIndices();
+			const double	*ctrlPointWeights		= pCluster->GetControlPointWeights();
+
+			if ( !ctrlPointIndicesSize || !ctrlPointIndices || !ctrlPointWeights ) { return; }
+			// else
+
+			for ( int i = 0; i < ctrlPointIndicesSize; ++i )
+			{
+				auto	&data	= influences[ctrlPointIndices[i]].cluster;
+				float	weight	= scast<float>( ctrlPointWeights[i] );
+				data.emplace_back( clustersIndex, weight );
+			}
+		};
+		auto FetchClusterFromSkin =
+		[&FetchInfluenceFromCluster]( std::vector<Loader::BoneInfluencesPerControlPoint> &influences, const FBX::FbxSkin *pSkin )
+		{
+			const int clusterCount = pSkin->GetClusterCount();
+			for ( int i = 0; i < clusterCount; ++i )
+			{
+				const FBX::FbxCluster *pCluster = pSkin->GetCluster( i );
+				FetchInfluenceFromCluster( influences, pCluster, i );
+			}
+		};
+
+		const int deformersCount = pMesh->GetDeformerCount( FBX::FbxDeformer::eSkin );
+		for ( int i = 0; i < deformersCount; ++i )
+		{
+			FBX::FbxSkin *pSkin = scast<FBX::FbxSkin *>( pMesh->GetDeformer( i, FBX::FbxDeformer::eSkin ) );
+			
+			FetchClusterFromSkin( influences, pSkin );
 		}
-
-		PathRemoveFileSpecA( directory.get() );
-		PathAddBackslashA( directory.get() );
-
-		return std::string{ directory.get() };
 	}
+
+#endif // USE_FBX_SDK
 
 	bool Loader::Load( const std::string &filePath, std::string *outputErrorString )
 	{
-		fileDirectory = filePath;
-		fileDirectory = AcquireDirectoryFromFullPath( fileDirectory );
+	#if USE_FBX_SDK
 
-		MakeFileName( filePath );
+		auto ShouldUseFBXSDK = []( const std::string &filePath )
+		{
+			constexpr std::array<const char *, 4> EXTENSIONS
+			{
+				".obj", ".OBJ",
+				".fbx", ".FBX"
+			};
+
+			for ( size_t i = 0; i < EXTENSIONS.size(); ++i )
+			{
+				if ( filePath.find( EXTENSIONS[i] ) != std::string::npos )
+				{
+					return true;
+				}
+			}
+
+			return false;
+		};
+
+		if ( ShouldUseFBXSDK( filePath ) )
+		{
+			return LoadByFBXSDK( filePath, outputErrorString );
+		}
+		// else
+
+	#endif // USE_FBX_SDK
+
+		auto ShouldLoadByCereal = []( const std::string &filePath )->const char *
+		{
+			constexpr std::array<const char *, 1> EXTENSIONS
+			{
+				".bin"
+			};
+
+			for ( size_t i = 0; i < EXTENSIONS.size(); ++i )
+			{
+				if ( filePath.find( EXTENSIONS[i] ) != std::string::npos )
+				{
+					return EXTENSIONS[i];
+				}
+			}
+
+			return "NOT FOUND";
+		};
+
+		auto resultExt = ShouldLoadByCereal( filePath );
+		if ( !strcmp( ".bin", resultExt ) )
+		{
+			return LoadByCereal( filePath, outputErrorString );
+		}
+
+		return false;
+	}
+
+	void Loader::SaveByCereal( const std::string &filePath ) const
+	{
+		Serializer::Extension bin  = Serializer::Extension::BINARY;
+
+		std::lock_guard<std::mutex> lock( cerealMutex );
+		
+		Serializer seria;
+		seria.Save( bin, filePath.c_str(),  SERIAL_ID, *this );
+	}
+	
+	bool Loader::LoadByCereal( const std::string &filePath, std::string *outputErrorString )
+	{
+		Serializer::Extension ext = Serializer::Extension::BINARY;
+
+		std::lock_guard<std::mutex> lock( cerealMutex );
+		
+		Serializer seria;
+		seria.Load( ext, filePath.c_str(), SERIAL_ID, *this );
+
+		return true;
+	}
+
+#if USE_FBX_SDK
+
+#define USE_TRIANGULATE ( false )
+
+	bool Loader::LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString )
+	{
+		fileDirectory	= ExtractFileDirectoryFromFullPath( filePath );
+		fileName		= filePath.substr( fileDirectory.size() );
+
+		MakeAbsoluteFilePath( filePath );
+
+		std::unique_ptr<std::lock_guard<std::mutex>> pLock{}; // Use scoped-lock without code-bracket.
+		pLock = std::make_unique<std::lock_guard<std::mutex>>( fbxMutex );
 
 		FBX::FbxManager		*pManager		= FBX::FbxManager::Create();
 		FBX::FbxIOSettings	*pIOSettings	= FBX::FbxIOSettings::Create( pManager, IOSROOT );
@@ -123,7 +246,7 @@ namespace Donya
 		#pragma region Import
 		{
 			FBX::FbxImporter *pImporter		= FBX::FbxImporter::Create( pManager, "" );
-			if ( !pImporter->Initialize( fileName.c_str(), -1, pManager->GetIOSettings() ) )
+			if ( !pImporter->Initialize( absFilePath.c_str(), -1, pManager->GetIOSettings() ) )
 			{
 				if ( outputErrorString != nullptr )
 				{
@@ -153,20 +276,33 @@ namespace Donya
 		}
 		#pragma endregion
 
+		pLock.reset( nullptr );
 
-		FBX::FbxGeometryConverter geometryConverter( pManager );
-		geometryConverter.Triangulate( pScene, /* replace = */ true );
+	#ifdef USE_TRIANGULATE
+		{
+			FBX::FbxGeometryConverter geometryConverter( pManager );
+			bool replace = true;
+			geometryConverter.Triangulate( pScene, replace );
+		}
+	#endif
 
 		std::vector<FBX::FbxNode *> fetchedMeshes{};
 		Traverse( pScene->GetRootNode(), &fetchedMeshes );
 
-		size_t end = 1; // fetchedMeshes.size();
-		for ( size_t i = 0; i < end; ++i )
+		std::vector<BoneInfluencesPerControlPoint> influencesPerCtrlPoints{};
+
+		size_t meshCount = fetchedMeshes.size();
+		meshes.resize( meshCount );
+		for ( size_t i = 0; i < meshCount; ++i )
 		{
 			FBX::FbxMesh *pMesh = fetchedMeshes[i]->GetMesh();
 
-			FetchVertices( pMesh );
-			FetchMaterial( pMesh );
+			influencesPerCtrlPoints.clear();
+			FetchBoneInfluences( pMesh, influencesPerCtrlPoints );
+
+			FetchVertices( i, pMesh, influencesPerCtrlPoints );
+			FetchMaterial( i, pMesh );
+			FetchGlobalTransform( i, pMesh );
 		}
 
 		Uninitialize();
@@ -189,20 +325,22 @@ namespace Donya
 
 		return convertedStr;
 	}
-	void Loader::MakeFileName( const std::string &filePath )
+	void Loader::MakeAbsoluteFilePath( const std::string &filePath )
 	{
 		constexpr size_t FILE_PATH_LENGTH = 512U;
 
-		fileName = GetUTF8FullPath( filePath, FILE_PATH_LENGTH );
+		absFilePath = GetUTF8FullPath( filePath, FILE_PATH_LENGTH );
 	}
 
-	void Loader::FetchVertices( const FBX::FbxMesh *pMesh )
+	void Loader::FetchVertices( size_t meshIndex, const FBX::FbxMesh *pMesh, const std::vector<BoneInfluencesPerControlPoint> &fetchedInfluences )
 	{
 		const FBX::FbxVector4 *pControlPointsArray = pMesh->GetControlPoints();
 		const int mtlCount = pMesh->GetNode()->GetMaterialCount();
 		const int polygonCount = pMesh->GetPolygonCount();
 
-		subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
+		auto &mesh = meshes[meshIndex];
+
+		mesh.subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
 
 		// Calculate subsets start index(not optimized).
 		if ( mtlCount )
@@ -211,12 +349,12 @@ namespace Donya
 			for ( int i = 0; i < polygonCount; ++i )
 			{
 				int mtlIndex = pMesh->GetElementMaterial()->GetIndexArray().GetAt( i );
-				subsets[mtlIndex].indexCount += 3;
+				mesh.subsets[mtlIndex].indexCount += 3;
 			}
 
 			// Record the offset (how many vertex)
 			int offset = 0;
-			for ( auto &subset : subsets )
+			for ( auto &subset : mesh.subsets )
 			{
 				subset.indexStart = offset;
 				offset += subset.indexCount;
@@ -225,7 +363,9 @@ namespace Donya
 			}
 		}
 
-		indices.resize( polygonCount * 3 );
+		size_t vertexCount = 0;
+
+		mesh.indices.resize( polygonCount * 3 );
 		for ( int polyIndex = 0; polyIndex < polygonCount; ++polyIndex )
 		{
 			// The material for current face.
@@ -236,12 +376,13 @@ namespace Donya
 			}
 
 			// Where should I save the vertex attribute index, according to the material.
-			auto &subset = subsets[mtlIndex];
+			auto &subset = mesh.subsets[mtlIndex];
 			int indexOffset = subset.indexStart + subset.indexCount;
 
 			FBX::FbxVector4	fbxNormal;
 			Donya::Vector3	normal;
 			Donya::Vector3	position;
+
 			size_t size = pMesh->GetPolygonSize( polyIndex );
 			for ( size_t v = 0; v < size; ++v )
 			{
@@ -255,13 +396,14 @@ namespace Donya
 				position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
 				position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
 
-				normals.push_back( normal );
-				positions.push_back( position );
+				mesh.normals.push_back( normal );
+				mesh.positions.push_back( position );
 
-				// indices.push_back( vertexCount++ );
-				indices[indexOffset + v] = vertexCount++;
+				mesh.indices[indexOffset + v] = vertexCount;
+				vertexCount++;
+
+				mesh.influences.push_back( fetchedInfluences[ctrlPointIndex] );
 			}
-
 			subset.indexCount += size;
 		}
 
@@ -274,11 +416,11 @@ namespace Donya
 		{
 			float x = scast<float>( uvs[i].mData[0] );
 			float y = 1.0f - scast<float>( uvs[i].mData[1] );
-			texCoords.push_back( Donya::Vector2{ x, y } );
+			mesh.texCoords.push_back( Donya::Vector2{ x, y } );
 		}
 	}
 
-	void Loader::FetchMaterial( const FBX::FbxMesh *pMesh )
+	void Loader::FetchMaterial( size_t meshIndex, const FBX::FbxMesh *pMesh )
 	{
 		FBX::FbxNode *pNode = pMesh->GetNode();
 		if ( !pNode ) { return; }
@@ -294,11 +436,11 @@ namespace Donya
 			if ( !pMaterial ) { continue; }
 			// else
 
-			AnalyseProperty( i, pMaterial );
+			AnalyseProperty( meshIndex, i, pMaterial );
 		}
 	}
 
-	void Loader::AnalyseProperty( int mtlIndex, FBX::FbxSurfaceMaterial *pMaterial )
+	void Loader::AnalyseProperty( size_t meshIndex, int mtlIndex, FBX::FbxSurfaceMaterial *pMaterial )
 	{
 		enum MATERIAL_TYPE
 		{
@@ -347,22 +489,42 @@ namespace Donya
 			prop	= pMaterial->FindProperty( surfaceMtl );
 			factor	= pMaterial->FindProperty( surfaceMtlFactor );
 
-			if ( prop.IsValid() )
+			auto FetchTextures = [&]()->void
 			{
+				if ( !prop.IsValid() ) { return; }
+				// else
+
 				int layerCount = prop.GetSrcObjectCount<FBX::FbxLayeredTexture>();
-				if ( !layerCount )
+				if ( layerCount ) { return; }
+				// else
+
+				int textureCount = prop.GetSrcObjectCount<FBX::FbxFileTexture>();
+				for ( int i = 0; i < textureCount; ++i )
 				{
-					int textureCount = prop.GetSrcObjectCount<FBX::FbxFileTexture>();
-					for ( int i = 0; i < textureCount; ++i )
+					FBX::FbxFileTexture *texture = prop.GetSrcObject<FBX::FbxFileTexture>( i );
+					if ( !texture ) { continue; }
+					// else
+				
+					std::string relativePath = texture->GetRelativeFileName();
+					if ( relativePath.empty() )
 					{
-						FBX::FbxFileTexture *texture = prop.GetSrcObject<FBX::FbxFileTexture>( i );
-						if ( texture )
+						std::string fullPath = texture->GetFileName();
+
+						if ( !fullPath.empty() )
 						{
-							std::string relativePath = texture->GetRelativeFileName();
-							pOutMtl->textureNames.push_back( fileDirectory + relativePath );
+							pOutMtl->textureNames.push_back( fullPath );
 						}
 					}
+					else
+					{
+						pOutMtl->textureNames.push_back( fileDirectory + relativePath );
+					}
 				}
+			};
+
+			if ( prop.IsValid() )
+			{
+				FetchTextures();
 
 				if ( factor.IsValid() )
 				{
@@ -371,7 +533,7 @@ namespace Donya
 			}
 		};
 		
-		auto &subset = subsets[mtlIndex];
+		auto &subset = meshes[meshIndex].subsets[mtlIndex];
 
 		FetchMaterialParam
 		(
@@ -433,143 +595,223 @@ namespace Donya
 		}
 	}
 
-	#if USE_IMGUI
+	void ConvertFloat4x4( DirectX::XMFLOAT4X4 *pOutput, const FBX::FbxAMatrix &affineMatrix )
+	{
+		for ( int r = 0; r < 4; ++r )
+		{
+			for ( int c = 0; c < 4; ++c )
+			{
+				pOutput->m[r][c] = scast<float>( affineMatrix[r][c] );
+			}
+		}
+	}
+	void Loader::FetchGlobalTransform( size_t meshIndex, const fbxsdk::FbxMesh *pMesh )
+	{
+		FBX::FbxAMatrix globalTransform = pMesh->GetNode()->EvaluateGlobalTransform( 0 );
+		ConvertFloat4x4( &meshes[meshIndex].globalTransform, globalTransform );
+	}
+
+#endif // USE_FBX_SDK
+
+#if USE_IMGUI && DEBUG_MODE
 	void Loader::EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const
 	{
-		// ImVec2 childFrameSize( 512.0f, 256.0f );
+		ImVec2 childFrameSize( 0.0f, 0.0f );
 
-		if ( ImGui::TreeNode( "Positions" ) )
+		size_t meshCount = meshes.size();
+		for ( size_t i = 0; i < meshCount; ++i )
 		{
-			auto &ref = positions;
-
-			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-			size_t end = ref.size();
-			for ( size_t i = 0; i < end; ++i )
+			const auto &mesh = meshes[i];
+			std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
+			if ( ImGui::TreeNode( meshCaption.c_str() ) )
 			{
-				ImGui::Text ( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
-			}
-			// ImGui::EndChild();
+				size_t verticesCount = mesh.indices.size();
+				std::string verticesCaption = "Vertices[Count:" + std::to_string( verticesCount ) + "]";
 
-			ImGui::TreePop();
-		}
-
-		if ( ImGui::TreeNode( "Normals" ) )
-		{
-			auto &ref = normals;
-
-			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-			size_t end = ref.size();
-			for ( size_t i = 0; i < end; ++i )
-			{
-				ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
-			}
-			// ImGui::EndChild();
-
-			ImGui::TreePop();
-		}
-
-		if ( ImGui::TreeNode( "Indices" ) )
-		{
-			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-			size_t end = indices.size();
-			for ( size_t i = 0; i < end; ++i )
-			{
-				ImGui::Text( "[No:%d][%d]", i, indices[i] );
-			}
-			// ImGui::EndChild();
-
-			ImGui::TreePop();
-		}
-
-		if ( ImGui::TreeNode( "TexCoords" ) )
-		{
-			auto &ref = texCoords;
-
-			// ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-			size_t end = ref.size();
-			for ( size_t i = 0; i < end; ++i )
-			{
-				ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f]", i, ref[i].x, ref[i].y );
-			}
-			// ImGui::EndChild();
-
-			ImGui::TreePop();
-		}
-
-		if ( ImGui::TreeNode( "Materials" ) )
-		{
-			size_t subsetEnd = subsets.size();
-			for ( size_t i = 0; i < subsetEnd; ++i )
-			{
-				auto &subset = subsets[i];
-				std::string caption = "Subsets[" + std::to_string( i ) + "]";
-				if ( ImGui::TreeNode( caption.c_str() ) )
+				if ( ImGui::TreeNode( verticesCaption.c_str() ) )
 				{
-					auto ShowMaterialContain =
-					[]( const Loader::Material &mtl )
+					if ( ImGui::TreeNode( "Positions" ) )
 					{
-						ImGui::Text
-						(
-							"Color:[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]",
-							mtl.color.x, mtl.color.y, mtl.color.z, mtl.color.w
-						);
+						auto &ref = mesh.positions;
 
-						size_t end = mtl.textureNames.size();
+						ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+						size_t end = ref.size();
 						for ( size_t i = 0; i < end; ++i )
 						{
-							ImGui::Text
-							(
-								"Texture No.%d:[%s]",
-								i, mtl.textureNames[i].c_str()
-							);
+							ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
 						}
-					};
-
-					if ( ImGui::TreeNode( "Ambient" ) )
-					{
-						ShowMaterialContain( subset.ambient );
+						ImGui::EndChild();
 
 						ImGui::TreePop();
 					}
 
-					if ( ImGui::TreeNode( "Bump" ) )
+					if ( ImGui::TreeNode( "Normals" ) )
 					{
-						ShowMaterialContain( subset.bump );
+						auto &ref = mesh.normals;
+
+						ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+						size_t end = ref.size();
+						for ( size_t i = 0; i < end; ++i )
+						{
+							ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]", i, ref[i].x, ref[i].y, ref[i].z );
+						}
+						ImGui::EndChild();
 
 						ImGui::TreePop();
 					}
 
-					if ( ImGui::TreeNode( "Diffuse" ) )
+					if ( ImGui::TreeNode( "Indices" ) )
 					{
-						ShowMaterialContain( subset.diffuse );
+						ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+						size_t end = mesh.indices.size();
+						for ( size_t i = 0; i < end; ++i )
+						{
+							ImGui::Text( "[No:%d][%d]", i, mesh.indices[i] );
+						}
+						ImGui::EndChild();
 
 						ImGui::TreePop();
 					}
 
-					if ( ImGui::TreeNode( "Emissive" ) )
+					if ( ImGui::TreeNode( "TexCoords" ) )
 					{
-						ShowMaterialContain( subset.emissive );
+						auto &ref = mesh.texCoords;
+
+						ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+						size_t end = ref.size();
+						for ( size_t i = 0; i < end; ++i )
+						{
+							ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f]", i, ref[i].x, ref[i].y );
+					
+						}
+						ImGui::EndChild();
 
 						ImGui::TreePop();
 					}
-
-					if ( ImGui::TreeNode( "Specular" ) )
-					{
-						ShowMaterialContain( subset.specular );
-
-						ImGui::TreePop();
-					}
-
-					ImGui::Text( "Transparency:[%6.3f]", subset.transparency );
-
-					ImGui::Text( "Reflectivity:[%6.3f]", subset.reflection );
 
 					ImGui::TreePop();
 				}
+
+				if ( ImGui::TreeNode( "Materials" ) )
+				{
+					size_t subsetCount = mesh.subsets.size();
+					for ( size_t j = 0; j < subsetCount; ++j )
+					{
+						const auto &subset = mesh.subsets[j];
+						std::string subsetCaption = "Subset[" + std::to_string( j ) + "]";
+						if ( ImGui::TreeNode( subsetCaption.c_str() ) )
+						{
+							auto ShowMaterialContain =
+							[this]( const Loader::Material &mtl )
+							{
+								ImGui::Text
+								(
+									"Color:[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]",
+									mtl.color.x, mtl.color.y, mtl.color.z, mtl.color.w
+								);
+
+								size_t texCount = mtl.textureNames.size();
+								if ( !texCount )
+								{
+									ImGui::Text( "This material don't have texture." );
+									return;
+								}
+								// else
+								std::string onlyFileName{};
+								for ( size_t i = 0; i < texCount; ++i )
+								{
+									onlyFileName =
+									( mtl.textureNames[i].size() <= fileDirectory.size() )
+									? mtl.textureNames[i]
+									: mtl.textureNames[i].substr( fileDirectory.size() );
+
+									ImGui::Text
+									(
+										"Texture No.%d:[%s]",
+										i, onlyFileName.c_str()
+									);
+								}
+							};
+
+							if ( ImGui::TreeNode( "Ambient" ) )
+							{
+								ShowMaterialContain( subset.ambient );
+
+								ImGui::TreePop();
+							}
+
+							if ( ImGui::TreeNode( "Bump" ) )
+							{
+								ShowMaterialContain( subset.bump );
+
+								ImGui::TreePop();
+							}
+
+							if ( ImGui::TreeNode( "Diffuse" ) )
+							{
+								ShowMaterialContain( subset.diffuse );
+
+								ImGui::TreePop();
+							}
+
+							if ( ImGui::TreeNode( "Emissive" ) )
+							{
+								ShowMaterialContain( subset.emissive );
+
+								ImGui::TreePop();
+							}
+
+							if ( ImGui::TreeNode( "Specular" ) )
+							{
+								ShowMaterialContain( subset.specular );
+
+								ImGui::TreePop();
+							}
+
+							ImGui::Text( "Transparency:[%6.3f]", subset.transparency );
+
+							ImGui::Text( "Reflection:[%6.3f]", subset.reflection );
+
+							ImGui::TreePop();
+						}
+					} // subsets loop.
+
+					ImGui::TreePop();
+				}
+
+				if ( ImGui::TreeNode( "Bone" ) )
+				{
+					if ( ImGui::TreeNode( "Influences" ) )
+					{
+						ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+						size_t boneInfluencesCount = mesh.influences.size();
+						for ( size_t v = 0; v < boneInfluencesCount; ++v )
+						{
+							ImGui::Text( "Vertex No[%d]", v );
+
+							auto &data = mesh.influences[v].cluster;
+							size_t containCount = data.size();
+							for ( size_t c = 0; c < containCount; ++c )
+							{
+								ImGui::Text
+								(
+									"\t[Index:%d][Weight[%6.4f]",
+									data[c].index,
+									data[c].weight
+								);
+							}
+						}
+						ImGui::EndChild();
+
+						ImGui::TreePop();
+					}
+
+					ImGui::TreePop();
+				}
+
+				ImGui::TreePop();
 			}
-			
-			ImGui::TreePop();
-		}
+		} // meshes loop.
 	}
-	#endif // USE_IMGUI
+#endif // USE_IMGUI && DEBUG_MODE
 }

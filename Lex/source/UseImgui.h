@@ -15,11 +15,14 @@
 namespace Donya
 {
 	void SetShowStateOfImGui( bool isAllow );
+	void TogguleShowStateOfImGui();
 
 	/// <summary>
 	/// In release build, returns false.
 	/// </summary>
 	bool IsAllowShowImGui();
+
+	bool IsMouseHoveringImGuiWindow();
 }
 
 namespace ImGui
@@ -31,7 +34,7 @@ namespace ImGui
 	/// You must be evaluate this in if-statement, then If returns false, you must not do something of ImGui related.<para></para>
 	/// If returns true, you must be call ImGui::End().
 	/// </summary>
-	bool BeginIfAllowed( const char* name, bool* p_open = NULL, ImGuiWindowFlags flags = 0 );
+	bool BeginIfAllowed( const char* name = nullptr, bool* p_open = NULL, ImGuiWindowFlags flags = 0 );
 }
 
 #endif // !_INCLUDED_USE_IMGUI_H_

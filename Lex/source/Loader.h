@@ -1,63 +1,77 @@
-#ifndef _INCLUDED_LOADER_H_
-#define _INCLUDED_LOADER_H_
+#pragma once
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
+#undef max
+#undef min
+
+#include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
+
+#include "Serializer.h"
 #include "SkinnedMesh.h"
 #include "UseImGui.h"
 #include "Vector.h"
 
+#define USE_FBX_SDK ( true )
+
+#if USE_FBX_SDK
 namespace fbxsdk
 {
 	class FbxMesh;
 	class FbxSurfaceMaterial;
 }
+#endif // USE_FBX_SDK
+
+namespace DirectX
+{
+	template<class Archive>
+	void serialize( Archive &archive, XMFLOAT4X4 &f4x4 )
+	{
+		archive
+		(
+			cereal::make_nvp( "_11", f4x4._11 ),
+			cereal::make_nvp( "_12", f4x4._12 ),
+			cereal::make_nvp( "_13", f4x4._13 ),
+			cereal::make_nvp( "_14", f4x4._14 ),
+			
+			cereal::make_nvp( "_21", f4x4._21 ),
+			cereal::make_nvp( "_22", f4x4._22 ),
+			cereal::make_nvp( "_23", f4x4._23 ),
+			cereal::make_nvp( "_24", f4x4._24 ),
+
+			cereal::make_nvp( "_31", f4x4._31 ),
+			cereal::make_nvp( "_32", f4x4._32 ),
+			cereal::make_nvp( "_33", f4x4._33 ),
+			cereal::make_nvp( "_34", f4x4._34 ),
+			
+			cereal::make_nvp( "_41", f4x4._41 ),
+			cereal::make_nvp( "_42", f4x4._42 ),
+			cereal::make_nvp( "_43", f4x4._43 ),
+			cereal::make_nvp( "_44", f4x4._44 )
+		);
+	}
+}
 
 namespace Donya
 {
 	/// <summary>
-	/// Loader can load a FBX file.<para></para>
-	/// also preserve:<para></para>
-	/// indices count,<para></para>
-	/// normals,<para></para>
-	/// positions,<para></para>
-	/// texCoords.
+	/// It can copy.
 	/// </summary>
 	class Loader
 	{
+	private:
+		static constexpr const char *SERIAL_ID = "Loader";
+		static std::mutex cerealMutex;
+
+	#if USE_FBX_SDK
+		static std::mutex fbxMutex;
+	#endif // USE_FBX_SDK
 	public:
-		/*
-		struct Material
-		{
-			Donya::Vector3	ambient;
-			Donya::Vector3	bump;
-			Donya::Vector3	diffuse;
-			Donya::Vector3	emissive;
-
-			float			transparency;
-			struct Phong
-			{
-				float			refrectivity;
-				float			shininess;
-				Donya::Vector3	specular;
-			public:
-				Phong() : refrectivity( 0 ), shininess( 0 ), specular( 0, 0, 0 )
-				{}
-				Phong( const Phong & ) = default;
-				Phong &operator = ( const Phong & ) = default;
-			};
-			std::unique_ptr<Phong> pPhong;
-
-			std::vector<std::string> textureNames; // diffuse map, full path.
-		public:
-			Material() : ambient( 0, 0, 0 ), bump( 0, 0, 0 ), diffuse( 0, 0, 0 ), emissive( 0, 0, 0 ), transparency( 0 ), pPhong( nullptr ), textureNames()
-			{}
-			Material( const Material & );
-			Material &operator = ( const Material & );
-		};
-		*/
+	#pragma region Structs
 
 		struct Material
 		{
@@ -78,6 +92,21 @@ namespace Donya
 			}
 			~Material()
 			{}
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( color ),
+					CEREAL_NVP( textureNames )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
 		};
 
 		struct Subset
@@ -96,38 +125,186 @@ namespace Donya
 			{}
 			~Subset()
 			{}
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( indexCount ), CEREAL_NVP( indexStart ),
+					CEREAL_NVP( reflection ), CEREAL_NVP( transparency ),
+					CEREAL_NVP( ambient ), CEREAL_NVP( bump ),
+					CEREAL_NVP( diffuse ), CEREAL_NVP( emissive ),
+					CEREAL_NVP( specular )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
 		};
+
+		struct BoneInfluence
+		{
+			int		index{};
+			float	weight{};
+		public:
+			BoneInfluence() : index(), weight() {}
+			BoneInfluence( int index, float weight ) : index( index ), weight( weight ) {}
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( index ),
+					CEREAL_NVP( weight )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
+		};
+		
+		struct BoneInfluencesPerControlPoint
+		{
+			std::vector<BoneInfluence> cluster{};
+		public:
+			BoneInfluencesPerControlPoint() : cluster() {}
+			BoneInfluencesPerControlPoint( const BoneInfluencesPerControlPoint &ref ) : cluster( ref.cluster ) {}
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( cluster )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
+		};
+
+		struct Mesh
+		{
+			DirectX::XMFLOAT4X4			coordinateConversion;
+			DirectX::XMFLOAT4X4			globalTransform;
+			std::vector<Subset>			subsets;
+			std::vector<size_t>			indices;
+			std::vector<Donya::Vector3>	normals;
+			std::vector<Donya::Vector3>	positions;
+			std::vector<Donya::Vector2>	texCoords;
+			std::vector<BoneInfluencesPerControlPoint>	influences;
+		public:
+			Mesh() : coordinateConversion
+			(
+				{
+					1, 0, 0, 0,
+					0, 1, 0, 0,
+					0, 0, 1, 0,
+					0, 0, 0, 1
+				}
+			),
+			globalTransform
+			(
+				{
+					1, 0, 0, 0,
+					0, 1, 0, 0,
+					0, 0, 1, 0,
+					0, 0, 0, 1
+				}
+			),
+			subsets(), indices(), normals(), positions(), texCoords()
+			{}
+			Mesh( const Mesh & ) = default;
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( coordinateConversion ),
+					CEREAL_NVP( globalTransform ),
+					CEREAL_NVP( subsets ),
+					CEREAL_NVP( indices ), CEREAL_NVP( normals ),
+					CEREAL_NVP( positions ), CEREAL_NVP( texCoords ),
+					CEREAL_NVP( influences )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
+		};
+
+		// region Structs
+	#pragma endregion
 	private:
-		size_t						vertexCount;	// 0 based.
-		std::string					fileName;
-		std::string					fileDirectory;	// '/' terminated.
-		std::vector<size_t>			indices;
-		std::vector<Donya::Vector3>	normals;
-		std::vector<Donya::Vector3>	positions;
-		std::vector<Donya::Vector2>	texCoords;
-		std::vector<Subset>			subsets;
+		std::string			absFilePath;
+		std::string			fileName;		// only file-name, the directory is not contain.
+		std::string			fileDirectory;	// '/' terminated.
+		std::vector<Mesh>	meshes;
 	public:
 		Loader();
 		~Loader();
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( absFilePath ),
+					CEREAL_NVP( fileName ),
+					CEREAL_NVP( fileDirectory ),
+					CEREAL_NVP( meshes )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
 	public:
 		/// <summary>
-		/// outputErrorString can set nullptr.
+		/// We can those load file extensions:<para></para>
+	#if USE_FBX_SDK
+		/// .fbx, .FBX,<para></para>
+		/// .obj, .OBJ,<para></para>
+	#endif // USE_FBX_SDK
+		/// .bin, .json(Expect, only file of saved by this Loader class).<para></para>
+		/// The "outputErrorString" can set nullptr.
 		/// </summary>
 		bool Load( const std::string &filePath, std::string *outputErrorString );
+
+		/// <summary>
+		/// We expect the "filePath" contain extension also.
+		/// </summary>
+		void SaveByCereal( const std::string &filePath ) const;
 	public:
-		std::string GetFileName() const { return fileName; }
-		const std::vector<size_t>			*GetIndices() const { return &indices; }
-		const std::vector<Donya::Vector3>	*GetNormals() const { return &normals; }
-		const std::vector<Donya::Vector3>	*GetPositions() const { return &positions; }
-		const std::vector<Donya::Vector2>	*GetTexCoords() const { return &texCoords; }
-		const std::vector<Subset>			*GetSubsets() const { return &subsets; }
+		std::string GetAbsoluteFilePath()		const { return absFilePath;	}
+		std::string GetOnlyFileName()			const { return fileName;	}
+		const std::vector<Mesh> *GetMeshes()	const { return &meshes;		}
 	private:
-		void MakeFileName( const std::string &filePath );
+		bool LoadByCereal( const std::string &filePath, std::string *outputErrorString );
+		
+	#if USE_FBX_SDK
+		bool LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString );
 
-		void FetchVertices( const fbxsdk::FbxMesh *pMesh );
-		void FetchMaterial( const fbxsdk::FbxMesh *pMesh );
-		void AnalyseProperty( int mtlIndex, fbxsdk::FbxSurfaceMaterial *pMaterial );
+		void MakeAbsoluteFilePath( const std::string &filePath );
 
+		void FetchVertices( size_t meshIndex, const fbxsdk::FbxMesh *pMesh, const std::vector<BoneInfluencesPerControlPoint> &fetchedInfluencesPerControlPoints );
+		void FetchMaterial( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
+		void AnalyseProperty( size_t meshIndex, int mtlIndex, fbxsdk::FbxSurfaceMaterial *pMaterial );
+		void FetchGlobalTransform( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
+	#endif // USE_FBX_SDK
+		
 	#if USE_IMGUI
 	public:
 		/// <summary>
@@ -141,4 +318,9 @@ namespace Donya
 
 }
 
-#endif // _INCLUDED_LOADER_H_
+CEREAL_CLASS_VERSION( Donya::Loader, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader::Material, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader::Subset, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader::BoneInfluence, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader::BoneInfluencesPerControlPoint, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader::Mesh, 0 )
