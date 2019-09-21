@@ -12,6 +12,7 @@
 
 #include "Common.h"
 #include "Donya.h"
+#include "Useful.h"
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -213,7 +214,7 @@ namespace Donya
 
 		static std::unordered_map<std::wstring, SpriteCacheContents> spriteCache{};
 		
-		void CreateTexture2DFromFile( ID3D11Device *d3dDevice, const std::wstring &fileName, ID3D11ShaderResourceView **d3dShaderResourceView, D3D11_TEXTURE2D_DESC *d3dTexture2DDesc, bool isEnableCache )
+		bool CreateTexture2DFromFile( ID3D11Device *d3dDevice, const std::wstring &fileName, ID3D11ShaderResourceView **d3dShaderResourceView, D3D11_TEXTURE2D_DESC *d3dTexture2DDesc, bool isEnableCache )
 		{
 			HRESULT hr = S_OK;
 
@@ -225,8 +226,11 @@ namespace Donya
 
 				*d3dTexture2DDesc = it->second.d3dTexture2DDesc;
 
-				return;
+				return true;
 			}
+			// else
+
+			if ( !Donya::IsExistFile( fileName ) ) { return false; }
 			// else
 
 			Microsoft::WRL::ComPtr<ID3D11Resource> d3dResource;
@@ -271,6 +275,8 @@ namespace Donya
 					)
 				);
 			}
+
+			return true;
 		}
 
 		void CreateUnicolorTexture( ID3D11Device *pDevice, ID3D11ShaderResourceView **pOutSRV, D3D11_TEXTURE2D_DESC *pOutTexDesc, unsigned int dimensions, float R, float G, float B, float A, bool isEnableCache )

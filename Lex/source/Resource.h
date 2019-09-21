@@ -54,7 +54,7 @@ namespace Donya
 		/// ID3D11Texture2D::GetDesc(), CreateShaderResourceView().<para></para>
 		/// These arguments must be not null.
 		/// </summary>
-		void CreateTexture2DFromFile
+		bool CreateTexture2DFromFile
 		(
 			ID3D11Device *pd3dDevice,
 			const std::wstring &filename,

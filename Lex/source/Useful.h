@@ -17,6 +17,9 @@ namespace Donya
 	/// </summary>
 	void OutputDebugStr( const wchar_t	*string );
 
+	bool IsExistFile( const std::string &wholePath );
+	bool IsExistFile( const std::wstring &wholePath );
+
 #pragma region Convert Character Functions
 
 	/// <summary>

@@ -4,6 +4,7 @@
 #include <crtdbg.h>
 #include <d3d11.h>
 #include <float.h>
+#include <fstream>
 #include <locale>
 #include <mutex>
 #include <Shlwapi.h>	// Use PathRemoveFileSpecA(), PathAddBackslashA(), In AcquireDirectoryFromFullPath().
@@ -111,6 +112,17 @@ namespace Donya
 	void OutputDebugStr( const wchar_t	*string )
 	{
 		OutputDebugStringW( string );
+	}
+
+	bool IsExistFile( const std::string &wholePath )
+	{
+		std::ifstream ifs( wholePath );
+		return ifs.is_open();
+	}
+	bool IsExistFile( const std::wstring &wholePath )
+	{
+		std::wifstream ifs( wholePath );
+		return ifs.is_open();
 	}
 
 #pragma region Convert Character Functions
