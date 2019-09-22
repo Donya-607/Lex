@@ -170,6 +170,7 @@
     <ClInclude Include="Source\Resource.h" />
     <ClInclude Include="source\Serializer.h" />
     <ClInclude Include="Source\SkinnedMesh.h" />
+    <ClInclude Include="source\StaticMesh.h" />
     <ClInclude Include="Source\Useful.h" />
     <ClInclude Include="Source\UseImGui.h" />
     <ClInclude Include="Source\Vector.h" />
@@ -193,6 +194,7 @@
     <ClCompile Include="source\Quaternion.cpp" />
     <ClCompile Include="Source\Resource.cpp" />
     <ClCompile Include="Source\SkinnedMesh.cpp" />
+    <ClCompile Include="source\StaticMesh.cpp" />
     <ClCompile Include="Source\Useful.cpp" />
     <ClCompile Include="Source\UseImGui.cpp" />
     <ClCompile Include="Source\Vector.cpp" />

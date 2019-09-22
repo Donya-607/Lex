@@ -99,6 +99,9 @@
     <ClInclude Include="source\Serializer.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="source\StaticMesh.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Common.cpp">
@@ -162,6 +165,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="source\WindowsUtil.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\StaticMesh.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
