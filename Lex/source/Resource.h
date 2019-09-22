@@ -28,6 +28,25 @@ namespace Donya
 			size_t						inputElementSize,
 			bool enableCache = true
 		);
+		/// <summary>
+		/// Create vertex-shader from embedded source code.<para></para>
+		/// "shaderIdentifyName" are used to key of map.<para></para>
+		/// "shaderEntryPointName" is shader files entry point(e.g. "main").<para></para>
+		/// Returns false when failed to create shader.<para></para>
+		/// If unnecessary ID3D11InputLayout, you can set nullptr.
+		/// </summary>
+		bool CreateVertexShaderFromSource
+		(
+			ID3D11Device					*pDevice,
+			const std::string				&shaderIdentifyName,
+			const std::string				&shaderCode,
+			const std::string				&shaderEntryPointName,
+			ID3D11VertexShader				**pOutVertexShaderAddress,
+			ID3D11InputLayout				**pOutInputLayoutAddress,
+			const D3D11_INPUT_ELEMENT_DESC	*pInputElementsDesc,
+			size_t							inputElementsCount,
+			bool isEnableCache = true
+		);
 
 		void ReleaseAllVertexShaderCaches();
 
@@ -41,6 +60,21 @@ namespace Donya
 			const char			*openMode,
 			ID3D11PixelShader	**pd3dPixelShader,
 			bool enableCache = true
+		);
+		/// <summary>
+		/// Create pixel-shader from embedded source code.<para></para>
+		/// "shaderIdentifyName" are used to key of map.<para></para>
+		/// "shaderEntryPointName" is shader files entry point(e.g. "main").<para></para>
+		/// Returns false when failed to create shader.
+		/// </summary>
+		bool CreatePixelShaderFromSource
+		(
+			ID3D11Device					*pDevice,
+			const std::string				&shaderIdentifyName,
+			const std::string				&shaderCode,
+			const std::string				&shaderEntryPointName,
+			ID3D11PixelShader				**pOutPixelShaderAddress,
+			bool isEnableCache = true
 		);
 
 		void ReleaseAllPixelShaderCaches();

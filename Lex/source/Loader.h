@@ -254,10 +254,10 @@ namespace Donya
 	public:
 		Loader();
 		~Loader();
-		private:
-			friend class cereal::access;
-			template<class Archive>
-			void serialize( Archive &archive, std::uint32_t version )
+	private:
+		friend class cereal::access;
+		template<class Archive>
+		void serialize( Archive &archive, std::uint32_t version )
 			{
 				archive
 				(
@@ -274,10 +274,8 @@ namespace Donya
 	public:
 		/// <summary>
 		/// We can those load file extensions:<para></para>
-	#if USE_FBX_SDK
-		/// .fbx, .FBX,<para></para>
-		/// .obj, .OBJ,<para></para>
-	#endif // USE_FBX_SDK
+		/// .fbx, .FBX(If the flag of use fbx-sdk is on),<para></para>
+		/// .obj, .OBJ(If the flag of use fbx-sdk is on),<para></para>
 		/// .bin, .json(Expect, only file of saved by this Loader class).<para></para>
 		/// The "outputErrorString" can set nullptr.
 		/// </summary>

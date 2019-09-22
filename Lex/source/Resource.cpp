@@ -1,6 +1,7 @@
 #include "Resource.h"
 
 #include <D3D11.h>
+#include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <fstream>
 #include <unordered_map>
@@ -13,6 +14,9 @@
 #include "Common.h"
 #include "Donya.h"
 #include "Useful.h"
+
+// This resolve un external symbol.
+#pragma comment( lib, "d3dcompiler.lib" )
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
@@ -128,6 +132,109 @@ namespace Donya
 			);
 		}
 
+		bool CreateVertexShaderFromSource( ID3D11Device *pDevice, const std::string &shaderId, const std::string &shaderCode, const std::string &shaderEntryPoint, ID3D11VertexShader **pOutVertexShader, ID3D11InputLayout **pOutInputLayout, const D3D11_INPUT_ELEMENT_DESC *pInputElementsDesc, size_t inputElementsCount, bool isEnableCache )
+		{
+			HRESULT hr = S_OK;
+
+			auto it = vertexShaderCache.find( shaderId );
+			if ( it != vertexShaderCache.end() )
+			{
+				*pOutVertexShader = it->second.d3dVertexShader.Get();
+				( *pOutVertexShader )->AddRef();
+
+				if ( pOutInputLayout != nullptr )
+				{
+					*pOutInputLayout = it->second.d3dInputLayout.Get();
+					_ASSERT_EXPR( *pOutInputLayout, L"Cached InputLayout must be not Null." );
+					( *pOutInputLayout )->AddRef();
+				}
+
+				return true;
+			}
+			// else
+
+			DWORD flags = D3DCOMPILE_ENABLE_STRICTNESS;
+		#if DEBUG_MODE
+			flags |= D3DCOMPILE_DEBUG;
+			flags |= D3D10_SHADER_SKIP_OPTIMIZATION;
+		#endif
+
+			Microsoft::WRL::ComPtr<ID3DBlob> compiledShaderBlob;
+			Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+
+			// D3DCompile() : https://docs.microsoft.com/en-us/windows/win32/api/d3dcompiler/nf-d3dcompiler-d3dcompile
+			hr = D3DCompile
+			(
+				shaderCode.c_str(),
+				shaderCode.length(),
+				NULL,
+				NULL,
+				NULL,
+				shaderEntryPoint.c_str(),
+				"vs_5_0",
+				flags,
+				NULL,
+				compiledShaderBlob.GetAddressOf(),
+				errorBlob.GetAddressOf()
+			);
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, reinterpret_cast<LPCSTR>( errorBlob->GetBufferPointer() ) );
+				return false;
+			}
+			// else
+
+			hr = pDevice->CreateVertexShader
+			(
+				compiledShaderBlob->GetBufferPointer(),
+				compiledShaderBlob->GetBufferSize(),
+				0,
+				pOutVertexShader
+			);
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, reinterpret_cast<LPCSTR>( errorBlob->GetBufferPointer() ) );
+				return false;
+			}
+			// else
+
+			if ( pOutInputLayout != nullptr )
+			{
+				hr = pDevice->CreateInputLayout
+				(
+					pInputElementsDesc,
+					inputElementsCount,
+					compiledShaderBlob->GetBufferPointer(),
+					compiledShaderBlob->GetBufferSize(),
+					pOutInputLayout
+				);
+				if ( FAILED( hr ) )
+				{
+					_ASSERT_EXPR( SUCCEEDED( hr ), reinterpret_cast<LPCSTR>( errorBlob->GetBufferPointer() ) );
+					return false;
+				}
+				// else
+			}
+
+			if ( isEnableCache )
+			{
+				vertexShaderCache.insert
+				(
+					std::make_pair
+					(
+						shaderId,
+						VertexShaderCacheContents
+						{
+							*pOutVertexShader,
+							( ( pOutInputLayout != nullptr ) ? *pOutInputLayout : nullptr )
+						}
+					)
+				);
+			}
+
+			return true;
+		}
+
 		void ReleaseAllVertexShaderCaches()
 		{
 			vertexShaderCache.clear();
@@ -185,6 +292,80 @@ namespace Donya
 					*d3dPixelShader
 				)
 			);
+		}
+
+		bool CreatePixelShaderFromSource( ID3D11Device *pDevice, const std::string &shaderId, const std::string &shaderCode, const std::string &shaderEntryPoint, ID3D11PixelShader **pOutPixelShader, bool isEnableCache )
+		{
+			HRESULT hr = S_OK;
+
+			auto it = pixelShaderCache.find( shaderId );
+			if ( it != pixelShaderCache.end() )
+			{
+				*pOutPixelShader = it->second.Get();
+				( *pOutPixelShader )->AddRef();
+
+				return true;
+			}
+			// else
+
+			DWORD flags = D3DCOMPILE_ENABLE_STRICTNESS;
+		#if DEBUG_MODE
+			flags |= D3DCOMPILE_DEBUG;
+			flags |= D3D10_SHADER_SKIP_OPTIMIZATION;
+		#endif
+
+			Microsoft::WRL::ComPtr<ID3DBlob> compiledShaderBlob;
+			Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
+
+			// D3DCompile() : https://docs.microsoft.com/en-us/windows/win32/api/d3dcompiler/nf-d3dcompiler-d3dcompile
+			hr = D3DCompile
+			(
+				shaderCode.c_str(),
+				shaderCode.length(),
+				NULL,
+				NULL,
+				NULL,
+				shaderEntryPoint.c_str(),
+				"ps_5_0",
+				flags,
+				NULL,
+				compiledShaderBlob.GetAddressOf(),
+				errorBlob.GetAddressOf()
+			);
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, reinterpret_cast<LPCSTR>( errorBlob->GetBufferPointer() ) );
+				return false;
+			}
+			// else
+
+			hr = pDevice->CreatePixelShader
+			(
+				compiledShaderBlob->GetBufferPointer(),
+				compiledShaderBlob->GetBufferSize(),
+				0,
+				pOutPixelShader
+			);
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, reinterpret_cast<LPCSTR>( errorBlob->GetBufferPointer() ) );
+				return false;
+			}
+			// else
+
+			if ( isEnableCache )
+			{
+				pixelShaderCache.insert
+				(
+					std::make_pair
+					(
+						shaderId,
+						*pOutPixelShader
+					)
+				);
+			}
+
+			return true;
 		}
 
 		void ReleaseAllPixelShaderCaches()
@@ -535,12 +716,7 @@ namespace Donya
 							decltype( newMtls )::iterator it = newMtls.find( mtlName );
 							if ( it != newMtls.end() )
 							{
-								std::wstring mapPath = mtlFileName;
-								{
-									size_t lastTreePos = mapPath.find_last_of( L"/" );
-									mapPath = mapPath.substr( 0, lastTreePos );
-									mapPath += L"/";
-								}
+								std::wstring mapPath = Donya::ExtractFileDirectoryFromFullPath( mtlFileName );
 								std::wstring mapName; ss >> mapName;
 								{
 									if ( IsContainStr( mapName, L"-" ) )
@@ -756,12 +932,7 @@ namespace Donya
 
 					SkipUntilNextDelim( &command, &ss );
 
-					std::wstring mtlPath = objFileName;
-					{
-						size_t lastTreePos = mtlPath.find_last_of( L"/" );
-						mtlPath = mtlPath.substr( 0, lastTreePos );
-						mtlPath += L"/";
-					}
+					std::wstring mtlPath = Donya::ExtractFileDirectoryFromFullPath( objFileName );
 
 					std::wstring mtlName; ss >> mtlName;
 

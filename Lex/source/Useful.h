@@ -66,5 +66,13 @@ namespace Donya
 	/// <summary>
 	/// If fullPath is invalid, returns ""(You can error-check with std::string::empty());
 	/// </summary>
+	std::wstring ExtractFileDirectoryFromFullPath( std::wstring fullPath );
+	/// <summary>
+	/// If fullPath is invalid, returns ""(You can error-check with std::string::empty());
+	/// </summary>
 	std::string ExtractFileNameFromFullPath( std::string fullPath );
+	/// <summary>
+	/// If fullPath is invalid, returns ""(You can error-check with std::string::empty());
+	/// </summary>
+	std::wstring ExtractFileNameFromFullPath( std::wstring fullPath );
 }

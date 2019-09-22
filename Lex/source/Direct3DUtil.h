@@ -45,7 +45,7 @@ HRESULT CreateVertexBuffer( ID3D11Device *pDevice, const std::vector<Vertex> &ve
 /// BUFFER_DESC::MiscFlags = 0;<para></para>
 /// BUFFER_DESC::StructureByteStride = 0;<para></para>
 /// </summary>
-HRESULT CreateIndexBuffer( ID3D11Device *pDevice, const std::vector<unsigned int> &indices, ID3D11Buffer **bufferAddress )
+static HRESULT CreateIndexBuffer( ID3D11Device *pDevice, const std::vector<unsigned int> &indices, ID3D11Buffer **bufferAddress )
 {
 	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.ByteWidth			= sizeof( unsigned int ) * indices.size();
@@ -77,7 +77,7 @@ HRESULT CreateIndexBuffer( ID3D11Device *pDevice, const std::vector<unsigned int
 /// BUFFER_DESC::MiscFlags = 0;<para></para>
 /// BUFFER_DESC::StructureByteStride = 0;<para></para>
 /// </summary>
-HRESULT CreateConstantBuffer( ID3D11Device *pDevice, size_t sizeOfConstantBuffer, ID3D11Buffer **bufferAddress )
+static HRESULT CreateConstantBuffer( ID3D11Device *pDevice, size_t sizeOfConstantBuffer, ID3D11Buffer **bufferAddress )
 {
 	D3D11_BUFFER_DESC bufferDesc{};
 	bufferDesc.ByteWidth			= sizeOfConstantBuffer;

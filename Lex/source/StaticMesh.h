@@ -3,24 +3,28 @@
 
 #include <d3d11.h>
 #include <DirectXMath.h>
+#include <memory>
 #include <string>
 #include <vector>
 #include <wrl.h>
-
-#include "Resource.h"
 
 namespace Donya
 {
 	class Loader;
 
+	/// <summary>
+	/// If you want load the obj-file, you specify obj-file-path then you call LoadObjFile().
+	/// </summary>
 	class StaticMesh
 	{
 	public:
 		/// <summary>
 		/// Create from Loader object.<para></para>
-		/// If create successed, return true.
+		/// You can specify vertex-shader and pixel-shader with cso-file with set to the second-argument and third-argument(If set to nullptr, default shader is used).<para></para>
+		/// If create failed, return nullptr.<para></para>
+		/// If return valid instance, that is usable(The LoadObjFile() is unnecessary).
 		/// </summary>
-		static bool Create( const Loader &loader, StaticMesh *pOutput );
+		static std::shared_ptr<StaticMesh> Create( const Loader &loader, const std::string *pVSCsoFilePath = nullptr, const std::string *pPSCsoFilePath = nullptr );
 	public:
 		struct Vertex
 		{
@@ -74,24 +78,36 @@ namespace Donya
 			{}
 		};
 	private:
+		const std::string  CSO_PATH_PS{};
+		const std::string  CSO_PATH_VS{};
+		const std::wstring OBJ_FILE_PATH{};
+
 	#define	COM_PTR Microsoft::WRL::ComPtr
-		COM_PTR<ID3D11Buffer>				iVertexBuffer;
-		COM_PTR<ID3D11Buffer>				iIndexBuffer;
-		COM_PTR<ID3D11Buffer>				iConstantBuffer;
-		COM_PTR<ID3D11Buffer>				iMaterialConstBuffer;
-		COM_PTR<ID3D11InputLayout>			iInputLayout;
-		COM_PTR<ID3D11VertexShader>			iVertexShader;
-		COM_PTR<ID3D11PixelShader>			iPixelShader;
-		COM_PTR<ID3D11RasterizerState>		iRasterizerStateWire;
-		COM_PTR<ID3D11RasterizerState>		iRasterizerStateSurface;
-		COM_PTR<ID3D11DepthStencilState>	iDepthStencilState;
+		mutable COM_PTR<ID3D11Buffer>				iVertexBuffer;
+		mutable COM_PTR<ID3D11Buffer>				iIndexBuffer;
+		mutable COM_PTR<ID3D11Buffer>				iConstantBuffer;
+		mutable COM_PTR<ID3D11Buffer>				iMaterialConstBuffer;
+		mutable COM_PTR<ID3D11InputLayout>			iInputLayout;
+		mutable COM_PTR<ID3D11VertexShader>			iVertexShader;
+		mutable COM_PTR<ID3D11PixelShader>			iPixelShader;
+		mutable COM_PTR<ID3D11RasterizerState>		iRasterizerStateSurface;
+		mutable COM_PTR<ID3D11RasterizerState>		iRasterizerStateWire;
+		mutable COM_PTR<ID3D11DepthStencilState>	iDepthStencilState;
 	#undef	COM_PTR
-		std::vector<Resource::Material>		materials;
-		bool	isEnableTexture;
+		std::vector<Subset>							subsets;
+		bool wasLoaded;
 	public:
 		StaticMesh( const std::wstring &objFileName, const std::string &vertexShaderCsoPath, const std::string &pixelShaderCsoPath );
 		virtual ~StaticMesh();
+	private:
+		void Init( const std::vector<Vertex> &connectedVertices, const std::vector<size_t> &connectedIndices, const std::vector<Subset> &subsets );
 	public:
+		/// <summary>
+		/// If failed load, or already loaded, returns false.<para></para>
+		/// Also doing initialize.
+		/// </summary>
+		bool LoadObjFile();
+
 		void Render
 		(
 			const DirectX::XMFLOAT4X4	&worldViewProjection,
@@ -100,7 +116,7 @@ namespace Donya
 			const DirectX::XMFLOAT4		&materialColor,
 			const DirectX::XMFLOAT4		&cameraPos,
 			bool isEnableFill = true
-		);
+		) const;
 	};
 
 }

@@ -505,6 +505,12 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 		ReserveLoadFile( JIGGLYPUFF );
 	}
+	if ( Donya::Keyboard::Press( 'O' ) && Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( 'J' ) && isAccept )
+	{
+		constexpr const char *OBJ_TEST = "D:\\D-Download\\ASSET_Models\\Free\\Distribution_OBJ\\Mr.Incredible\\Mr.Incredible.obj";
+
+		ReserveLoadFile( OBJ_TEST );
+	}
 	if ( Donya::Keyboard::Trigger( 'Q' ) && !meshes.empty() )
 	{
 		meshes.pop_back();
@@ -553,6 +559,9 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 #endif // USE_IMGUI && DEBUG_MODE
 }
 
+#if DEBUG_MODE
+#include "StaticMesh.h"
+#endif // DEBUG_MODE
 void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 {
 	// ClearRenderTargetView, ClearDepthStencilView
@@ -650,6 +659,25 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	for ( auto &it : meshes )
 	{
 		it.mesh.Render( worldViewProjection, world, cameraPos, light.color, light.direction, isSolidState );
+	}
+
+	{
+		auto InitializedStaticMesh = [&]( std::string fullPath )
+		{
+			Donya::Loader loader{};
+			loader.Load( fullPath, nullptr );
+
+			return Donya::StaticMesh::Create( loader );
+		};
+		static std::shared_ptr<Donya::StaticMesh> pStaticMeshFBX = InitializedStaticMesh( "D:\\Captures\\StaticTestFBX.bin" );
+		static std::shared_ptr<Donya::StaticMesh> pStaticMeshOBJ = InitializedStaticMesh( "D:\\Captures\\StaticTestOBJ.bin" );
+		if ( pStaticMeshFBX )
+		{
+			pStaticMeshFBX->Render( worldViewProjection, world, light.direction, light.color, cameraPos );
+		}
+
+		// static Donya::StaticMesh staticMesh{ L"D:\\D-Download\\ASSET_Models\\Free\\Distribution_OBJ\\Mr.Incredible\\Mr.Incredible.obj", "D:\\Develop\\Donya\\Shader\\Bin\\StaticMeshVS.cso", "D:\\Develop\\Donya\\Shader\\Bin\\StaticMeshPS.cso" };
+		// staticMesh.Render( worldViewProjection, world, light.direction, light.color, cameraPos );
 	}
 
 #if USE_IMGUI

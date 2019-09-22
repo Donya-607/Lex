@@ -301,6 +301,17 @@ namespace Donya
 
 		return std::string{ directory.get() };
 	}
+	std::wstring ExtractFileDirectoryFromFullPath( std::wstring fullPath )
+	{
+		return
+		MultiToWide
+		(
+			ExtractFileDirectoryFromFullPath
+			(
+				WideToMulti( fullPath )
+			)
+		);
+	}
 
 	std::string ExtractFileNameFromFullPath( std::string fullPath )
 	{
@@ -309,5 +320,16 @@ namespace Donya
 		// else
 
 		return fullPath.substr( fileDirectory.size() );
+	}
+	std::wstring ExtractFileNameFromFullPath( std::wstring fullPath )
+	{
+		return
+		MultiToWide
+		(
+			ExtractFileNameFromFullPath
+			(
+				WideToMulti( fullPath )
+			)
+		);
 	}
 }
