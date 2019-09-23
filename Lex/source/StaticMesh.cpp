@@ -28,14 +28,18 @@ namespace Donya
 		const std::vector<Loader::Mesh> *pLoadedMeshes = loader.GetMeshes();
 		size_t loadedMeshCount = pLoadedMeshes->size();
 
+		// These will be pass to Init().
 		std::vector<std::vector<Vertex>> verticesPerMesh{};
 		std::vector<std::vector<size_t>> indicesPerMesh{};
-
-		std::vector<StaticMesh::Subset> subsets{};
-		subsets.resize( loadedMeshCount );
+		std::vector<Mesh> meshes{};	// Store data of coordinateConversion, globalTransform, subsets.
+		meshes.resize( loadedMeshCount );
 		for ( size_t i = 0; i < loadedMeshCount; ++i )
 		{
-			auto &loadedMesh = ( *pLoadedMeshes )[i];
+			auto &loadedMesh	= ( *pLoadedMeshes )[i];
+			auto &currentMesh	= meshes[i];
+
+			currentMesh.coordinateConversion	= loadedMesh.coordinateConversion;
+			currentMesh.globalTransform		= loadedMesh.globalTransform;
 
 			std::vector<Vertex> vertices{};
 			{
@@ -57,11 +61,14 @@ namespace Donya
 			verticesPerMesh.emplace_back( vertices );
 			indicesPerMesh.emplace_back( loadedMesh.indices );
 
+			auto &currentSubsets = currentMesh.subsets;
+
 			size_t subsetCount = loadedMesh.subsets.size();
+			currentSubsets.resize( subsetCount );
 			for ( size_t j = 0; j < subsetCount; ++j )
 			{
-				auto &loadedSubset	= loadedMesh.subsets[j];
-				auto &mySubset		= subsets[i];
+				auto &loadedSubset		= loadedMesh.subsets[j];
+				auto &mySubset			= currentSubsets[j];
 
 				mySubset.indexStart		= loadedSubset.indexStart;
 				mySubset.indexCount		= loadedSubset.indexCount;
@@ -90,38 +97,13 @@ namespace Donya
 				FetchMaterialContain( &mySubset.specular,	loadedSubset.specular	);
 				mySubset.specular.color.w = loadedSubset.specular.color.w;
 			}
+
 		} // meshs loop
-
-		// Connect vertices and indices by vertices-per-mesh, indices-per-mesh.
-		std::vector<Vertex> connectedVertices{};
-		std::vector<size_t> connectedIndices{};
-		{
-			for ( const auto &itr : verticesPerMesh )
-			{
-				for ( const auto &it : itr )
-				{
-					connectedVertices.emplace_back( it );
-				}
-			}
-
-			size_t currentIndicesCount = 0;
-			size_t indicesSize = indicesPerMesh.size();
-			for ( size_t i = 0; i < indicesSize; ++i )
-			{
-				auto &indices = indicesPerMesh[i];
-				for ( const auto &it : indices )
-				{
-					connectedIndices.emplace_back( currentIndicesCount + it );
-				}
-
-				currentIndicesCount += verticesPerMesh[i].size();
-			}
-		}
 
 		std::string csoPathVS = ( !pVSCsoPath ) ? "" : *pVSCsoPath;
 		std::string csoPathPS = ( !pPSCsoPath ) ? "" : *pPSCsoPath;
 		pInstance = std::make_shared<StaticMesh>( L"DOES_NOT_USE_OBJ_FILE", csoPathVS, csoPathPS );
-		pInstance->Init( connectedVertices, connectedIndices, subsets );
+		pInstance->Init( verticesPerMesh, indicesPerMesh, meshes );
 
 		return pInstance;
 	}
@@ -282,19 +264,19 @@ namespace Donya
 
 	StaticMesh::StaticMesh( const std::wstring &objFileName, const std::string &vertexShaderCsoPath, const std::string &pixelShaderCsoPath ) :
 		CSO_PATH_PS( pixelShaderCsoPath ), CSO_PATH_VS( vertexShaderCsoPath ), OBJ_FILE_PATH( objFileName ),
-		iVertexBuffer(), iIndexBuffer(), iConstantBuffer(), iMaterialConstBuffer(),
+		iConstantBuffer(), iMaterialConstBuffer(),
 		iInputLayout(), iVertexShader(), iPixelShader(),
 		iRasterizerStateSurface(), iRasterizerStateWire(), iDepthStencilState(),
-		subsets(),
+		meshes(),
 		wasLoaded( false )
 	{}
 	StaticMesh::~StaticMesh()
 	{
-		subsets.clear();
-		subsets.shrink_to_fit();
+		meshes.clear();
+		meshes.shrink_to_fit();
 	}
 
-	void StaticMesh::Init( const std::vector<Vertex> &connectedVertices, const std::vector<size_t> &connectedIndices, const std::vector<Subset> &argSubsets )
+	void StaticMesh::Init( const std::vector<std::vector<Vertex>> &verticesPerMesh, const std::vector<std::vector<size_t>> &indicesPerMesh, const std::vector<Mesh> &loadedMeshes )
 	{
 		if ( wasLoaded ) { return; }
 		// else
@@ -302,23 +284,29 @@ namespace Donya
 		HRESULT hr = S_OK;
 		ID3D11Device *pDevice = Donya::GetDevice();
 
+		// Copy variables, but ComPtr is not valid yet.
+		meshes = loadedMeshes;
+		const size_t MESH_COUNT = loadedMeshes.size();
+
 		// Create VertexBuffer
+		for ( size_t i = 0; i < MESH_COUNT; ++i )
 		{
 			hr = CreateVertexBuffer<Vertex>
 			(
 				pDevice,
-				connectedVertices,
-				iVertexBuffer.GetAddressOf()
+				verticesPerMesh[i],
+				meshes[i].iVertexBuffer.GetAddressOf()
 			);
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer." );
 		}
 		// Create IndexBuffer
+		for ( size_t i = 0; i < MESH_COUNT; ++i )
 		{
 			hr = CreateIndexBuffer
 			(
 				pDevice,
-				connectedIndices,
-				iIndexBuffer.GetAddressOf()
+				indicesPerMesh[i],
+				meshes[i].iIndexBuffer.GetAddressOf()
 			);
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Index-Buffer." );
 		}
@@ -427,7 +415,7 @@ namespace Donya
 		{
 			constexpr D3D11_SAMPLER_DESC samplerDesc = SamplerDesc();
 
-			auto CreateSamplerAndTextures = [&]( StaticMesh::Material *pMtl )
+			auto CreateSamplerAndTextures = [&pDevice, &samplerDesc]( StaticMesh::Material *pMtl )
 			{
 				size_t textureCount = pMtl->textures.size();
 				if ( !textureCount )
@@ -467,14 +455,16 @@ namespace Donya
 				}
 			};
 
-			subsets = argSubsets;
-			for ( auto &it : subsets )
+			for ( auto &mesh : meshes )
 			{
-				CreateSamplerAndTextures( &it.ambient	);
-				CreateSamplerAndTextures( &it.bump		);
-				CreateSamplerAndTextures( &it.diffuse	);
-				CreateSamplerAndTextures( &it.emissive	);
-				CreateSamplerAndTextures( &it.specular	);
+				for ( auto &subset : mesh.subsets )
+				{
+					CreateSamplerAndTextures( &subset.ambient	);
+					CreateSamplerAndTextures( &subset.bump		);
+					CreateSamplerAndTextures( &subset.diffuse	);
+					CreateSamplerAndTextures( &subset.emissive	);
+					CreateSamplerAndTextures( &subset.specular	);
+				}
 			}
 		}
 
@@ -490,10 +480,13 @@ namespace Donya
 		HRESULT hr = S_OK;
 		ID3D11Device *pDevice = Donya::GetDevice();
 
+		// Use only one mesh in obj-file.
+		meshes.clear();
+		meshes.emplace_back();
+		auto &mesh = meshes.back();
+
 		std::vector<Vertex>		vertices{};
 		std::vector<size_t>		indices{};
-
-		#pragma region Load OBJ-file
 
 		// Load obj-file
 		{
@@ -535,27 +528,25 @@ namespace Donya
 				};
 
 				size_t mtlCount = materials.size();
-				subsets.resize( mtlCount );
+				mesh.subsets.resize( mtlCount );
 				for ( size_t i = 0; i < mtlCount; ++i )
 				{
-					auto &subset = subsets[i];
+					auto &subset = mesh.subsets[i];
 					auto &mtl    = materials[i];
 
-					subset.indexCount = mtl.indexCount;
-					subset.indexStart = mtl.indexStart;
+					subset.indexCount		= mtl.indexCount;
+					subset.indexStart		= mtl.indexStart;
 
-					subset.ambient.color = ConvertColor( mtl.ambient );
-					subset.diffuse.color = ConvertColor( mtl.diffuse );
-					subset.specular.color = ConvertColor( mtl.specular );
-					subset.specular.color.w = mtl.shininess;
+					subset.ambient.color	= ConvertColor( mtl.ambient );
+					subset.diffuse.color	= ConvertColor( mtl.diffuse );
+					subset.specular.color	= ConvertColor( mtl.specular );
+					subset.specular.color.w	= mtl.shininess;
 
 					subset.diffuse.textures.emplace_back();
 					subset.diffuse.textures.back().fileName = Donya::WideToMulti( mtl.diffuseMap.mapName );
 				}
 			}
 		}
-
-		#pragma endregion
 
 		#pragma region Create Buffers
 		// Create VertexBuffer
@@ -564,7 +555,7 @@ namespace Donya
 			(
 				pDevice,
 				vertices,
-				iVertexBuffer.GetAddressOf()
+				mesh.iVertexBuffer.GetAddressOf()
 			);
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer." );
 		}
@@ -574,7 +565,7 @@ namespace Donya
 			(
 				pDevice,
 				indices,
-				iIndexBuffer.GetAddressOf()
+				mesh.iIndexBuffer.GetAddressOf()
 			);
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Index-Buffer." );
 		}
@@ -697,7 +688,7 @@ namespace Donya
 				}
 			};
 
-			for ( auto &it : subsets )
+			for ( auto &it : mesh.subsets )
 			{
 				CreateSamplerAndTextures( &it.ambient	);
 				CreateSamplerAndTextures( &it.bump		);
@@ -721,25 +712,6 @@ namespace Donya
 
 		// Common Settings
 		{
-			// Update ConstantBuffer.
-			{
-				ConstantBuffer cb;
-				cb.worldViewProjection	= worldViewProjection;
-				cb.world				= world;
-				cb.lightDirection		= lightDirection;
-				cb.materialColor		= materialColor;
-				cb.cameraPos			= cameraPos;
-
-				pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
-
-			}
-			pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
-			pImmediateContext->PSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
-
-			UINT stride = sizeof( Vertex );
-			UINT offset = 0;
-			pImmediateContext->IASetVertexBuffers( 0, 1, iVertexBuffer.GetAddressOf(), &stride, &offset );
-			pImmediateContext->IASetIndexBuffer( iIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
 			pImmediateContext->IASetInputLayout( iInputLayout.Get() );
 			pImmediateContext->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 
@@ -756,29 +728,63 @@ namespace Donya
 			pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xffffffff );
 		}
 
-		for ( const auto &it : subsets )
+		for ( const auto &mesh : meshes )
 		{
-			// Update Material Constant Buffer.
+			// Update ConstantBuffer.
 			{
-				MaterialConstBuffer mtlCB;
-				mtlCB.ambient  = it.ambient.color;
-				mtlCB.diffuse  = it.diffuse.color;
-				mtlCB.specular = it.specular.color;
+				auto Mul4x4 = []( const XMFLOAT4X4 &lhs, const XMFLOAT4X4 &rhs ) ->DirectX::XMFLOAT4X4
+				{
+					DirectX::XMFLOAT4X4 rv{};
+					DirectX::XMStoreFloat4x4
+					(
+						&rv,
+						DirectX::XMLoadFloat4x4( &lhs ) * DirectX::XMLoadFloat4x4( &rhs )
+					);
+					return rv;
+				};
+				const XMFLOAT4X4 &coordinateConversion	= mesh.coordinateConversion;
+				const XMFLOAT4X4 &globalTransform		= mesh.globalTransform;
 
-				pImmediateContext->UpdateSubresource( iMaterialConstBuffer.Get(), 0, nullptr, &mtlCB, 0, 0 );
+				ConstantBuffer cb;
+				cb.worldViewProjection	= Mul4x4( Mul4x4( coordinateConversion, globalTransform ), worldViewProjection );
+				cb.world				= Mul4x4( Mul4x4( coordinateConversion, globalTransform ), world );
+				cb.lightDirection		= lightDirection;
+				cb.materialColor		= materialColor;
+				cb.cameraPos			= cameraPos;
 
+				pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 			}
-			pImmediateContext->VSSetConstantBuffers( 1, 1, iMaterialConstBuffer.GetAddressOf() );
-			pImmediateContext->PSSetConstantBuffers( 1, 1, iMaterialConstBuffer.GetAddressOf() );
+			pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
+			pImmediateContext->PSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
 
-			// Note:Currently support only diffuse, and only one texture.
-			if ( it.diffuse.textures.empty() ) { continue; }
-			// else
+			UINT stride = sizeof( Vertex );
+			UINT offset = 0;
+			pImmediateContext->IASetVertexBuffers( 0, 1, mesh.iVertexBuffer.GetAddressOf(), &stride, &offset );
+			pImmediateContext->IASetIndexBuffer( mesh.iIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
 
-			pImmediateContext->PSSetSamplers( 0, 1, it.diffuse.iSampler.GetAddressOf() );
-			pImmediateContext->PSSetShaderResources( 0, 1, it.diffuse.textures[0].iSRV.GetAddressOf() );
+			for ( const auto &it : mesh.subsets )
+			{
+				// Update Material Constant Buffer.
+				{
+					MaterialConstBuffer mtlCB;
+					mtlCB.ambient  = it.ambient.color;
+					mtlCB.diffuse  = it.diffuse.color;
+					mtlCB.specular = it.specular.color;
 
-			pImmediateContext->DrawIndexed( it.indexCount, it.indexStart, 0 );
+					pImmediateContext->UpdateSubresource( iMaterialConstBuffer.Get(), 0, nullptr, &mtlCB, 0, 0 );
+				}
+				pImmediateContext->VSSetConstantBuffers( 1, 1, iMaterialConstBuffer.GetAddressOf() );
+				pImmediateContext->PSSetConstantBuffers( 1, 1, iMaterialConstBuffer.GetAddressOf() );
+
+				// Note:Currently support only diffuse, and only one texture.
+				if ( it.diffuse.textures.empty() ) { continue; }
+				// else
+
+				pImmediateContext->PSSetSamplers( 0, 1, it.diffuse.iSampler.GetAddressOf() );
+				pImmediateContext->PSSetShaderResources( 0, 1, it.diffuse.textures[0].iSRV.GetAddressOf() );
+
+				pImmediateContext->DrawIndexed( it.indexCount, it.indexStart, 0 );
+			}
 		}
 	}
 }

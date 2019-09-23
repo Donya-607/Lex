@@ -671,13 +671,12 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		};
 		static std::shared_ptr<Donya::StaticMesh> pStaticMeshFBX = InitializedStaticMesh( "D:\\Captures\\StaticTestFBX.bin" );
 		static std::shared_ptr<Donya::StaticMesh> pStaticMeshOBJ = InitializedStaticMesh( "D:\\Captures\\StaticTestOBJ.bin" );
-		if ( pStaticMeshFBX )
+		// if ( pStaticMeshFBX )
+		if ( pStaticMeshOBJ )
 		{
-			pStaticMeshFBX->Render( worldViewProjection, world, light.direction, light.color, cameraPos );
+			// pStaticMeshFBX->Render( worldViewProjection, world, light.direction, light.color, cameraPos );
+			pStaticMeshOBJ->Render( worldViewProjection, world, light.direction, light.color, cameraPos );
 		}
-
-		// static Donya::StaticMesh staticMesh{ L"D:\\D-Download\\ASSET_Models\\Free\\Distribution_OBJ\\Mr.Incredible\\Mr.Incredible.obj", "D:\\Develop\\Donya\\Shader\\Bin\\StaticMeshVS.cso", "D:\\Develop\\Donya\\Shader\\Bin\\StaticMeshPS.cso" };
-		// staticMesh.Render( worldViewProjection, world, light.direction, light.color, cameraPos );
 	}
 
 #if USE_IMGUI

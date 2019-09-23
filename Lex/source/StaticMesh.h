@@ -77,14 +77,43 @@ namespace Donya
 			Subset() : indexStart( NULL ), indexCount( NULL ), transparency( 0 ), ambient(), bump(), diffuse(), emissive(), specular()
 			{}
 		};
+		struct Mesh
+		{
+			DirectX::XMFLOAT4X4 coordinateConversion;
+			DirectX::XMFLOAT4X4 globalTransform;
+			Microsoft::WRL::ComPtr<ID3D11Buffer> iIndexBuffer;
+			Microsoft::WRL::ComPtr<ID3D11Buffer> iVertexBuffer;
+			std::vector<Subset> subsets;
+		public:
+			Mesh() :
+			coordinateConversion
+			(
+				{
+					1, 0, 0, 0,
+					0, 1, 0, 0,
+					0, 0, 1, 0,
+					0, 0, 0, 1
+				}
+			),
+			globalTransform
+			(
+				{
+					1, 0, 0, 0,
+					0, 1, 0, 0,
+					0, 0, 1, 0,
+					0, 0, 0, 1
+				}
+			),
+			iVertexBuffer(), iIndexBuffer(), subsets()
+			{}
+			Mesh( const Mesh & ) = default;
+		};
 	private:
 		const std::string  CSO_PATH_PS{};
 		const std::string  CSO_PATH_VS{};
 		const std::wstring OBJ_FILE_PATH{};
 
 	#define	COM_PTR Microsoft::WRL::ComPtr
-		mutable COM_PTR<ID3D11Buffer>				iVertexBuffer;
-		mutable COM_PTR<ID3D11Buffer>				iIndexBuffer;
 		mutable COM_PTR<ID3D11Buffer>				iConstantBuffer;
 		mutable COM_PTR<ID3D11Buffer>				iMaterialConstBuffer;
 		mutable COM_PTR<ID3D11InputLayout>			iInputLayout;
@@ -94,13 +123,13 @@ namespace Donya
 		mutable COM_PTR<ID3D11RasterizerState>		iRasterizerStateWire;
 		mutable COM_PTR<ID3D11DepthStencilState>	iDepthStencilState;
 	#undef	COM_PTR
-		std::vector<Subset>							subsets;
+		std::vector<Mesh>							meshes;
 		bool wasLoaded;
 	public:
 		StaticMesh( const std::wstring &objFileName, const std::string &vertexShaderCsoPath, const std::string &pixelShaderCsoPath );
 		virtual ~StaticMesh();
 	private:
-		void Init( const std::vector<Vertex> &connectedVertices, const std::vector<size_t> &connectedIndices, const std::vector<Subset> &subsets );
+		void Init( const std::vector<std::vector<Vertex>> &verticesPerMesh, const std::vector<std::vector<size_t>> &indicesPerMesh, const std::vector<Mesh> &loadedMeshes );
 	public:
 		/// <summary>
 		/// If failed load, or already loaded, returns false.<para></para>
