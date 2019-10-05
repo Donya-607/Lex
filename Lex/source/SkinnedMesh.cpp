@@ -312,12 +312,12 @@ namespace Donya
 		if ( meshes.empty() ) { return; }
 		// else
 
-	#if USE_IMGUI && DEBUG_MODE
 		{
 			DirectX::XMFLOAT4X4 identity{}; DirectX::XMStoreFloat4x4( &identity, DirectX::XMMatrixIdentity() );
 			identity._11 = -1.0f;
 			static DirectX::XMFLOAT4X4 coordConversion = identity;	// I'm not want to initialize to identity every frame.
 
+		#if USE_IMGUI
 			if ( ImGui::BeginIfAllowed( "SkinnedMesh" ) )
 			// if ( ImGui::BeginIfAllowed() )
 			{
@@ -333,13 +333,13 @@ namespace Donya
 
 				ImGui::End();
 			}
+		#endif // USE_IMGUI
 
 			for ( auto &it : meshes )
 			{
 				it.coordinateConversion = coordConversion;
 			}
 		}
-	#endif // USE_IMGUI && DEBUG_MODE
 
 		ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
 

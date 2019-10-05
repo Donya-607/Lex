@@ -418,7 +418,7 @@ Donya::Vector3 Camera::ToWorldPos( const Donya::Vector2 &screenPos )
 	return onPlanePos;
 }
 
-#if DEBUG_MODE
+#if USE_IMGUI
 
 void Camera::ShowParametersToImGui()
 {
@@ -493,4 +493,4 @@ void Camera::ShowParametersToImGui()
 #endif // USE_IMGUI
 }
 
-#endif // DEBUG_MODE
+#endif // USE_IMGUI

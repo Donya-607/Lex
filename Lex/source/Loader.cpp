@@ -613,7 +613,7 @@ namespace Donya
 
 #endif // USE_FBX_SDK
 
-#if USE_IMGUI && DEBUG_MODE
+#if USE_IMGUI
 	void Loader::EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const
 	{
 		ImVec2 childFrameSize( 0.0f, 0.0f );
@@ -821,5 +821,5 @@ namespace Donya
 			}
 		} // meshes loop.
 	}
-#endif // USE_IMGUI && DEBUG_MODE
+#endif // USE_IMGUI
 }

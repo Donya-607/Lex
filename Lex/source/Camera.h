@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Common.h"	// Use DEBUG_MODE macro.
-
 #include "Quaternion.h"
+#include "UseImGui.h"	// Use USE_IMGUI macro.
 #include "Vector.h"
 
 class Camera
 {
+	static constexpr unsigned int PROGRAM_VERSION = 0;
 private:
 	enum class Mode
 	{
@@ -73,10 +73,10 @@ private:
 	void CalcDistToVirtualScreen();
 	Donya::Vector3 ToWorldPos( const Donya::Vector2 &screenPos );
 
-#if DEBUG_MODE
+#if USE_IMGUI
 
 public:
 	void ShowParametersToImGui();
 
-#endif // DEBUG_MODE
+#endif // USE_IMGUI
 };

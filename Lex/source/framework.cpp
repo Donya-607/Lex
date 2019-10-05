@@ -479,11 +479,11 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	{
 		std::string prePath  = "D:\\D-Download\\ASSET_Models\\Free\\Distribution_FBX\\BLue Falcon";
 		std::string number{};
-		if ( Donya::Keyboard::Trigger( '1' ) ) { number = "001"; }
-		if ( Donya::Keyboard::Trigger( '2' ) ) { number = "002"; }
-		if ( Donya::Keyboard::Trigger( '3' ) ) { number = "003"; }
-		if ( Donya::Keyboard::Trigger( '4' ) ) { number = "004"; }
-		if ( Donya::Keyboard::Trigger( '5' ) ) { number = "005"; }
+		if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( '1' ) ) { number = "001"; }
+		if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( '2' ) ) { number = "002"; }
+		if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( '3' ) ) { number = "003"; }
+		if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( '4' ) ) { number = "004"; }
+		if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( '5' ) ) { number = "005"; }
 		std::string postPath = "_cube.fbx";
 
 		if ( number != "" )
@@ -532,7 +532,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	Donya::Vector3 origin{ 0.0f, 0.0f, 0.0f };
 	camera.Update( origin );
 
-#if USE_IMGUI && DEBUG_MODE
+#if USE_IMGUI
 
 	if ( ImGui::BeginIfAllowed() )
 	{
@@ -556,7 +556,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		ImGui::End();
 	}
 
-#endif // USE_IMGUI && DEBUG_MODE
+#endif // USE_IMGUI
 }
 
 #if DEBUG_MODE
@@ -661,6 +661,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 		it.mesh.Render( worldViewProjection, world, cameraPos, light.color, light.direction, isSolidState );
 	}
 
+#if DEBUG_MODE
 	{
 		auto InitializedStaticMesh = [&]( std::string fullPath )
 		{
@@ -669,15 +670,16 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 			return Donya::StaticMesh::Create( loader );
 		};
-		static std::shared_ptr<Donya::StaticMesh> pStaticMeshFBX = InitializedStaticMesh( "D:\\Captures\\StaticTestFBX.bin" );
-		static std::shared_ptr<Donya::StaticMesh> pStaticMeshOBJ = InitializedStaticMesh( "D:\\Captures\\StaticTestOBJ.bin" );
-		// if ( pStaticMeshFBX )
-		if ( pStaticMeshOBJ )
+		static std::shared_ptr<Donya::StaticMesh> pStaticMeshFBX = InitializedStaticMesh( "D:\\Captures\\Player.bin" );
+		static std::shared_ptr<Donya::StaticMesh> pStaticMeshOBJ = InitializedStaticMesh( "D:\\Captures\\Box.bin" );
+		if ( pStaticMeshFBX )
+		// if ( pStaticMeshOBJ )
 		{
 			// pStaticMeshFBX->Render( worldViewProjection, world, light.direction, light.color, cameraPos );
-			pStaticMeshOBJ->Render( worldViewProjection, world, light.direction, light.color, cameraPos );
+			// pStaticMeshOBJ->Render( worldViewProjection, world, light.direction, light.color, cameraPos );
 		}
 	}
+#endif // DEBUG_MODE
 
 #if USE_IMGUI
 
@@ -995,7 +997,7 @@ void Framework::PutLimitMouseMoveArea()
 
 void Framework::ShowMouseInfo()
 {
-#if USE_IMGUI && DEBUG_MODE
+#if USE_IMGUI
 
 	if ( ImGui::BeginIfAllowed() )
 	{
@@ -1008,11 +1010,11 @@ void Framework::ShowMouseInfo()
 		ImGui::End();
 	}
 
-#endif // USE_IMGUI && DEBUG_MODE
+#endif // USE_IMGUI
 }
 void Framework::ShowModelInfo()
 {
-#if USE_IMGUI && DEBUG_MODE
+#if USE_IMGUI
 
 	if ( ImGui::BeginIfAllowed() )
 	{
@@ -1061,11 +1063,11 @@ void Framework::ShowModelInfo()
 		ImGui::End();
 	}
 
-#endif // USE_IMGUI && DEBUG_MODE
+#endif // USE_IMGUI
 }
 void Framework::ChangeLightByImGui()
 {
-#if USE_IMGUI && DEBUG_MODE
+#if USE_IMGUI 
 
 	if ( ImGui::BeginIfAllowed() )
 	{
@@ -1075,5 +1077,5 @@ void Framework::ChangeLightByImGui()
 		ImGui::End();
 	}
 
-#endif // USE_IMGUI && DEBUG_MODE
+#endif // USE_IMGUI
 }

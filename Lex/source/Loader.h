@@ -63,6 +63,7 @@ namespace Donya
 	/// </summary>
 	class Loader
 	{
+		static constexpr unsigned int PROGRAM_VERSION = 0;
 	private:
 		static constexpr const char *SERIAL_ID = "Loader";
 		static std::mutex cerealMutex;
