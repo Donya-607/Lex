@@ -59,6 +59,8 @@ namespace Donya
 
 #pragma endregion
 
+	std::string ToFullPath( std::string filePath );
+
 	/// <summary>
 	/// If fullPath is invalid, returns ""(You can error-check with std::string::empty());
 	/// </summary>

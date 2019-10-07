@@ -281,6 +281,19 @@ namespace Donya
 
 #pragma endregion
 
+	std::string ToFullPath( std::string filePath )
+	{
+		static std::mutex makePathMutex{};
+		std::lock_guard<std::mutex> lock( makePathMutex );
+
+		auto bufferSize = GetFullPathNameA( filePath.c_str(), NULL, NULL, nullptr );
+		std::unique_ptr<char[]> buffer = std::make_unique<char[]>( bufferSize );
+
+		/*auto result = */GetFullPathNameA( filePath.c_str(), bufferSize, buffer.get(), nullptr );
+
+		return std::string{ buffer.get() };
+	}
+
 	std::string ExtractFileDirectoryFromFullPath( std::string fullPath )
 	{
 		size_t pathLength = fullPath.size();

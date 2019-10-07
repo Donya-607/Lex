@@ -140,6 +140,8 @@ namespace Donya
 
 	bool Loader::Load( const std::string &filePath, std::string *outputErrorString )
 	{
+		std::string fullPath = ToFullPath( filePath );
+
 	#if USE_FBX_SDK
 
 		auto ShouldUseFBXSDK = []( const std::string &filePath )
@@ -161,9 +163,9 @@ namespace Donya
 			return false;
 		};
 
-		if ( ShouldUseFBXSDK( filePath ) )
+		if ( ShouldUseFBXSDK( fullPath ) )
 		{
-			return LoadByFBXSDK( filePath, outputErrorString );
+			return LoadByFBXSDK( fullPath, outputErrorString );
 		}
 		// else
 
@@ -187,10 +189,10 @@ namespace Donya
 			return "NOT FOUND";
 		};
 
-		auto resultExt = ShouldLoadByCereal( filePath );
+		auto resultExt = ShouldLoadByCereal( fullPath );
 		if ( !strcmp( ".bin", resultExt ) )
 		{
-			return LoadByCereal( filePath, outputErrorString );
+			return LoadByCereal( fullPath, outputErrorString );
 		}
 
 		return false;
