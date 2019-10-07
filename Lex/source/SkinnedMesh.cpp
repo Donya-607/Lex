@@ -71,19 +71,21 @@ namespace Donya
 				mySubset.indexCount		= loadedSubset.indexCount;
 				mySubset.transparency	= loadedSubset.transparency;
 
+				const std::string fileDirectory = loader->GetFileDirectory();
+
 				auto FetchMaterialContain =
-				[]( SkinnedMesh::Material *meshMtl, const Loader::Material &loadedMtl )
+				[&fileDirectory]( SkinnedMesh::Material *meshMtl, const Loader::Material &loadedMtl )
 				{
 					meshMtl->color.x = loadedMtl.color.x;
 					meshMtl->color.y = loadedMtl.color.y;
 					meshMtl->color.z = loadedMtl.color.z;
 					meshMtl->color.w = 1.0f;
 
-					size_t texCount = loadedMtl.textureNames.size();
+					size_t texCount = loadedMtl.relativeTexturePaths.size();
 					meshMtl->textures.resize( texCount );
 					for ( size_t i = 0; i < texCount; ++i )
 					{
-						meshMtl->textures[i].fileName = loadedMtl.textureNames[i];
+						meshMtl->textures[i].fileName = fileDirectory + loadedMtl.relativeTexturePaths[i];
 					}
 				};
 

@@ -117,16 +117,15 @@ namespace Donya
 		};
 	private:
 		std::vector<Mesh> meshes;
-	#define	COM_PTR Microsoft::WRL::ComPtr
-		COM_PTR<ID3D11Buffer>				iConstantBuffer;
-		COM_PTR<ID3D11Buffer>				iMaterialCBuffer;
-		COM_PTR<ID3D11InputLayout>			iInputLayout;
-		COM_PTR<ID3D11VertexShader>			iVertexShader;
-		COM_PTR<ID3D11PixelShader>			iPixelShader;
-		COM_PTR<ID3D11RasterizerState>		iRasterizerStateWire;
-		COM_PTR<ID3D11RasterizerState>		iRasterizerStateSurface;
-		COM_PTR<ID3D11DepthStencilState>	iDepthStencilState;
-	#undef	COM_PTR
+		template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
+		ComPtr<ID3D11Buffer>			iConstantBuffer;
+		ComPtr<ID3D11Buffer>			iMaterialCBuffer;
+		ComPtr<ID3D11InputLayout>		iInputLayout;
+		ComPtr<ID3D11VertexShader>		iVertexShader;
+		ComPtr<ID3D11PixelShader>		iPixelShader;
+		ComPtr<ID3D11RasterizerState>	iRasterizerStateWire;
+		ComPtr<ID3D11RasterizerState>	iRasterizerStateSurface;
+		ComPtr<ID3D11DepthStencilState>	iDepthStencilState;
 	public:
 		SkinnedMesh();
 		~SkinnedMesh();

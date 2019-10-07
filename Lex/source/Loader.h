@@ -63,7 +63,7 @@ namespace Donya
 	/// </summary>
 	class Loader
 	{
-		static constexpr unsigned int PROGRAM_VERSION = 0;
+		static constexpr unsigned int PROGRAM_VERSION = 1;
 	private:
 		static constexpr const char *SERIAL_ID = "Loader";
 		static std::mutex cerealMutex;
@@ -77,9 +77,9 @@ namespace Donya
 		struct Material
 		{
 			Donya::Vector4 color;	// w channel is used as shininess by only specular.
-			std::vector<std::string> textureNames;
+			std::vector<std::string> relativeTexturePaths;
 		public:
-			Material() : color( 0, 0, 0, 0 ), textureNames()
+			Material() : color( 0, 0, 0, 0 ), relativeTexturePaths()
 			{}
 			Material( const Material &ref )
 			{
@@ -88,7 +88,7 @@ namespace Donya
 			Material &operator = ( const Material &ref )
 			{
 				color = ref.color;
-				textureNames = ref.textureNames;
+				relativeTexturePaths = ref.relativeTexturePaths;
 				return *this;
 			}
 			~Material()
@@ -101,7 +101,7 @@ namespace Donya
 				archive
 				(
 					CEREAL_NVP( color ),
-					CEREAL_NVP( textureNames )
+					CEREAL_NVP( relativeTexturePaths )
 				);
 				if ( 1 <= version )
 				{
@@ -287,9 +287,10 @@ namespace Donya
 		/// </summary>
 		void SaveByCereal( const std::string &filePath ) const;
 	public:
-		std::string GetAbsoluteFilePath()		const { return absFilePath;	}
-		std::string GetOnlyFileName()			const { return fileName;	}
-		const std::vector<Mesh> *GetMeshes()	const { return &meshes;		}
+		std::string GetAbsoluteFilePath()		const { return absFilePath;		}
+		std::string GetOnlyFileName()			const { return fileName;		}
+		std::string GetFileDirectory()			const { return fileDirectory;	}
+		const std::vector<Mesh> *GetMeshes()	const { return &meshes;			}
 	private:
 		bool LoadByCereal( const std::string &filePath, std::string *outputErrorString );
 		

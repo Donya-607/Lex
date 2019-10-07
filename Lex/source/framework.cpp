@@ -871,6 +871,7 @@ bool Framework::OpenCommonDialogAndFile()
 	ofn.hwndOwner		= hWnd;
 	ofn.lpstrFilter		= "FBX-file(*.fbx)\0*.fbx\0"
 						  "OBJ-file(*.obj)\0*.obj\0"
+						  "Binary-file(*.bin)\0*.bin\0"
 						  "\0";
 	ofn.lpstrFile		= chosenFilesFullPath;
 	ofn.nMaxFile		= MAX_PATH;

@@ -113,16 +113,16 @@ namespace Donya
 		const std::string  CSO_PATH_VS{};
 		const std::wstring OBJ_FILE_PATH{};
 
-	#define	COM_PTR Microsoft::WRL::ComPtr
-		mutable COM_PTR<ID3D11Buffer>				iConstantBuffer;
-		mutable COM_PTR<ID3D11Buffer>				iMaterialConstBuffer;
-		mutable COM_PTR<ID3D11InputLayout>			iInputLayout;
-		mutable COM_PTR<ID3D11VertexShader>			iVertexShader;
-		mutable COM_PTR<ID3D11PixelShader>			iPixelShader;
-		mutable COM_PTR<ID3D11RasterizerState>		iRasterizerStateSurface;
-		mutable COM_PTR<ID3D11RasterizerState>		iRasterizerStateWire;
-		mutable COM_PTR<ID3D11DepthStencilState>	iDepthStencilState;
-	#undef	COM_PTR
+		template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
+		mutable ComPtr<ID3D11Buffer>			iConstantBuffer;
+		mutable ComPtr<ID3D11Buffer>			iMaterialConstBuffer;
+		mutable ComPtr<ID3D11InputLayout>		iInputLayout;
+		mutable ComPtr<ID3D11VertexShader>		iVertexShader;
+		mutable ComPtr<ID3D11PixelShader>		iPixelShader;
+		mutable ComPtr<ID3D11RasterizerState>	iRasterizerStateSurface;
+		mutable ComPtr<ID3D11RasterizerState>	iRasterizerStateWire;
+		mutable ComPtr<ID3D11DepthStencilState>	iDepthStencilState;
+	
 		std::vector<Mesh>							meshes;
 		bool wasLoaded;
 	public:

@@ -215,6 +215,9 @@ namespace Donya
 		Serializer seria;
 		seria.Load( ext, filePath.c_str(), SERIAL_ID, *this );
 
+		// I should overwrite file-directory after load, because this will overwritten by Serializer::Load().
+		fileDirectory = ExtractFileDirectoryFromFullPath( filePath );
+
 		return true;
 	}
 
@@ -512,12 +515,13 @@ namespace Donya
 
 						if ( !fullPath.empty() )
 						{
-							pOutMtl->textureNames.push_back( fullPath );
+							relativePath = fullPath.substr( fileDirectory.size() );
+							pOutMtl->relativeTexturePaths.push_back( relativePath );
 						}
 					}
 					else
 					{
-						pOutMtl->textureNames.push_back( fileDirectory + relativePath );
+						pOutMtl->relativeTexturePaths.push_back( relativePath );
 					}
 				}
 			};
@@ -706,29 +710,24 @@ namespace Donya
 							{
 								ImGui::Text
 								(
-									"Color:[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]",
+									"Color:[X:%05.3f][Y:%05.3f][Z:%05.3f][W:%05.3f]",
 									mtl.color.x, mtl.color.y, mtl.color.z, mtl.color.w
 								);
 
-								size_t texCount = mtl.textureNames.size();
+								size_t texCount = mtl.relativeTexturePaths.size();
 								if ( !texCount )
 								{
 									ImGui::Text( "This material don't have texture." );
 									return;
 								}
 								// else
-								std::string fileName{};
 								for ( size_t i = 0; i < texCount; ++i )
 								{
-									auto &textureName = mtl.textureNames[i];
-									fileName =
-									( textureName.size() <= fileDirectory.size() )
-									? textureName
-									: textureName.substr( fileDirectory.size() );
+									auto &relativeTexturePath = mtl.relativeTexturePaths[i];
 
-									if ( !Donya::IsExistFile( textureName ) )
+									if ( !Donya::IsExistFile( fileDirectory + relativeTexturePath ) )
 									{
-										ImGui::Text( "!This texture was not found![%s]", textureName.c_str() );
+										ImGui::Text( "!This texture was not found![%s]", relativeTexturePath.c_str() );
 										continue;
 									}
 									// else
@@ -736,7 +735,7 @@ namespace Donya
 									ImGui::Text
 									(
 										"Texture No.%d:[%s]",
-										i, fileName.c_str()
+										i, relativeTexturePath.c_str()
 									);
 								}
 							};
@@ -776,9 +775,9 @@ namespace Donya
 								ImGui::TreePop();
 							}
 
-							ImGui::Text( "Transparency:[%6.3f]", subset.transparency );
+							ImGui::Text( "Transparency:[%06.3f]", subset.transparency );
 
-							ImGui::Text( "Reflection:[%6.3f]", subset.reflection );
+							ImGui::Text( "Reflection:[%06.3f]", subset.reflection );
 
 							ImGui::TreePop();
 						}
