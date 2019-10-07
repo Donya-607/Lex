@@ -362,8 +362,7 @@ namespace Donya
 					iVertexShader.GetAddressOf(),
 					iInputLayout.GetAddressOf(),
 					inputElementDescs.data(),
-					inputElementDescs.size(),
-					/* enableCache = */ true
+					inputElementDescs.size()
 				);
 			}
 		}
@@ -377,7 +376,8 @@ namespace Donya
 					DefaultShaderNamePS(),
 					DefaultShaderSourceCode(),
 					DefaultShaderEntryPointPS(),
-					iPixelShader.GetAddressOf()
+					iPixelShader.GetAddressOf(),
+					/* enableCache = */ false
 				);
 			}
 			else
@@ -387,7 +387,7 @@ namespace Donya
 					pDevice,
 					CSO_PATH_PS.c_str(), "rb",
 					iPixelShader.GetAddressOf(),
-					/* enableCache = */ true
+					/* enableCache = */ false
 				);
 			}
 		}
@@ -443,7 +443,8 @@ namespace Donya
 				(
 					pDevice,
 					&pMtl->iSampler,
-					samplerDesc
+					samplerDesc,
+					/* enableCache = */ false
 				);
 				for ( size_t i = 0; i < textureCount; ++i )
 				{
@@ -453,7 +454,8 @@ namespace Donya
 						pDevice,
 						Donya::MultiToWide( tex.fileName ),
 						tex.iSRV.GetAddressOf(),
-						&tex.texture2DDesc
+						&tex.texture2DDesc,
+						/* enableCache = */ false
 					);
 				}
 			};

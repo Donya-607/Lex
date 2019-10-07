@@ -196,7 +196,7 @@ namespace Donya
 				pDevice,
 				"./Shader/SkinnedMeshPS.cso", "rb",
 				iPixelShader.GetAddressOf(),
-				/* enableCache = */ true
+				/* enableCache = */ false
 			);
 		}
 		// Create Rasterizer States
@@ -250,8 +250,7 @@ namespace Donya
 			samplerDesc.MinLOD			= 0;
 			samplerDesc.MaxLOD			= D3D11_FLOAT32_MAX;
 
-			auto CreateSamplerAndTextures =
-			[&]( SkinnedMesh::Material *pMtl )
+			auto CreateSamplerAndTextures = [&]( SkinnedMesh::Material *pMtl )
 			{
 				size_t textureCount = pMtl->textures.size();
 				if ( !textureCount )
@@ -276,7 +275,8 @@ namespace Donya
 				(
 					pDevice,
 					&pMtl->iSampler,
-					samplerDesc
+					samplerDesc,
+					/* enableCache = */ false
 				);
 				for ( size_t i = 0; i < textureCount; ++i )
 				{
@@ -286,7 +286,8 @@ namespace Donya
 						pDevice,
 						Donya::MultiToWide( tex.fileName ),
 						tex.iSRV.GetAddressOf(),
-						&tex.texture2DDesc
+						&tex.texture2DDesc,
+						/* enableCache = */ false
 					);
 				}
 			};

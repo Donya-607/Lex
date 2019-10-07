@@ -462,16 +462,6 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 		bool breakPoint{};
 	}
 
-	if ( Donya::Keyboard::Trigger( 'T' ) )
-	{
-		Donya::TogguleShowStateOfImGui();
-	}
-
-	if ( Donya::Keyboard::Trigger( 'R' ) )
-	{
-		camera.SetToHomePosition( { 0.0f, 0.0f, -16.0f } );
-	}
-
 	// bool isAccept = meshes.empty();
 	bool isAccept = true;
 
@@ -517,6 +507,16 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	}
 
 #endif // DEBUG_MODE
+	
+	if ( Donya::Keyboard::Trigger( 'T' ) )
+	{
+		Donya::TogguleShowStateOfImGui();
+	}
+
+	if ( Donya::Keyboard::Trigger( 'R' ) )
+	{
+		camera.SetToHomePosition( { 0.0f, 0.0f, -16.0f } );
+	}
 
 	if ( Donya::Keyboard::Trigger( 'F' ) && !Donya::Keyboard::Press( 'B' ) )
 	{
