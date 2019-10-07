@@ -439,7 +439,7 @@ bool Framework::Init()
 
 	#pragma endregion
 
-	camera.SetToHomePosition( { 0.0f, 0.0f, -16.0f} );
+	camera.SetToHomePosition( { 16.0f, 16.0f, -16.0f }, { 0.0f, 0.0f, 0.0f } );
 	camera.SetPerspectiveProjectionMatrix( Common::ScreenWidthF() / Common::ScreenHeightF() );
 
 	return true;
@@ -515,7 +515,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 
 	if ( Donya::Keyboard::Trigger( 'R' ) )
 	{
-		camera.SetToHomePosition( { 0.0f, 0.0f, -16.0f } );
+		camera.SetToHomePosition( { 16.0f, 16.0f, -16.0f }, { 0.0f, 0.0f, 0.0f } );
 	}
 
 	if ( Donya::Keyboard::Trigger( 'F' ) && !Donya::Keyboard::Press( 'B' ) )

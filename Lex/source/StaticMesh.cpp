@@ -88,7 +88,7 @@ namespace Donya
 					meshMtl->textures.resize( texCount );
 					for ( size_t i = 0; i < texCount; ++i )
 					{
-						meshMtl->textures[i].fileName = loadedMtl.relativeTexturePaths[i];
+						meshMtl->textures[i].fileName = fileDirectory + loadedMtl.relativeTexturePaths[i];
 					}
 				};
 

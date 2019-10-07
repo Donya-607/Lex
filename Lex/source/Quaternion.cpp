@@ -2,6 +2,7 @@
 
 #include <array>
 
+#include "Common.h"
 #include "Useful.h"	// Using Donya::Equal()
 
 using namespace Donya;
@@ -131,6 +132,46 @@ namespace Donya
 		return Vector3{ x, y, z };
 	}
 
+	Vector3 Quaternion::GetEulerAngles() const
+	{
+		// from https://stackoverflow.com/questions/15187309/quaternion-euler?rq=1
+
+		Quaternion unitQ = *this;
+		unitQ.Normalize();
+
+		constexpr float RANGE	= 0.4999f; // 0.4999f or 0.5f - EPSILON
+		constexpr float HALF_PI	= PI / 2.0f;
+
+		Vector3 v{};
+
+		float test = unitQ.x * unitQ.y + unitQ.z * unitQ.w;
+		if ( RANGE < test )		// Singularity at north pole.
+		{
+			v.y = 2.0f * atan2f( unitQ.x, unitQ.w );
+			v.z = HALF_PI;
+			v.x = 0.0F;
+			return v;
+		}
+		// else
+		if ( test < -RANGE )	// Singularity at south pole.
+		{
+			v.y = -2.0f * atan2f( unitQ.x, unitQ.w );
+			v.z = -HALF_PI;
+			v.x = 0.0F;
+			return v;
+		}
+		// else
+
+		float sqX = unitQ.x * unitQ.x;
+		float sqY = unitQ.y * unitQ.y;
+		float sqZ = unitQ.z * unitQ.z;
+
+		v.y = atan2f( ( 2.0f * unitQ.y * unitQ.w ) - ( 2.0f * unitQ.x * unitQ.z ), 1.0f - ( 2.0f * sqY ) - ( 2.0f * sqZ ) );
+		v.z = asinf(  2.0f * test );
+		v.x = atan2f( ( 2.0f * unitQ.x * unitQ.w ) - ( 2.0f * unitQ.y * unitQ.z ), 1.0f - ( 2.0f * sqX ) - ( 2.0f * sqZ ) );
+		return v;
+	}
+
 	Vector3 Quaternion::RotateVector( const Donya::Vector3 &target ) const
 	{
 		Quaternion V{ target.x, target.y, target.z, 0.0f };
@@ -191,7 +232,34 @@ namespace Donya
 		return Q.Conjugate();
 	}
 
-	Quaternion Quaternion::Make( const Vector3 nAxis, float radTheta )
+	Quaternion Quaternion::Make( float pitch, float yaw, float roll )
+	{
+		// The radians should be halved.
+		pitch	*= 0.5f;
+		yaw		*= 0.5f;
+		roll	*= 0.5f;
+
+		float cP = cosf( pitch	);
+		float sP = sinf( pitch	);
+
+		float cY = cosf( yaw	);
+		float sY = sinf( yaw	);
+
+		float cR = cosf( roll	);
+		float sR = sinf( roll	);
+
+		// from https://stackoverflow.com/questions/15187309/quaternion-euler?rq=1
+		// ZYX.
+
+		Quaternion q{};
+		q.x = cY * sP * cR + sY * cP * sR;
+		q.y = sY * cP * cR - cY * sP * sR;
+		q.z = cY * cP * sR - sY * sP * cR;
+		q.w = cY * cP * cR + sY * sP * sR;
+		return q;
+	}
+
+	Quaternion Quaternion::Make( const Vector3 &nAxis, float radTheta )
 	{
 		float sin = sinf( radTheta * 0.5f );
 		float cos = cosf( radTheta * 0.5f );
@@ -266,6 +334,23 @@ namespace Donya
 		return rv;
 	}
 
+	Quaternion Quaternion::LookAt( const Donya::Vector3 &lookDirection )
+	{
+		if ( lookDirection.IsZero() ) { return Identity(); }
+		// else
+
+		Vector3 front	= lookDirection;							front.Normalize();
+		Vector3 right	= Vector3::Cross( Vector3::Up(), front );	right.Normalize();
+		Vector3 up		= Vector3::Cross( front, right );			up.Normalize();
+
+		XMFLOAT4X4 matrix{}; XMStoreFloat4x4( &matrix, XMMatrixIdentity() );
+		matrix._11 = right.x;	matrix._12 = right.y;	matrix._13 = right.z;
+		matrix._21 = up.x;		matrix._22 = up.y;		matrix._23 = up.z;
+		matrix._31 = front.x;	matrix._32 = front.y;	matrix._33 = front.z;
+
+		return Make( matrix );
+	}
+
 	Quaternion Quaternion::Identity()
 	{
 		return Quaternion{ 0.0f, 0.0f, 0.0f, 1.0f };
@@ -303,6 +388,11 @@ namespace Donya
 	Vector3 Quaternion::GetAxis( const Quaternion &Q )
 	{
 		return Q.GetAxis();
+	}
+
+	Vector3 Quaternion::GetEulerAngles( const Quaternion &Q )
+	{
+		return Q.GetEulerAngles();
 	}
 
 	Vector3 Quaternion::RotateVector( const Quaternion &R, const Donya::Vector3 &target )

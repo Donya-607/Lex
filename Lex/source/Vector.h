@@ -1,5 +1,4 @@
-#ifndef INCLUDED_VECTOR_H_
-#define INCLUDED_VECTOR_H_
+#pragma once
 
 #include <cstdint> // use for std::uint32_t
 #include <DirectXMath.h>
@@ -31,7 +30,7 @@ namespace Donya
 		template<class Archive>
 		void serialize( Archive &archive, std::uint32_t version )
 		{
-			archive( x, y );
+			archive( CEREAL_NVP( x ), CEREAL_NVP( y ) );
 		}
 	public:
 		Vector2 operator - () const { return Vector2{ -x, -y }; }
@@ -88,6 +87,20 @@ namespace Donya
 		float Length()   const { return sqrtf( LengthSq() ); }
 		float LengthSq() const { return ( x * x ) + ( y * y ); }
 		Vector2 Normalize();
+
+		/// <summary>
+		/// Returns [-pi ~ +pi].
+		/// </summary>
+		float Radian() const;
+		/// <summary>
+		/// Returns [-180.0f ~ +180.0f].
+		/// </summary>
+		float Degree() const;
+
+		/// <summary>
+		/// Is Zero-vector?
+		/// </summary>
+		bool IsZero() const;
 	public:
 		float Dot( const Vector2  &R ) const
 		{
@@ -155,7 +168,7 @@ namespace Donya
 		template<class Archive>
 		void serialize( Archive &archive, std::uint32_t version )
 		{
-			archive( x, y, z );
+			archive( CEREAL_NVP( x ), CEREAL_NVP( y ), CEREAL_NVP( z ) );
 		}
 	public:
 		Vector3 operator - () const { return Vector3{ -x, -y, -z }; }
@@ -220,6 +233,11 @@ namespace Donya
 		float Length()   const { return sqrtf( LengthSq() ); }
 		float LengthSq() const { return ( x * x ) + ( y * y ) + ( z * z ); }
 		Vector3 Normalize();
+
+		/// <summary>
+		/// Is Zero-vector?
+		/// </summary>
+		bool IsZero() const;
 	public:
 		float Dot( const Vector3  &R ) const
 		{
@@ -235,7 +253,7 @@ namespace Donya
 			{
 				( y * R.z ) - ( z * R.y ),
 				( z * R.x ) - ( x * R.z ),
-				( x * R.y ) - ( y * R.z )
+				( x * R.y ) - ( y * R.x )
 			};
 		}
 		Vector3 Cross( const XMFLOAT3 &R ) const
@@ -244,7 +262,7 @@ namespace Donya
 			{
 				( y * R.z ) - ( z * R.y ),
 				( z * R.x ) - ( x * R.z ),
-				( x * R.y ) - ( y * R.z )
+				( x * R.y ) - ( y * R.x )
 			};
 		}
 	public:
@@ -298,7 +316,7 @@ namespace Donya
 		template<class Archive>
 		void serialize( Archive &archive, const std::uint32_t version )
 		{
-			archive( x, y, z, w );
+			archive( CEREAL_NVP( x ), CEREAL_NVP( y ), CEREAL_NVP( z ), CEREAL_NVP( w ) );
 		}
 	public:
 		Vector4 operator - () const { return Vector4{ -x, -y, -z, -w }; }
@@ -410,6 +428,68 @@ namespace Donya
 
 #pragma endregion
 
-}
+#pragma region Int2
 
-#endif // !INCLUDED_VECTOR_H_
+	/// <summary>
+	/// Have x, y with int type.
+	/// </summary>
+	struct Int2
+	{
+		int x{};
+		int y{};
+	public:
+		Int2() : x( 0 ), y( 0 ) {}
+		Int2( int x, int y ) : x( x ), y( y ) {}
+	public:
+		Int2 operator += ( const Int2 &R )
+		{
+			x += R.x;
+			y += R.y;
+			return *this;
+		}
+		Int2 operator -= ( const Int2 &R )
+		{
+			x -= R.x;
+			y -= R.y;
+			return *this;
+		}
+	public:
+		/// <summary>
+		/// Convert by static_cast.
+		/// </summary>
+		Vector2 Float() const
+		{
+			return Donya::Vector2
+			{
+				static_cast<float>( x ),
+				static_cast<float>( y )
+			};
+		}
+	public:
+		/// <summary>
+		/// Convert by static_cast.
+		/// </summary>
+		static Int2 Create( const Vector2 &v )
+		{
+			return Donya::Int2
+			{
+				static_cast<int>( v.x ),
+				static_cast<int>( v.y )
+			};
+		}
+	};
+
+	static Int2 operator + ( const Int2 &L, const Int2 &R ) { return ( Int2( L ) += R ); }
+	static Int2 operator - ( const Int2 &L, const Int2 &R ) { return ( Int2( L ) -= R ); }
+
+	static bool operator == ( const Int2 &L, const Int2 &R )
+	{
+		if ( L.x != R.x ) { return false; }
+		if ( L.y != R.y ) { return false; }
+		return true;
+	}
+	static bool operator != ( const Int2 &L, const Int2 &R ) { return !( L == R ); }
+
+#pragma endregion
+
+}

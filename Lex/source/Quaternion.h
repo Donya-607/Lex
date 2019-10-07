@@ -46,7 +46,7 @@ namespace Donya
 		float Norm() const;
 
 		/// <summary>
-		/// Q /= |Q| (0 < |Q|)
+		/// Q /= |Q| (0 ;gt |Q|)
 		/// </summary>
 		void Normalize();
 
@@ -64,6 +64,11 @@ namespace Donya
 		/// 
 		/// </summary>
 		Donya::Vector3 GetAxis() const;
+
+		/// <summary>
+		/// Returns angles are radian.
+		/// </summary>
+		Donya::Vector3 GetEulerAngles() const;
 
 		/// <summary>
 		/// Returns = Q * V * Q*
@@ -99,14 +104,24 @@ namespace Donya
 		static Quaternion Conjugate( const Quaternion & );
 
 		/// <summary>
+		/// Make quaternion from euler angles(radian) : pitch(rotate axis is x), yaw(rotate axis is y), roll(rotate axis is z).<para></para>
+		/// The order of synthesis the angles is "ZYX".
+		/// </summary>
+		static Quaternion Make( float pitch, float yaw, float roll );
+		/// <summary>
 		/// Make quaternion from rotation-axis(please normalize) and rotation-theta(radian).
 		/// </summary>
-		static Quaternion Make( const Donya::Vector3 normalizedAxis, float radianTheta );
+		static Quaternion Make( const Donya::Vector3 &normalizedAxis, float radianTheta );
 		/// <summary>
 		/// Make quaternion from rotation-matrix.<para></para>
 		/// If passed wrong matrix, I returns Quaternion::Identity().
 		/// </summary>
 		static Quaternion Make( const DirectX::XMFLOAT4X4 &rotationMatrix );
+
+		/// <summary>
+		/// Create a quaternion of rotates in the "lookDirection".
+		/// </summary>
+		static Quaternion LookAt( const Donya::Vector3 &lookDirection );
 
 		/// <summary>
 		/// Returns Quaternion{ 0.0f, 0.0f, 0.0f, 1.0f }.
@@ -119,7 +134,7 @@ namespace Donya
 		static Quaternion Inverse( const Quaternion & );
 
 		/// <summary>
-		/// 
+		/// The time is 0.0f ~ 1.0f.
 		/// </summary>
 		static Quaternion Slerp( const Quaternion &beginNormalized, const Quaternion &endNormalized, float time );
 
@@ -127,6 +142,11 @@ namespace Donya
 		/// 
 		/// </summary>
 		static Donya::Vector3 GetAxis( const Quaternion & );
+
+		/// <summary>
+		/// Returns angles are radian.
+		/// </summary>
+		static Donya::Vector3 GetEulerAngles( const Quaternion & );
 
 		/// <summary>
 		/// Returns = Q * V * Q*
