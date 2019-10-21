@@ -429,7 +429,6 @@ namespace Donya
 				};
 
 				ConstantBuffer cb;
-				// Note:Multiply order of "coordinateConversion" and "globalTransform" is inverse ?
 				cb.worldViewProjection	= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), worldViewProjection );
 				cb.world				= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), world );
 				SetDummyBoneTransforms( &cb.boneTransforms );

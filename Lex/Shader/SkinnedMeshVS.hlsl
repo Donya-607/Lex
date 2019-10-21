@@ -37,10 +37,12 @@ void ApplyBoneMatrices( uint4 boneIndices, float4 boneWeights, inout float4 inou
 	float3 resultPos		= { 0, 0, 0 };
 	float3 resultNormal		= { 0, 0, 0 };
 
+	float weight = 0;
+	row_major float4x4 transform = 0;
 	for ( int i = 0; i < 4/* float4 */; ++i )
 	{
-		const float		weight		= boneWeights[i];
-		const float4x4	transform	= boneTransforms[boneIndices[i]];
+		weight			= boneWeights[i];
+		transform		= boneTransforms[boneIndices[i]];
 
 		resultPos		+= ( weight * mul( inPosition,	transform ) ).xyz;
 		resultNormal	+= ( weight * mul( inNormal,	transform ) ).xyz;
