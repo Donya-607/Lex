@@ -21,7 +21,8 @@ namespace Donya
 		/// </summary>
 		static bool Create( const Loader *loader, SkinnedMesh *pOutput );
 	public:
-		static constexpr const int MAX_BONE_INFLUENCES = 4;
+		static constexpr const int MAX_BONE_COUNT		= 32;
+		static constexpr const int MAX_BONE_INFLUENCES	= 4;
 		struct Vertex
 		{
 			DirectX::XMFLOAT3	pos{};
@@ -35,6 +36,7 @@ namespace Donya
 		{
 			DirectX::XMFLOAT4X4	worldViewProjection;
 			DirectX::XMFLOAT4X4	world;
+			std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> boneTransforms;
 			// DirectX::XMFLOAT4	eyePosition;
 			DirectX::XMFLOAT4	lightColor;
 			DirectX::XMFLOAT4	lightDir;

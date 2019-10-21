@@ -6,10 +6,13 @@ struct VS_OUT
 	float2 texCoord	: TEXCOORD1;
 };
 
+static const int MAX_BONE_COUNT = 32;
+
 cbuffer CONSTANT_BUFFER : register( b0 )
 {
 	row_major float4x4	worldViewProjection;
 	row_major float4x4	world;
+	row_major float4x4	boneTransforms[MAX_BONE_COUNT];
 	float4				lightColor;
 	float4				lightDir;
 };

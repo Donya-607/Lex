@@ -7,6 +7,12 @@
 #include "Resource.h"
 #include "Useful.h"
 
+#if DEBUG_MODE
+
+#include "Keyboard.h"
+
+#endif // DEBUG_MODE
+
 using namespace DirectX;
 
 namespace Donya
@@ -391,8 +397,7 @@ namespace Donya
 		{
 			// Update Constant Buffer
 			{
-				auto Mul4x4 =
-				[]( const DirectX::XMFLOAT4X4 &lhs, const DirectX::XMFLOAT4X4 &rhs )
+				auto Mul4x4 = []( const DirectX::XMFLOAT4X4 &lhs, const DirectX::XMFLOAT4X4 &rhs )
 				->DirectX::XMFLOAT4X4
 				{
 					DirectX::XMFLOAT4X4 rv{};
@@ -404,9 +409,30 @@ namespace Donya
 					return rv;
 				};
 
+				auto SetDummyBoneTransforms = []( std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> *pTransforms )->void
+				{
+					static float yawAngle  = 0; // Radian.
+					static float rollAngle = 0; // Radian.
+				#if DEBUG_MODE
+
+					constexpr float ROT_SPEED = ToRadian( 1.0f );
+					if ( Donya::Keyboard::Press( VK_DOWN  ) ) { rollAngle -= ROT_SPEED; }
+					if ( Donya::Keyboard::Press( VK_UP    ) ) { rollAngle += ROT_SPEED; }
+					if ( Donya::Keyboard::Press( VK_LEFT  ) ) { yawAngle  -= ROT_SPEED; }
+					if ( Donya::Keyboard::Press( VK_RIGHT ) ) { yawAngle  += ROT_SPEED; }
+
+				#endif // DEBUG_MODE
+
+					DirectX::XMStoreFloat4x4( &( ( *pTransforms )[0] ), DirectX::XMMatrixIdentity() );
+					DirectX::XMStoreFloat4x4( &( ( *pTransforms )[1] ), DirectX::XMMatrixRotationRollPitchYaw( 0.0f, yawAngle, rollAngle ) );
+					DirectX::XMStoreFloat4x4( &( ( *pTransforms )[2] ), DirectX::XMMatrixIdentity() );
+				};
+
 				ConstantBuffer cb;
-				cb.worldViewProjection	= Mul4x4( Mul4x4( mesh.coordinateConversion, mesh.globalTransform ), worldViewProjection );
-				cb.world				= Mul4x4( Mul4x4( mesh.coordinateConversion, mesh.globalTransform ), world );
+				// Note:Multiply order of "coordinateConversion" and "globalTransform" is inverse ?
+				cb.worldViewProjection	= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), worldViewProjection );
+				cb.world				= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), world );
+				SetDummyBoneTransforms( &cb.boneTransforms );
 				cb.lightColor			= lightColor;
 				cb.lightDir				= lightDirection;
 				// cb.eyePosition			= eyePosition;
