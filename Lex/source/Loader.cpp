@@ -65,6 +65,16 @@ namespace Donya
 			scast<float>( source.mData[3] )
 		};
 	}
+	void ConvertFloat4x4( DirectX::XMFLOAT4X4 *pOutput, const FBX::FbxAMatrix &affineMatrix )
+	{
+		for ( int r = 0; r < 4; ++r )
+		{
+			for ( int c = 0; c < 4; ++c )
+			{
+				pOutput->m[r][c] = scast<float>( affineMatrix[r][c] );
+			}
+		}
+	}
 
 	void Traverse( FBX::FbxNode *pNode, std::vector<FBX::FbxNode *> *pFetchedMeshes )
 	{
@@ -94,7 +104,7 @@ namespace Donya
 		}
 	}
 
-	void FetchBoneInfluences( const fbxsdk::FbxMesh *pMesh, std::vector<Loader::BoneInfluencesPerControlPoint> &influences )
+	void FetchBoneInfluences( const FBX::FbxMesh *pMesh, std::vector<Loader::BoneInfluencesPerControlPoint> &influences )
 	{
 		const int ctrlPointCount = pMesh->GetControlPointsCount();
 		influences.resize( ctrlPointCount );
@@ -133,6 +143,64 @@ namespace Donya
 			FBX::FbxSkin *pSkin = scast<FBX::FbxSkin *>( pMesh->GetDeformer( i, FBX::FbxDeformer::eSkin ) );
 			
 			FetchClusterFromSkin( influences, pSkin );
+		}
+	}
+	void FetchBoneMatrices( FBX::FbxTime time, const FBX::FbxMesh *pMesh, std::vector<Loader::Bone> *pSkeletal )
+	{
+		auto FetchMatricesFromSkin = []( FBX::FbxTime time, const FBX::FbxMesh *pMesh, const FBX::FbxSkin *pSkin, std::vector<Loader::Bone> *pSkeletal )
+		{
+			const int clusterCount = pSkin->GetClusterCount();
+
+		#define APPEND ( false )
+		#if APPEND
+			const size_t oldSkeletalCount = pSkeletal->size();
+			pSkeletal->resize( scast<size_t>( clusterCount ) + oldSkeletalCount );
+		#else
+			pSkeletal->resize( scast<size_t>( clusterCount ) );
+		#endif // APPEND
+		#undef APPEND
+
+			for ( int i = 0; i < clusterCount; ++i )
+			{
+				Loader::Bone &bone = pSkeletal->at( i );
+
+				// Each joint.
+				const FbxCluster *pCluster = pSkin->GetCluster( i );
+
+				// This matrix transforms coordinates of the initial pose from mesh space to global space.
+				FBX::FbxAMatrix reference_global_init_position;
+				pCluster->GetTransformMatrix( reference_global_init_position );
+
+				// This matrix transforms coordinates of the initial pose from bone space to global space.
+				FBX::FbxAMatrix cluster_global_init_position;
+				pCluster->GetTransformLinkMatrix( cluster_global_init_position );
+
+				// This matrix transforms coordinates of the current pose from mesh space to global space.
+				FBX::FbxAMatrix reference_global_current_position;
+				reference_global_current_position = pMesh->GetNode()->EvaluateGlobalTransform( time );
+
+				// This matrix transforms coordinates of the current pose from bone space to global space.
+				FBX::FbxAMatrix cluster_global_current_position;
+				cluster_global_current_position = pCluster->GetLink()->EvaluateGlobalTransform( time );
+
+				// FbxAMatrix is column-major, so multiply from right side.
+				// "initial : mesh->global->bone", "current : bone->global->mesh"
+				// First, transform to initial bone space from initial mesh space.
+				// Then,  transfrom to current mesh space from initial bone space.
+
+				FBX::FbxAMatrix transform = reference_global_current_position.Inverse() * cluster_global_current_position
+					* cluster_global_init_position.Inverse() * reference_global_init_position;
+
+				// convert FbxAMatrix(transform) to XMFLOAT4X4(bone.transform) 
+			}
+		};
+
+		const int deformersCount = pMesh->GetDeformerCount( FBX::FbxDeformer::eSkin );
+		for ( int i = 0; i < deformersCount; ++i )
+		{
+			FBX::FbxSkin *pSkin = scast<FBX::FbxSkin *>( pMesh->GetDeformer( i, FBX::FbxDeformer::eSkin ) );
+
+			FetchMatricesFromSkin( time, pMesh, pSkin, pSkeletal );
 		}
 	}
 
@@ -601,16 +669,6 @@ namespace Donya
 		}
 	}
 
-	void ConvertFloat4x4( DirectX::XMFLOAT4X4 *pOutput, const FBX::FbxAMatrix &affineMatrix )
-	{
-		for ( int r = 0; r < 4; ++r )
-		{
-			for ( int c = 0; c < 4; ++c )
-			{
-				pOutput->m[r][c] = scast<float>( affineMatrix[r][c] );
-			}
-		}
-	}
 	void Loader::FetchGlobalTransform( size_t meshIndex, const fbxsdk::FbxMesh *pMesh )
 	{
 		FBX::FbxAMatrix globalTransform = pMesh->GetNode()->EvaluateGlobalTransform( 0 );

@@ -146,6 +146,11 @@ namespace Donya
 			}
 		};
 
+		struct Bone
+		{
+			DirectX::XMFLOAT4X4 transform{};
+		};
+
 		struct BoneInfluence
 		{
 			int		index{};
@@ -201,6 +206,7 @@ namespace Donya
 			std::vector<Donya::Vector3>	normals;
 			std::vector<Donya::Vector3>	positions;
 			std::vector<Donya::Vector2>	texCoords;
+			std::vector<Bone>			skeletal;
 			std::vector<BoneInfluencesPerControlPoint>	influences;
 		public:
 			Mesh() : coordinateConversion
@@ -221,7 +227,8 @@ namespace Donya
 					0, 0, 0, 1
 				}
 			),
-			subsets(), indices(), normals(), positions(), texCoords()
+			subsets(), indices(), normals(), positions(), texCoords(),
+			skeletal(), influences()
 			{}
 			Mesh( const Mesh & ) = default;
 		private:
@@ -259,19 +266,19 @@ namespace Donya
 		friend class cereal::access;
 		template<class Archive>
 		void serialize( Archive &archive, std::uint32_t version )
+		{
+			archive
+			(
+				CEREAL_NVP( absFilePath ),
+				CEREAL_NVP( fileName ),
+				CEREAL_NVP( fileDirectory ),
+				CEREAL_NVP( meshes )
+			);
+			if ( 1 <= version )
 			{
-				archive
-				(
-					CEREAL_NVP( absFilePath ),
-					CEREAL_NVP( fileName ),
-					CEREAL_NVP( fileDirectory ),
-					CEREAL_NVP( meshes )
-				);
-				if ( 1 <= version )
-				{
-					// archive();
-				}
+				// archive();
 			}
+		}
 	public:
 		/// <summary>
 		/// We can those load file extensions:<para></para>

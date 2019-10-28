@@ -87,13 +87,19 @@ namespace Donya
 			{}
 		};
 
+		struct Bone
+		{
+			DirectX::XMFLOAT4X4 transform{};
+		};
+
 		struct Mesh
 		{
 			DirectX::XMFLOAT4X4 coordinateConversion;
 			DirectX::XMFLOAT4X4 globalTransform;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> iIndexBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> iVertexBuffer;
-			std::vector<Subset> subsets;
+			std::vector<Subset>	subsets;
+			std::vector<Bone>	skeletal;
 		public:
 			Mesh() : coordinateConversion
 			(
@@ -113,7 +119,8 @@ namespace Donya
 					0, 0, 0, 1
 				}
 			),
-			iVertexBuffer(), iIndexBuffer(), subsets()
+			iVertexBuffer(), iIndexBuffer(),
+			subsets(), skeletal()
 			{}
 			Mesh( const Mesh & ) = default;
 		};

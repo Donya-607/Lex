@@ -428,7 +428,7 @@ namespace Donya
 					DirectX::XMStoreFloat4x4( &( ( *pTransforms )[2] ), DirectX::XMMatrixIdentity() );
 				};
 
-				ConstantBuffer cb;
+				ConstantBuffer cb{};
 				cb.worldViewProjection	= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), worldViewProjection );
 				cb.world				= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), world );
 				SetDummyBoneTransforms( &cb.boneTransforms );
