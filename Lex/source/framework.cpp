@@ -566,7 +566,7 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 {
 	// ClearRenderTargetView, ClearDepthStencilView
 	{
-		const FLOAT fillColor[4] = { 0.1f, 0.2f, 0.1f, 1.0f };	// RGBA
+		const FLOAT fillColor[4] = { 0.45f, 0.45f, 0.45f, 1.0f };	// RGBA
 		Donya::GetImmediateContext()->ClearRenderTargetView
 		(
 			d3dRenderTargetView.Get(),
