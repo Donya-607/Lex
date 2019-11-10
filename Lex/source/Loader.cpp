@@ -207,6 +207,51 @@ namespace Donya
 			FetchMatricesFromSkin( time, pMesh, pSkin, pSkeletal );
 		}
 	}
+	void FetchMotion( unsigned int samplingRate, const FBX::FbxMesh *pMesh, Loader::Motion *pMotion )
+	{
+		// Get the list of all the animation stack. 
+		FbxArray<FbxString *> array_of_animation_stack_names;
+		pMesh->GetScene()->FillAnimStackNameArray( array_of_animation_stack_names );
+
+		// Get the number of animations. 
+		int number_of_animations = array_of_animation_stack_names.Size();
+
+		if ( number_of_animations > 0 )
+		{
+			// Get the FbxTime per animation's frame. 
+			FbxTime::EMode time_mode = fbx_mesh->GetScene()->GetGlobalSettings().GetTimeMode();
+			FbxTime frame_time;
+			frame_time.SetTime( 0, 0, 0, 1, 0, time_mode );
+
+			sampling_rate = sampling_rate > 0 ? sampling_rate : frame_time.GetFrameRate( time_mode );
+			float sampling_time = 1.0f / sampling_rate;
+			skeletal_animation.sampling_time = sampling_time;
+			skeletal_animation.animation_tick = 0.0f;
+
+			FbxString *animation_stack_name = array_of_animation_stack_names.GetAt( 0 );
+			FbxAnimStack *current_animation_stack
+				= fbx_mesh->GetScene()->FindMember<FbxAnimStack>( animation_stack_name->Buffer() );
+			fbx_mesh->GetScene()->SetCurrentAnimationStack( current_animation_stack );
+
+			FbxTakeInfo *take_info = fbx_mesh->GetScene()->GetTakeInfo( animation_stack_name->Buffer() );
+			FbxTime start_time = take_info->mLocalTimeSpan.GetStart();
+			FbxTime end_time = take_info->mLocalTimeSpan.GetStop();
+
+			FbxTime sampling_step;
+			sampling_step.SetTime( 0, 0, 1, 0, 0, time_mode );
+			sampling_step = static_cast<FbxLongLong>( sampling_step.Get() * sampling_time );
+			for ( FbxTime current_time = start_time; current_time < end_time; current_time += sampling_step )
+			{
+				skinned_mesh::skeletal skeletal;
+				fetch_bone_matrices( fbx_mesh, skeletal, current_time );
+				skeletal_animation.push_back( skeletal );
+			}
+		}
+		for ( int i = 0; i < number_of_animations; i++ )
+		{
+			delete array_of_animation_stack_names[i];
+		}
+	}
 
 #endif // USE_FBX_SDK
 
@@ -372,6 +417,9 @@ namespace Donya
 		meshes.resize( meshCount );
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
+			meshes[i].meshNo = scast<int>( i );
+			// TODO : Set motions's meshNo.
+
 			FBX::FbxMesh *pMesh = fetchedMeshes[i]->GetMesh();
 
 			influencesPerCtrlPoints.clear();
@@ -386,7 +434,7 @@ namespace Donya
 			FBX::FbxTime frameTime{};
 			frameTime.SetTime( 0, 0, 0, 1, 0, timeMode );
 			constexpr int FETCH_FRAME = 20;
-			FetchBoneMatrices( frameTime * FETCH_FRAME, pMesh, &meshes[i].skeletal );
+			// FetchBoneMatrices( frameTime * FETCH_FRAME, pMesh, &meshes[i].skeletal );
 		#endif // DEBUG_MODE
 		}
 

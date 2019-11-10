@@ -146,9 +146,30 @@ namespace Donya
 			}
 		};
 
+		/// <summary>
+		/// Rig. Controller.
+		/// </summary>
 		struct Bone
 		{
 			DirectX::XMFLOAT4X4 transform{};
+		};
+		/// <summary>
+		/// Gathering of bones(call "skeletal"). This represents a pose.
+		/// </summary>
+		struct Skeletal
+		{
+			std::vector<Bone> skeletal{};
+		};
+		/// <summary>
+		/// Gathering of skeletals(call "Motion"). This represents a motion(animation).
+		/// </summary>
+		struct Motion
+		{
+			static constexpr float DEFAULT_SAMPLING_RATE = 1.0f / 24.0f;
+		public:
+			int		meshNo{};	// 0-based.
+			float	samplingRate{ DEFAULT_SAMPLING_RATE };
+			std::vector<Skeletal> motion{};
 		};
 
 		struct BoneInfluence
@@ -199,6 +220,7 @@ namespace Donya
 
 		struct Mesh
 		{
+			int							meshNo;	// 0-based.
 			DirectX::XMFLOAT4X4			coordinateConversion;
 			DirectX::XMFLOAT4X4			globalTransform;
 			std::vector<Subset>			subsets;
@@ -206,10 +228,10 @@ namespace Donya
 			std::vector<Donya::Vector3>	normals;
 			std::vector<Donya::Vector3>	positions;
 			std::vector<Donya::Vector2>	texCoords;
-			std::vector<Bone>			skeletal;
 			std::vector<BoneInfluencesPerControlPoint>	influences;
 		public:
-			Mesh() : coordinateConversion
+			Mesh() : meshNo( 0 ),
+			coordinateConversion
 			(
 				{
 					1, 0, 0, 0,
@@ -228,7 +250,7 @@ namespace Donya
 				}
 			),
 			subsets(), indices(), normals(), positions(), texCoords(),
-			skeletal(), influences()
+			influences()
 			{}
 			Mesh( const Mesh & ) = default;
 		private:
@@ -259,6 +281,7 @@ namespace Donya
 		std::string			fileName;		// only file-name, the directory is not contain.
 		std::string			fileDirectory;	// '/' terminated.
 		std::vector<Mesh>	meshes;
+		std::vector<Motion> motions;
 	public:
 		Loader();
 		~Loader();
