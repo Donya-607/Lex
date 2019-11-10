@@ -34,8 +34,15 @@ namespace Donya
 		{
 			auto &loadedMesh = ( *pLoadedMeshes )[i];
 
-			meshes[i].coordinateConversion = loadedMesh.coordinateConversion;
-			meshes[i].globalTransform = loadedMesh.globalTransform;
+			meshes[i].coordinateConversion	= loadedMesh.coordinateConversion;
+			meshes[i].globalTransform		= loadedMesh.globalTransform;
+
+			const size_t BONE_COUNT = loadedMesh.skeletal.size();
+			meshes[i].skeletal.resize( BONE_COUNT );
+			for ( size_t j = 0; j < BONE_COUNT; ++j )
+			{
+				meshes[i].skeletal[j].transform = loadedMesh.skeletal[j].transform;
+			}
 
 			std::vector<Vertex> vertices{};
 			{
@@ -102,7 +109,7 @@ namespace Donya
 				FetchMaterialContain( &mySubset.specular,	loadedSubset.specular	);
 				mySubset.specular.color.w = loadedSubset.specular.color.w;
 			}
-		} // meshs loop
+		}
 
 		pOutput->Init( argIndices, argVertices, meshes );
 
@@ -409,8 +416,15 @@ namespace Donya
 					return rv;
 				};
 
-				auto SetDummyBoneTransforms = []( std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> *pTransforms )->void
+				auto SetDummyBoneTransforms = []( std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> *pTransforms, const std::vector<Bone> &skeletal )->void
 				{
+					const size_t BONE_COUNT = skeletal.size();
+					for ( size_t i = 0; i < BONE_COUNT; ++i )
+					{
+						( *pTransforms )[i] = skeletal[i].transform;
+					}
+
+					/*
 					static float yawAngle  = 0; // Radian.
 					static float rollAngle = 0; // Radian.
 				#if DEBUG_MODE
@@ -426,12 +440,13 @@ namespace Donya
 					DirectX::XMStoreFloat4x4( &( ( *pTransforms )[0] ), DirectX::XMMatrixIdentity() );
 					DirectX::XMStoreFloat4x4( &( ( *pTransforms )[1] ), DirectX::XMMatrixRotationRollPitchYaw( 0.0f, yawAngle, rollAngle ) );
 					DirectX::XMStoreFloat4x4( &( ( *pTransforms )[2] ), DirectX::XMMatrixIdentity() );
+					*/
 				};
 
 				ConstantBuffer cb{};
 				cb.worldViewProjection	= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), worldViewProjection );
 				cb.world				= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), world );
-				SetDummyBoneTransforms( &cb.boneTransforms );
+				SetDummyBoneTransforms( &cb.boneTransforms, mesh.skeletal );
 				cb.lightColor			= lightColor;
 				cb.lightDir				= lightDirection;
 				// cb.eyePosition			= eyePosition;

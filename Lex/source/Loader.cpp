@@ -65,15 +65,17 @@ namespace Donya
 			scast<float>( source.mData[3] )
 		};
 	}
-	void ConvertFloat4x4( DirectX::XMFLOAT4X4 *pOutput, const FBX::FbxAMatrix &affineMatrix )
+	DirectX::XMFLOAT4X4 Convert( const FBX::FbxAMatrix &affineMatrix )
 	{
+		DirectX::XMFLOAT4X4 out{};
 		for ( int r = 0; r < 4; ++r )
 		{
 			for ( int c = 0; c < 4; ++c )
 			{
-				pOutput->m[r][c] = scast<float>( affineMatrix[r][c] );
+				out.m[r][c] = scast<float>( affineMatrix[r][c] );
 			}
 		}
+		return out;
 	}
 
 	void Traverse( FBX::FbxNode *pNode, std::vector<FBX::FbxNode *> *pFetchedMeshes )
@@ -168,30 +170,32 @@ namespace Donya
 				const FbxCluster *pCluster = pSkin->GetCluster( i );
 
 				// This matrix transforms coordinates of the initial pose from mesh space to global space.
-				FBX::FbxAMatrix reference_global_init_position;
-				pCluster->GetTransformMatrix( reference_global_init_position );
+				FBX::FbxAMatrix referenceGlobalInitPosition{};
+				pCluster->GetTransformMatrix( referenceGlobalInitPosition );
 
 				// This matrix transforms coordinates of the initial pose from bone space to global space.
-				FBX::FbxAMatrix cluster_global_init_position;
-				pCluster->GetTransformLinkMatrix( cluster_global_init_position );
+				FBX::FbxAMatrix clusterGlobalInitPosition{};
+				pCluster->GetTransformLinkMatrix( clusterGlobalInitPosition );
 
 				// This matrix transforms coordinates of the current pose from mesh space to global space.
-				FBX::FbxAMatrix reference_global_current_position;
-				reference_global_current_position = pMesh->GetNode()->EvaluateGlobalTransform( time );
+				FBX::FbxAMatrix referenceGlobalCurrentPosition{};
+				referenceGlobalCurrentPosition = pMesh->GetNode()->EvaluateGlobalTransform( time );
 
 				// This matrix transforms coordinates of the current pose from bone space to global space.
-				FBX::FbxAMatrix cluster_global_current_position;
-				cluster_global_current_position = pCluster->GetLink()->EvaluateGlobalTransform( time );
+				FBX::FbxAMatrix clusterGlobalCurrentPosition{};
+				FBX::FbxNode *pLinkNode = const_cast<FBX::FbxNode *>( pCluster->GetLink() );
+				clusterGlobalCurrentPosition = pLinkNode->EvaluateGlobalTransform( time );
 
-				// FbxAMatrix is column-major, so multiply from right side.
 				// "initial : mesh->global->bone", "current : bone->global->mesh"
-				// First, transform to initial bone space from initial mesh space.
-				// Then,  transfrom to current mesh space from initial bone space.
+				// First, transform from initial mesh space to initial bone space.
+				// Then,  transfrom from initial bone space to current mesh space(i.e.animated position).
+				// FbxAMatrix is column-major, so multiply from right side.
 
-				FBX::FbxAMatrix transform = reference_global_current_position.Inverse() * cluster_global_current_position
-					* cluster_global_init_position.Inverse() * reference_global_init_position;
+				FBX::FbxAMatrix transform =
+				referenceGlobalCurrentPosition.Inverse() * clusterGlobalCurrentPosition
+				* clusterGlobalInitPosition.Inverse()    * referenceGlobalInitPosition;
 
-				// convert FbxAMatrix(transform) to XMFLOAT4X4(bone.transform) 
+				bone.transform = Convert( transform );
 			}
 		};
 
@@ -376,6 +380,14 @@ namespace Donya
 			FetchVertices( i, pMesh, influencesPerCtrlPoints );
 			FetchMaterial( i, pMesh );
 			FetchGlobalTransform( i, pMesh );
+
+		#if DEBUG_MODE
+			FBX::FbxTime::EMode timeMode = pMesh->GetScene()->GetGlobalSettings().GetTimeMode();
+			FBX::FbxTime frameTime{};
+			frameTime.SetTime( 0, 0, 0, 1, 0, timeMode );
+			constexpr int FETCH_FRAME = 20;
+			FetchBoneMatrices( frameTime * FETCH_FRAME, pMesh, &meshes[i].skeletal );
+		#endif // DEBUG_MODE
 		}
 
 		Uninitialize();
@@ -672,7 +684,7 @@ namespace Donya
 	void Loader::FetchGlobalTransform( size_t meshIndex, const fbxsdk::FbxMesh *pMesh )
 	{
 		FBX::FbxAMatrix globalTransform = pMesh->GetNode()->EvaluateGlobalTransform( 0 );
-		ConvertFloat4x4( &meshes[meshIndex].globalTransform, globalTransform );
+		meshes[meshIndex].globalTransform = Convert( globalTransform );
 	}
 
 #endif // USE_FBX_SDK
