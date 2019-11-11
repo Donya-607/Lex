@@ -2,87 +2,44 @@
 
 #include <array>
 
-#include "Common.h"
-#include "Useful.h"	// Using Donya::Equal()
+#include "Common.h"	// Using Donya::ZeroEqual()
 
 using namespace Donya;
 using namespace DirectX;
 
 namespace Donya
 {
-	Quaternion::Quaternion() : x( 0.0f ), y( 0.0f ), z( 0.0f ), w( 1.0f )
-	{
-
-	}
-	Quaternion::Quaternion( float x, float y, float z, float w ) : x( x ), y( y ), z( z ), w( w )
-	{
-
-	}
-
 #pragma region Arithmetic
 
 	Quaternion &Quaternion::operator += ( const Quaternion &R )
 	{
-		x += R.x;
-		y += R.y;
-		z += R.z;
-		w += R.w;
-
+		*this = Add( R );
 		return *this;
 	}
-
 	Quaternion &Quaternion::operator -= ( const Quaternion &R )
 	{
-		x -= R.x;
-		y -= R.y;
-		z -= R.z;
-		w -= R.w;
-
+		*this = Sub( R );
 		return *this;
 	}
-
 	Quaternion &Quaternion::operator *= ( float scalar )
 	{
-		x *= scalar;
-		y *= scalar;
-		z *= scalar;
-		w *= scalar;
-
+		*this = Mul( scalar );
 		return *this;
 	}
 	Quaternion &Quaternion::operator *= ( const Quaternion &R )
 	{
-		float xx = ( w * R.x ) + ( x * R.w ) + ( y * R.z ) - ( z * R.y );
-		float yy = ( w * R.y ) - ( x * R.z ) + ( y * R.w ) + ( z * R.x );
-		float zz = ( w * R.z ) + ( x * R.y ) - ( y * R.x ) + ( z * R.w );
-		float ww = ( w * R.w ) - ( x * R.x ) - ( y * R.y ) - ( z * R.z );
-
-		x = xx;
-		y = yy;
-		z = zz;
-		w = ww;
-
+		*this = Mul( R );
 		return *this;
 	}
 	Quaternion &Quaternion::operator *= ( const Vector3 &R )
 	{
-		float xx = ( w * R.x ) + ( y * R.z ) - ( z * R.y );
-		float yy = ( w * R.y ) - ( x * R.z ) + ( z * R.x );
-		float zz = ( w * R.z ) + ( x * R.y ) - ( y * R.x );
-		float ww = (-x * R.x ) - ( y * R.y ) - ( z * R.z );
-
-		x = xx;
-		y = yy;
-		z = zz;
-		w = ww;
-
+		*this = Mul( R );
 		return *this;
 	}
-
 	Quaternion &Quaternion::operator /= ( float scalar )
 	{
-		float invScalar = 1.0f / scalar;
-		return ( *this *= invScalar );
+		*this = Div( scalar );
+		return *this;
 	}
 
 // region Arithmetic
@@ -92,10 +49,6 @@ namespace Donya
 	{
 		return sqrtf( LengthSq() );
 	}
-	float Quaternion::LengthSq() const
-	{
-		return ( x * x ) + ( y * y ) + ( z * z ) + ( w * w );
-	}
 	float Quaternion::Norm() const
 	{
 		return Length();
@@ -104,32 +57,29 @@ namespace Donya
 	void Quaternion::Normalize()
 	{
 		float len = Length();
-		if ( len < FLT_EPSILON ) { return; }
+		if ( ZeroEqual( len ) ) { return; }
 		// else
 		*this /= len;
 	}
-
-	Quaternion Quaternion::Conjugate() const
+	Quaternion Quaternion::Normalized() const
 	{
-		return Quaternion{ -x, -y, -z, w };
+		Quaternion normalized = *this;
+		normalized.Normalize();
+		return normalized;
 	}
 
 	Quaternion Quaternion::Inverse() const
 	{
 		float norm = Length();
 
-		if ( Equal( norm, 1.0f ) )
+		if ( ZeroEqual( norm - 1.0f ) )
 		{
+			// norm == 1
 			return Conjugate();
 		}
 		// else
 
 		return ( Conjugate() / ( norm * norm ) );
-	}
-
-	Vector3 Quaternion::GetAxis() const
-	{
-		return Vector3{ x, y, z };
 	}
 
 	Vector3 Quaternion::GetEulerAngles() const
@@ -172,64 +122,19 @@ namespace Donya
 		return v;
 	}
 
-	Vector3 Quaternion::RotateVector( const Donya::Vector3 &target ) const
+	Quaternion Quaternion::RotateBy( const Quaternion &Q )
 	{
-		Quaternion V{ target.x, target.y, target.z, 0.0f };
-
-		// Q * V * Q*
-		Quaternion rotated = ( ( *this ) * V ) * Conjugate();
-
-		return rotated.GetAxis();
-	}
-
-	XMFLOAT4X4 Quaternion::RequireRotationMatrix() const
-	{
-		XMFLOAT4X4 m{};
-
-		m._11 = 1.0f -	( 2.0f * y * y ) - ( 2.0f * z * z );
-		m._12 =			( 2.0f * x * y ) + ( 2.0f * w * z );
-		m._13 =			( 2.0f * x * z ) - ( 2.0f * w * y );
-		m._14 = 0.0f;
-
-		m._21 =			( 2.0f * x * y ) - ( 2.0f * w * z );
-		m._22 = 1.0f -	( 2.0f * x * x ) - ( 2.0f * z * z );
-		m._23 =			( 2.0f * y * z ) + ( 2.0f * w * x );
-		m._24 = 0.0f;
-
-		m._31 =			( 2.0f * x * z ) + ( 2.0f * w * y );
-		m._32 =			( 2.0f * y * z ) - ( 2.0f * w * x );
-		m._33 = 1.0f -	( 2.0f * x * x ) - ( 2.0f * y * y );
-		m._34 = 0.0f;
-
-		m._41 = 0.0f;
-		m._42 = 0.0f;
-		m._43 = 0.0f;
-		m._44 = 1.0f;
-
-		return m;
-	}
-
-	float Quaternion::Dot( const Quaternion &L, const Quaternion &R )
-	{
-		return ( L.x * R.x ) + ( L.y * R.y ) + ( L.z * R.z ) + ( L.w * R.w );
+		*this = Rotated( Q );
+		return *this;
 	}
 
 	float Quaternion::Length( const Quaternion &Q )
 	{
 		return Q.Length();
 	}
-	float Quaternion::LengthSq( const Quaternion &Q )
-	{
-		return Q.LengthSq();
-	}
 	float Quaternion::Norm( const Quaternion &Q )
 	{
 		return Q.Length();
-	}
-
-	Quaternion Quaternion::Conjugate( const Quaternion &Q )
-	{
-		return Q.Conjugate();
 	}
 
 	Quaternion Quaternion::Make( float pitch, float yaw, float roll )
@@ -334,14 +239,61 @@ namespace Donya
 		return rv;
 	}
 
-	Quaternion Quaternion::LookAt( const Donya::Vector3 &lookDirection )
+	Quaternion MakeLookAtRotation( const Donya::Vector3 &nFront, const Donya::Vector3 &nLookDir )
+	{
+		if ( nFront == nLookDir ) { return Quaternion::Identity(); }
+		// else
+		
+		float cosTheta = Donya::Vector3::Dot( nFront, nLookDir );
+		cosTheta = std::max( -1.0f, std::min( 1.0f, cosTheta ) );	// Prevent NaN.
+		
+		auto IsVectorInverse = []( float dot )
+		{
+			return ( dot <= ( -1.0f + EPSILON ) ) ? true : false;
+		};
+		if ( IsVectorInverse( cosTheta ) )
+		{
+			// The "lookDirection" is inverse to front.
+			// Find horizontal-axis by cross to forward, right, and up vector.
+
+			constexpr std::array<Donya::Vector3, 3> AXES
+			{
+				Donya::Vector3::Front(),
+				Donya::Vector3::Right(),
+				Donya::Vector3::Up()
+			};
+
+			Donya::Vector3 rotAxis{};
+			for ( const auto AXIS : AXES )
+			{
+				rotAxis = Donya::Vector3::Cross( nFront, AXIS );
+				if ( !rotAxis.IsZero() ) { break; }
+			}
+
+			if ( rotAxis.IsZero() ) { return Donya::Quaternion::Identity(); }
+			// else
+
+			rotAxis.Normalize();
+			return Donya::Quaternion::Make( rotAxis, ToRadian( 180.0f ) );
+		}
+		// else
+
+		const float rotAngle = acosf( cosTheta );
+		Donya::Vector3 rotAxis = Donya::Vector3::Cross( nFront, nLookDir ).Normalized();
+
+		return ( ZeroEqual( rotAngle ) )
+		? Donya::Quaternion::Identity()
+		: Donya::Quaternion::Make( rotAxis, rotAngle );
+	}
+	Quaternion Quaternion::LookAt( const Quaternion &orientation, const Donya::Vector3 &lookDirection, bool retRotatedQuat )
 	{
 		if ( lookDirection.IsZero() ) { return Identity(); }
 		// else
 
-		Vector3 front	= lookDirection;							front.Normalize();
-		Vector3 right	= Vector3::Cross( Vector3::Up(), front );	right.Normalize();
-		Vector3 up		= Vector3::Cross( front, right );			up.Normalize();
+	#if FROM_ROTATION_MATRIX
+		Vector3 front = lookDirection;							front.Normalize();
+		Vector3 right = Vector3::Cross( Vector3::Up(), front );	right.Normalize();
+		Vector3 up = Vector3::Cross( front, right );			up.Normalize();
 
 		XMFLOAT4X4 matrix{}; XMStoreFloat4x4( &matrix, XMMatrixIdentity() );
 		matrix._11 = right.x;	matrix._12 = right.y;	matrix._13 = right.z;
@@ -349,11 +301,24 @@ namespace Donya
 		matrix._31 = front.x;	matrix._32 = front.y;	matrix._33 = front.z;
 
 		return Make( matrix );
+	#else
+		Quaternion rotation = MakeLookAtRotation
+		(
+			orientation.LocalFront(),
+			lookDirection.Normalized()
+		);
+		return ( retRotatedQuat ) ? orientation.Rotated( rotation ) : rotation;
+	#endif // FROM_ROTATION_MATRIX
 	}
-
-	Quaternion Quaternion::Identity()
+	Quaternion Quaternion::LookAt( const Donya::Vector3 &front, const Donya::Vector3 &lookDirection )
 	{
-		return Quaternion{ 0.0f, 0.0f, 0.0f, 1.0f };
+		if ( lookDirection.IsZero() ) { return Identity(); }
+		// else
+		return MakeLookAtRotation
+		(
+			front.Normalized(),
+			lookDirection.Normalized()
+		);
 	}
 
 	Quaternion Quaternion::Inverse( const Quaternion &Q )
@@ -364,6 +329,12 @@ namespace Donya
 	Quaternion Quaternion::Slerp( const Quaternion &nBegin, const Quaternion &nEnd, float time )
 	{
 		float dot	= Dot( nBegin, nEnd );
+		if ( dot < -1.0f || 1.0f < dot )
+		{
+			// The acos() is returns NaN if received value of outside range of [-1 ~ +1].
+			dot = std::max( -1.0f, std::min( 1.0f, dot ) );
+		}
+
 		float theta	= acosf( dot );
 
 		float sin	= sinf( theta );
@@ -385,42 +356,17 @@ namespace Donya
 		return ( multedBegin + multedEnd );
 	}
 
-	Vector3 Quaternion::GetAxis( const Quaternion &Q )
-	{
-		return Q.GetAxis();
-	}
-
 	Vector3 Quaternion::GetEulerAngles( const Quaternion &Q )
 	{
 		return Q.GetEulerAngles();
 	}
-
-	Vector3 Quaternion::RotateVector( const Quaternion &R, const Donya::Vector3 &target )
-	{
-		return R.RotateVector( target );
-	}
-
-	XMFLOAT4X4 Quaternion::RequireRotationMatrix( const Quaternion &Q )
-	{
-		return Q.RequireRotationMatrix();
-	}
-
-	Quaternion operator * ( const Vector3 &L, const Quaternion &R )
-	{
-		float xx = ( L.x * R.w ) + ( L.y * R.z ) - ( L.z * R.y );
-		float yy = (-L.x * R.z ) + ( L.y * R.w ) + ( L.z * R.x );
-		float zz = ( L.x * R.y ) - ( L.y * R.x ) + ( L.z * R.w );
-		float ww = (-L.x * R.x ) - ( L.y * R.y ) - ( L.z * R.z );
-
-		return Quaternion{ xx, yy, zz, ww };
-	}
-
+	
 	bool operator == ( const Quaternion &L, const Quaternion &R )
 	{
-		if ( !Equal( L.x, R.x ) ) { return false; }
-		if ( !Equal( L.y, R.y ) ) { return false; }
-		if ( !Equal( L.z, R.z ) ) { return false; }
-		if ( !Equal( L.w, R.w ) ) { return false; }
+		if ( !ZeroEqual( L.x - R.x ) ) { return false; }
+		if ( !ZeroEqual( L.y - R.y ) ) { return false; }
+		if ( !ZeroEqual( L.z - R.z ) ) { return false; }
+		if ( !ZeroEqual( L.w - R.w ) ) { return false; }
 		// else
 		return true;
 	}

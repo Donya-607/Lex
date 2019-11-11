@@ -320,7 +320,8 @@ namespace Donya
 		std::string GetAbsoluteFilePath()		const { return absFilePath;		}
 		std::string GetOnlyFileName()			const { return fileName;		}
 		std::string GetFileDirectory()			const { return fileDirectory;	}
-		const std::vector<Mesh> *GetMeshes()	const { return &meshes;			}
+		const std::vector<Mesh>   *GetMeshes()	const { return &meshes;			}
+		const std::vector<Motion> *GetMotions()	const { return &motions;		}
 	private:
 		bool LoadByCereal( const std::string &filePath, std::string *outputErrorString );
 		

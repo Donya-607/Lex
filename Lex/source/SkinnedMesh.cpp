@@ -23,7 +23,7 @@ namespace Donya
 		// else
 
 		const std::vector<Loader::Mesh> *pLoadedMeshes = loader->GetMeshes();
-		size_t loadedMeshCount = pLoadedMeshes->size();
+		const size_t loadedMeshCount = pLoadedMeshes->size();
 
 		std::vector<std::vector<size_t>> argIndices{};
 		std::vector<std::vector<Vertex>> argVertices{};
@@ -36,13 +36,6 @@ namespace Donya
 
 			meshes[i].coordinateConversion	= loadedMesh.coordinateConversion;
 			meshes[i].globalTransform		= loadedMesh.globalTransform;
-
-			const size_t BONE_COUNT = loadedMesh.skeletal.size();
-			meshes[i].skeletal.resize( BONE_COUNT );
-			for ( size_t j = 0; j < BONE_COUNT; ++j )
-			{
-				meshes[i].skeletal[j].transform = loadedMesh.skeletal[j].transform;
-			}
 
 			std::vector<Vertex> vertices{};
 			{
@@ -111,12 +104,13 @@ namespace Donya
 			}
 		}
 
-		pOutput->Init( argIndices, argVertices, meshes );
-
-		return true;
+		bool   createResult = pOutput->Init( argIndices, argVertices, meshes );
+		return createResult;
 	}
 
-	SkinnedMesh::SkinnedMesh() : meshes(),
+	SkinnedMesh::SkinnedMesh() :
+		wasCreated( false ),
+		meshes(),
 		iConstantBuffer(), iMaterialCBuffer(),
 		iInputLayout(), iVertexShader(), iPixelShader(),
 		iRasterizerStateWire(), iRasterizerStateSurface(), iDepthStencilState()
@@ -131,6 +125,7 @@ namespace Donya
 
 	bool SkinnedMesh::Init( const std::vector<std::vector<size_t>> &allIndices, const std::vector<std::vector<Vertex>> &allVertices, const std::vector<Mesh> &loadedMeshes )
 	{
+		if ( wasCreated      ) { return false; }
 		if ( !meshes.empty() ) { return false; }
 		// else
 
@@ -325,6 +320,11 @@ namespace Donya
 
 	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
 	{
+		if ( !wasCreated )
+		{
+			_ASSERT_EXPR( 0, L"Error : The mesh was not created !" );
+			return;
+		}
 		if ( meshes.empty() ) { return; }
 		// else
 
@@ -416,37 +416,9 @@ namespace Donya
 					return rv;
 				};
 
-				auto SetDummyBoneTransforms = []( std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> *pTransforms, const std::vector<Bone> &skeletal )->void
-				{
-					const size_t BONE_COUNT = skeletal.size();
-					for ( size_t i = 0; i < BONE_COUNT; ++i )
-					{
-						( *pTransforms )[i] = skeletal[i].transform;
-					}
-
-					/*
-					static float yawAngle  = 0; // Radian.
-					static float rollAngle = 0; // Radian.
-				#if DEBUG_MODE
-
-					constexpr float ROT_SPEED = ToRadian( 1.0f );
-					if ( Donya::Keyboard::Press( VK_DOWN  ) ) { rollAngle -= ROT_SPEED; }
-					if ( Donya::Keyboard::Press( VK_UP    ) ) { rollAngle += ROT_SPEED; }
-					if ( Donya::Keyboard::Press( VK_LEFT  ) ) { yawAngle  -= ROT_SPEED; }
-					if ( Donya::Keyboard::Press( VK_RIGHT ) ) { yawAngle  += ROT_SPEED; }
-
-				#endif // DEBUG_MODE
-
-					DirectX::XMStoreFloat4x4( &( ( *pTransforms )[0] ), DirectX::XMMatrixIdentity() );
-					DirectX::XMStoreFloat4x4( &( ( *pTransforms )[1] ), DirectX::XMMatrixRotationRollPitchYaw( 0.0f, yawAngle, rollAngle ) );
-					DirectX::XMStoreFloat4x4( &( ( *pTransforms )[2] ), DirectX::XMMatrixIdentity() );
-					*/
-				};
-
 				ConstantBuffer cb{};
 				cb.worldViewProjection	= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), worldViewProjection );
 				cb.world				= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), world );
-				SetDummyBoneTransforms( &cb.boneTransforms, mesh.skeletal );
 				cb.lightColor			= lightColor;
 				cb.lightDir				= lightDirection;
 				// cb.eyePosition			= eyePosition;

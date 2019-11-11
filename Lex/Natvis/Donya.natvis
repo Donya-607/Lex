@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?> 
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010"> 
+
+	<Type Name="Donya::Vector2">
+		<DisplayString>{{x={x}, y={y}}}</DisplayString>
+		<Expand>
+			<Item Name="x">x</Item>
+			<Item Name="y">y</Item>
+			<Item Name="LengthSq" ExcludeView="simple" Optional="true">
+				( x * x ) + ( y * y )
+			</Item>
+		</Expand>
+	</Type>
+	<Type Name="Donya::Vector3">
+		<DisplayString>{{x={x}, y={y}, z={z}}}</DisplayString>
+		<Expand>
+			<Item Name="x">x</Item>
+			<Item Name="y">y</Item>
+			<Item Name="z">z</Item>
+			<Item Name="LengthSq" ExcludeView="simple" Optional="true">
+				( x * x ) + ( y * y ) + ( z * z )
+			</Item>
+		</Expand>
+	</Type>
+	<Type Name="Donya::Vector4">
+		<DisplayString>{{x={x}, y={y}, z={z}, w={w}}}</DisplayString>
+		<Expand>
+			<Item Name="x">x</Item>
+			<Item Name="y">y</Item>
+			<Item Name="z">z</Item>
+			<Item Name="w">w</Item>
+			<Item Name="LengthSq" ExcludeView="simple" Optional="true">
+				( x * x ) + ( y * y ) + ( z * z ) + ( w * w )
+			</Item>
+		</Expand>
+	</Type>
+	<Type Name="Donya::Vector4x4">
+		<DisplayString>{{row_major _11={_11}, _22={_22}, _33={_33}, _44={_44} ...}}</DisplayString>
+		<Expand>
+			<Item Name="[0]">m[0]</Item>
+			<Item Name="[1]">m[1]</Item>
+			<Item Name="[2]">m[2]</Item>
+			<Item Name="[3]">m[3]</Item>
+			<!--
+			<Item Name="11">_11</Item>
+			<Item Name="12">_12</Item>
+			<Item Name="13">_13</Item>
+			<Item Name="14">_14</Item>
+			
+			<Item Name="21">_21</Item>
+			<Item Name="22">_22</Item>
+			<Item Name="23">_23</Item>
+			<Item Name="24">_24</Item>
+			
+			<Item Name="31">_31</Item>
+			<Item Name="32">_32</Item>
+			<Item Name="33">_33</Item>
+			<Item Name="34">_34</Item>
+			
+			<Item Name="41">_41</Item>
+			<Item Name="42">_42</Item>
+			<Item Name="43">_43</Item>
+			<Item Name="44">_44</Item>
+			-->
+		</Expand>
+	</Type>
+	
+	<Type Name="Donya::Quaternion">
+		<DisplayString>{{x={x}, y={y}, z={z}, w={w}}}</DisplayString>
+		<Expand>
+			<Item Name="x">x</Item>
+			<Item Name="y">y</Item>
+			<Item Name="z">z</Item>
+			<Item Name="w">w</Item>
+			<Item Name="LengthSq" ExcludeView="simple" Optional="true">
+				( x * x ) + ( y * y ) + ( z * z ) + ( w * w )
+			</Item>
+		</Expand>
+	</Type>
+
+</AutoVisualizer>

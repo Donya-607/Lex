@@ -158,6 +158,7 @@
     <ClInclude Include="..\External\ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Benchmark.h" />
     <ClInclude Include="source\Camera.h" />
+    <ClInclude Include="source\CBuffer.h" />
     <ClInclude Include="Source\Common.h" />
     <ClInclude Include="source\Direct3DUtil.h" />
     <ClInclude Include="Source\Donya.h" />
@@ -165,10 +166,12 @@
     <ClInclude Include="Source\HighResolutionTimer.h" />
     <ClInclude Include="Source\Keyboard.h" />
     <ClInclude Include="Source\Loader.h" />
+    <ClInclude Include="source\Motion.h" />
     <ClInclude Include="Source\Mouse.h" />
     <ClInclude Include="source\Quaternion.h" />
     <ClInclude Include="Source\Resource.h" />
     <ClInclude Include="source\Serializer.h" />
+    <ClInclude Include="source\Shader.h" />
     <ClInclude Include="Source\SkinnedMesh.h" />
     <ClInclude Include="source\StaticMesh.h" />
     <ClInclude Include="Source\Useful.h" />
@@ -193,6 +196,7 @@
     <ClCompile Include="Source\Mouse.cpp" />
     <ClCompile Include="source\Quaternion.cpp" />
     <ClCompile Include="Source\Resource.cpp" />
+    <ClCompile Include="source\Shader.cpp" />
     <ClCompile Include="Source\SkinnedMesh.cpp" />
     <ClCompile Include="source\StaticMesh.cpp" />
     <ClCompile Include="Source\Useful.cpp" />
@@ -228,6 +232,9 @@
       <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AssemblyCode</AssemblerOutput>
       <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Shader/%(Filename).cod</AssemblerOutputFile>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="Natvis\Donya.natvis" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

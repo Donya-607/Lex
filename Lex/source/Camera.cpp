@@ -46,7 +46,7 @@ void Camera::SetToHomePosition( Donya::Vector3 homePosition, Donya::Vector3 home
 	focus	= homeFocus;
 	
 	Donya::Vector3 dir = focus - pos; dir.Normalize();
-	posture = Donya::Quaternion::LookAt( dir );
+	posture = Donya::Quaternion::LookAt( posture, dir );
 }
 
 void Camera::SetScopeAngle( float scope )

@@ -17,7 +17,7 @@ namespace Donya
 	public:
 		/// <summary>
 		/// Create from Loader object.<para></para>
-		/// if create successed, return true.
+		/// if create failed, or already loaded, returns false.
 		/// </summary>
 		static bool Create( const Loader *loader, SkinnedMesh *pOutput );
 	public:
@@ -87,11 +87,6 @@ namespace Donya
 			{}
 		};
 
-		struct Bone
-		{
-			DirectX::XMFLOAT4X4 transform{};
-		};
-
 		struct Mesh
 		{
 			DirectX::XMFLOAT4X4 coordinateConversion;
@@ -99,7 +94,6 @@ namespace Donya
 			Microsoft::WRL::ComPtr<ID3D11Buffer> iIndexBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> iVertexBuffer;
 			std::vector<Subset>	subsets;
-			std::vector<Bone>	skeletal;
 		public:
 			Mesh() : coordinateConversion
 			(
@@ -120,12 +114,13 @@ namespace Donya
 				}
 			),
 			iVertexBuffer(), iIndexBuffer(),
-			subsets(), skeletal()
+			subsets()
 			{}
 			Mesh( const Mesh & ) = default;
 		};
 	private:
-		std::vector<Mesh> meshes;
+		bool							wasCreated;
+		std::vector<Mesh>				meshes;
 		template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 		ComPtr<ID3D11Buffer>			iConstantBuffer;
 		ComPtr<ID3D11Buffer>			iMaterialCBuffer;
@@ -139,7 +134,15 @@ namespace Donya
 		SkinnedMesh();
 		~SkinnedMesh();
 	public:
-		bool Init( const std::vector<std::vector<size_t>> &allMeshesIndex, const std::vector<std::vector<SkinnedMesh::Vertex>> &allMeshesVertices, const std::vector<SkinnedMesh::Mesh> &loadedMeshes );
+		/// <summary>
+		/// If create failed, or already created, returns false.
+		/// </summary>
+		bool Init
+		(
+			const std::vector<std::vector<size_t>>				&allMeshesIndex,
+			const std::vector<std::vector<SkinnedMesh::Vertex>>	&allMeshesVertices,
+			const std::vector<SkinnedMesh::Mesh>				&loadedMeshes
+		);
 		void Render
 		(
 			const DirectX::XMFLOAT4X4	&worldViewProjection,
