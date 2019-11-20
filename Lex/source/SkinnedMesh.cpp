@@ -1,11 +1,12 @@
 #include "SkinnedMesh.h"
 
+#include "Donya/Direct3DUtil.h"
+#include "Donya/Donya.h"
+#include "Donya/Resource.h"
+#include "Donya/Useful.h"
+
 #include "Common.h"
-#include "Direct3DUtil.h"
-#include "Donya.h"
 #include "Loader.h"
-#include "Resource.h"
-#include "Useful.h"
 
 #if DEBUG_MODE
 

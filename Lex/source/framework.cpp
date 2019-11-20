@@ -4,17 +4,18 @@
 #include <algorithm>
 #include <thread>
 
-#include "Benchmark.h"
+#include "Donya/Benchmark.h"
+#include "Donya/Donya.h"
+#include "Donya/Keyboard.h"
+#include "Donya/Mouse.h"
+#include "Donya/Resource.h"
+#include "Donya/UseImGui.h"
+#include "Donya/Useful.h"
+#include "Donya/WindowsUtil.h"
+ 
 #include "Camera.h"
 #include "Common.h"
-#include "Donya.h"
-#include "Keyboard.h"
 #include "Loader.h"
-#include "Mouse.h"
-#include "Resource.h"
-#include "UseImGui.h"
-#include "Useful.h"
-#include "WindowsUtil.h"
 
 #if USE_IMGUI
 
@@ -278,11 +279,11 @@ int Framework::Run()
 
 			highResoTimer.Tick();
 			CalcFrameStats();
-			Update( highResoTimer.timeInterval() );
+			Update( highResoTimer.TimeInterval() );
 
 			Donya::Mouse::ResetMouseWheelRot();
 
-			Render( highResoTimer.timeInterval() );
+			Render( highResoTimer.TimeInterval() );
 		}
 	}
 
@@ -560,7 +561,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 }
 
 #if DEBUG_MODE
-#include "StaticMesh.h"
+#include "Donya/StaticMesh.h"
 #endif // DEBUG_MODE
 void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 {

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Quaternion.h"
-#include "UseImGui.h"	// Use USE_IMGUI macro.
-#include "Vector.h"
+#include "Donya/Quaternion.h"
+#include "Donya/UseImGui.h"	// Use USE_IMGUI macro.
+#include "Donya/Vector.h"
 
 class Camera
 {

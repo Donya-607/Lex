@@ -4,11 +4,12 @@
 #include <array>
 #include <string>
 
+#include "Donya/Keyboard.h"
+#include "Donya/Mouse.h"
+#include "Donya/Useful.h"
+#include "Donya/UseImGui.h"
+
 #include "Common.h"
-#include "Keyboard.h"
-#include "Mouse.h"
-#include "Useful.h"
-#include "UseImgui.h"
 
 #undef min
 #undef max
@@ -149,7 +150,7 @@ void Camera::MouseUpdate()
 {
 	mouse.prev = mouse.current;
 
-	Donya::Mouse::GetMouseCoord( &mouse.current.x, &mouse.current.y );
+	Donya::Mouse::Coordinate( &mouse.current.x, &mouse.current.y );
 
 	// Use only Orbit-mode or Pan-mode.
 	// Returns true if move-amount is too large.
@@ -247,7 +248,7 @@ void SetVelocity( Donya::Vector3 *pVelocity )
 
 	prevMouse = currentMouse;
 
-	Donya::Mouse::GetMouseCoord( &currentMouse.x, &currentMouse.y );
+	Donya::Mouse::Coordinate( &currentMouse.x, &currentMouse.y );
 
 	auto SetLessOrGreater =
 	[]( float *pOut, float judgeNo )
@@ -291,7 +292,7 @@ void Camera::Zoom()
 
 	velocity = pos - focus;
 
-	int rot = Donya::Mouse::GetMouseWheelRot();
+	int rot = Donya::Mouse::WheelRot();
 	if ( !rot ) { return; }
 	// else
 	

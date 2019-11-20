@@ -8,9 +8,9 @@
 #include <fbxsdk.h>
 #endif // USE_FBX_SDK
 
-#include "Benchmark.h"
+#include "Donya/Useful.h"
+
 #include "Common.h"		// Use scast macro.
-#include "Useful.h"
 
 #undef min
 #undef max

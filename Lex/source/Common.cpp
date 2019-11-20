@@ -1,5 +1,7 @@
 #include "Common.h"
 
+#include "Donya/Constant.h"
+
 namespace Common
 {
 	constexpr long	SCREEN_WIDTH_L	= 1280L;

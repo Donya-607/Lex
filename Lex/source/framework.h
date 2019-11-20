@@ -15,11 +15,12 @@
 #include <thread>
 #include <queue>
 
+#include "Donya/HighResolutionTimer.h"
+#include "Donya/Vector.h"
+
 #include "Camera.h"
 #include "Loader.h"
-#include "HighResolutionTimer.h"
 #include "SkinnedMesh.h"
-#include "Vector.h"
 
 #define scast static_cast
 

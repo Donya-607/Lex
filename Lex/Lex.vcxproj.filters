@@ -21,165 +21,207 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Benchmark.h">
+    <ClInclude Include="Donya\AudioSystem.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Benchmark.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Blend.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\CBuffer.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Collision.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Constant.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Counter.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Direct3DUtil.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Donya.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Easing.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\EnumBitwiseOperators.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\GamepadXInput.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\GeometricPrimitive.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\HighResolutionTimer.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Keyboard.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Looper.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Mouse.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Quaternion.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Random.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Resource.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\ScreenShake.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Serializer.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Shader.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Sound.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Sprite.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\SpriteSheet.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\StaticMesh.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Template.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Useful.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\Vector.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\WindowsUtil.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Donya\UseImGui.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Camera.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\Common.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="Source\framework.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Keyboard.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Mouse.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Resource.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="..\External\ImGui\imgui_impl_dx11.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\External\ImGui\imgui_impl_win32.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\External\ImGui\imgui_internal.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\External\ImGui\imstb_rectpack.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\External\ImGui\imstb_textedit.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\External\ImGui\imstb_truetype.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\External\ImGui\imconfig.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\External\ImGui\imgui.h">
-      <Filter>ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\HighResolutionTimer.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Donya.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Useful.h">
-      <Filter>Header</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Loader.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Vector.h">
+    <ClInclude Include="Source\misc.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="Source\UseImGui.h">
+    <ClInclude Include="Source\Motion.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\SkinnedMesh.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="source\Camera.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="source\Quaternion.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="source\WindowsUtil.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="source\Direct3DUtil.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="source\Serializer.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="source\StaticMesh.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="source\Motion.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="source\CBuffer.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="source\Shader.h">
+    <ClInclude Include="source\Framework.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Donya\AudioSystem.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Blend.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Collision.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Donya.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\GamepadXInput.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\GeometricPrimitive.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Keyboard.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Looper.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Mouse.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Quaternion.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Random.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Resource.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\ScreenShake.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Shader.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Sound.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Sprite.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\SpriteSheet.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\StaticMesh.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Useful.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\UseImGui.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\Vector.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Donya\WindowsUtil.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Camera.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Common.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\framework.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Keyboard.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\main.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Mouse.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Resource.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\UseImGui.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\External\ImGui\imgui_impl_win32.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\External\ImGui\imgui_widgets.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\External\ImGui\imgui.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\External\ImGui\imgui_demo.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\External\ImGui\imgui_draw.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\External\ImGui\imgui_impl_dx11.cpp">
-      <Filter>ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Donya.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Useful.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Loader.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Vector.cpp">
+    <ClCompile Include="Source\main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\SkinnedMesh.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="source\Camera.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="source\Quaternion.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="source\WindowsUtil.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="source\StaticMesh.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="source\Shader.cpp">
+    <ClCompile Include="source\Framework.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -198,5 +240,6 @@
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Natvis\Donya.natvis" />
+    <Natvis Include="Donya\Donya.natvis" />
   </ItemGroup>
 </Project>
