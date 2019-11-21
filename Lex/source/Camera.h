@@ -1,5 +1,225 @@
-#pragma once
+#ifndef INCLUDED_LEX_CAMERA_H_
+#define INCLUDED_LEX_CAMERA_H_
 
+#include <memory>
+
+#include "Donya/Constant.h"	// Use DEBUG_MODE macro.
+#include "Donya/Quaternion.h"
+#include "Donya/UseImGui.h"
+#include "Donya/Vector.h"
+
+/// <summary>
+/// The interface of camera.
+/// </summary>
+class ICamera
+{
+public:
+	/// <summary>
+	/// Specify the camera's movement.
+	/// </summary>
+	enum class Mode
+	{
+		Free,	// The rotate origin is myself. The focus point will be invalid.
+		Look,	// Keep looking the focus point. The rotation is like satellite.
+	};
+	/// <summary>
+	/// Store information of drive the camera.
+	/// </summary>
+	struct Controller
+	{
+		Donya::Vector3		moveVelocity{};				// Set move vector(contain speed).
+		Donya::Quaternion	rotation{};					// Set the rotation. This parameter is enable only when the camera mode is Free.
+		float				slerpPercent{ 1.0f };		// Set percentage of interpolation(0.0f ~ 1.0f). This affects the movement and the rotation.
+		bool				moveInLocalSpace{ true };	// Specify the space of movement. world-space or local-space(with current orientation).
+	public:
+		// This condition is same as default constructed condition.
+		void SetNoOperation()
+		{
+			moveVelocity	= Donya::Vector3::Zero();
+			rotation		= Donya::Vector3::Zero();
+			slerpPercent	= 0.0f;
+		}
+	};
+private:
+	/// <summary>
+	/// Use when change the mode. Store a user specified parameter, then change the mode and set the parameter.
+	/// </summary>
+	struct Coniguration
+	{
+		float				FOV{};
+		Donya::Vector2		screenSize{};
+		Donya::Vector3		pos{};
+		Donya::Vector3		focus{};
+		Donya::Quaternion	orientation{};
+		Donya::Vector4x4	projection{};
+	};
+private:
+	Mode currentMode;
+
+	class BaseCamera;
+	std::unique_ptr<BaseCamera> pCamera;
+public:
+	ICamera();
+	~ICamera();
+public:
+	void Init( Mode initialMode );
+	void Uninit();
+
+	void Update( Controller controller );
+public:
+	void ChangeMode( Mode nextMode );
+
+	void SetZRange					( float zNear, float zFar );
+	void SetFOV						( float FOV );
+	void SetScreenSize				( const Donya::Vector2 &screenSize );
+	void SetPosition				( const Donya::Vector3 &point );
+	void SetFocus					( const Donya::Vector3 &point );
+	void SetFocusToFront			( float distance );
+	void SetOrientation				( const Donya::Quaternion &orientation );
+	/// <summary>
+	/// If set { 0, 0 } to the "viewSize", use registered screen size.
+	/// </summary>
+	void SetProjectionOrthogonal	( const Donya::Vector2 &viewSize = { 0.0f, 0.0f } );
+	/// <summary>
+	/// If set 0.0f to the "aspectRatio", calculate by registered screen size.
+	/// </summary>
+	void SetProjectionPerspective	( float aspectRatio = 0.0f );
+
+	Donya::Vector3		GetPosition()			const;
+	Donya::Vector3		GetFocusPoint()			const;
+	Donya::Quaternion	GetOrientation()		const;
+	Donya::Vector4x4	CalcViewMatrix()		const;
+	Donya::Vector4x4	GetProjectionMatrix()	const;
+
+#if USE_IMGUI
+
+	void ShowImGuiNode();
+
+#endif // USE_IMGUI
+};
+
+// Donya's version.
+/*
+/// <summary>
+/// 
+/// </summary>
+class Camera
+{
+	static constexpr unsigned int PROGRAM_VERSION = 0;
+public:
+	/// <summary>
+	/// Store information of drive the camera.
+	/// </summary>
+	struct Controller
+	{
+		// Donya::Vector3 rotateOrigin;
+
+		Donya::Vector3	moveVelocity{};						// Set move direction(contain speed).
+		Donya::Vector3	rotation{};							// Set rotate angles(radian), each angles are used to direction of rotate(e.g. rotation.x is used to yaw-axis rotate).
+		float			slerpPercent{ 1.0f };				// Set percentage of interpolation(0.0f ~ 1.0f, will be clamped). use to rotate direction to "lookAt" if that is not zero.
+		bool			moveAtLocalSpace{ true };			// Specify the space of movement. world-space or local-space(with current orientation).
+	public:
+		// This condition is same as default constructed condition.
+		void SetNoOperation()
+		{
+			moveVelocity	= Donya::Vector3::Zero();
+			rotation		= Donya::Vector3::Zero();
+			slerpPercent	= 0.0f;
+		}
+	};
+private:
+	float				focusDistance;		// This enable when distance != zero, the focus is there front of camera.
+	float				scopeAngle;			// Radian
+	Donya::Vector2		screenSize;
+	Donya::Vector2		halfScreenSize;
+	Donya::Vector3		pos;
+	Donya::Vector3		focus;
+	Donya::Vector3		velocity;
+	Donya::Quaternion	orientation;
+	Donya::Vector4x4	projection;
+public:
+	Camera();
+	~Camera();
+public:
+	void Init( float screenWidth, float screenHeight, float scopeAngle );
+	/// <summary>
+	/// Set Whole-size.
+	/// </summary>
+	void SetScreenSize( float newScreenWidth, float newScreenHeight );
+	/// <summary>
+	/// Set Whole-size.
+	/// </summary>
+	void SetScreenSize( Donya::Vector2 newScreenSize );
+	/// <summary>
+	/// Can not Set to focus-position.
+	/// </summary>
+	void SetPosition( Donya::Vector3 newPosition );
+	/// <summary>
+	/// "scopeAngle" is 0-based, radian.
+	/// </summary>
+	void SetScopeAngle( float scopeAngle );
+
+	/// <summary>
+	/// Set distance of focus from camera position.<para></para>
+	/// ! If the camera rotate after called this, the focus will be move also. !
+	/// </summary>
+	void SetFocusDistance( float distance );
+	/// <summary>
+	/// Set the focus position in world-space.<para></para>
+	/// If that focus position same as camera position, that focus position will be pushed to front.<para></para>
+	/// ! The focus position is fixed, that is not move if the camera rotate after call this.
+	/// </summary>
+	void SetFocusCoordinate( const Donya::Vector3 &coordinate );
+
+	void ResetOrthographicProjection();
+	/// <summary>
+	/// Requirement : the camera must be already initialized.
+	/// </summary>
+	void ResetPerspectiveProjection();
+	Donya::Vector4x4	SetOrthographicProjectionMatrix( float width, float height, float mostNear, float mostFar );
+	/// <summary>
+	/// ScopeAngle, Near, Far are used to default.
+	/// </summary>
+	Donya::Vector4x4	SetPerspectiveProjectionMatrix( float aspectRatio );
+	Donya::Vector4x4	SetPerspectiveProjectionMatrix( float scopeAngle, float aspectRatio, float mostNear, float mostFar );
+	Donya::Vector4x4	CalcViewMatrix()		const;
+	Donya::Vector4x4	GetProjectionMatrix()	const { return projection; }
+	Donya::Vector3		GetPos()				const { return pos; }
+	Donya::Quaternion	GetPosture()			const { return orientation; }
+public:
+	void Update( Controller controller );
+private:
+	bool IsFocusFixed() const;
+
+	void ResetOrientation();
+	void NormalizePostureIfNeeded();
+
+	void SetFocusToFront();
+	void LookAtFocus();
+
+	void Move( Controller controller );
+
+	void Zoom( Controller controller );
+
+	void Rotate( Controller controller );
+	void OrbitAround( Controller controller );
+
+	void Pan( Controller controller );
+	void CalcDistToVirtualScreen();
+	Donya::Vector3 ToWorldPos( const Donya::Vector2 &screenPos );
+
+#if DEBUG_MODE
+
+public:
+	void ShowParametersToImGui();
+
+#endif // DEBUG_MODE
+};
+
+*/
+
+// Old Lex version.
+/*
 #include "Donya/Quaternion.h"
 #include "Donya/UseImGui.h"	// Use USE_IMGUI macro.
 #include "Donya/Vector.h"
@@ -28,7 +248,7 @@ private:
 	Donya::Vector3		focus;
 	Donya::Vector3		velocity;
 	MouseCoord			mouse;
-	Donya::Quaternion	posture;
+	Donya::Quaternion	orientation;
 	Donya::Vector4x4	projection;
 public:
 	Camera();
@@ -81,3 +301,6 @@ public:
 
 #endif // USE_IMGUI
 };
+*/
+
+#endif // INCLUDED_LEX_CAMERA_H_
