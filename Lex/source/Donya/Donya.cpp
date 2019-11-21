@@ -1431,7 +1431,8 @@ namespace Donya
 	ID3D11Device				*GetDevice()			{ return smg->d3d11.device.Get(); }
 	ID3D11DeviceContext			*GetImmediateContext()	{ return smg->d3d11.immediateContext.Get(); }
 
-	std::vector<std::string>	FetchDraggedFilePaths	( bool removeFromStorage = true )
+	bool						IsThereDraggedFiles()	{ return ( smg->draggedFilePaths.empty() ) ? false : true; }
+	std::vector<std::string>	FetchDraggedFilePaths	( bool removeFromStorage )
 	{
 		std::vector<std::string> copy = smg->draggedFilePaths;
 

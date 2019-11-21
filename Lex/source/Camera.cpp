@@ -69,39 +69,32 @@ void Camera::ResetPerspectiveProjection()
 	SetPerspectiveProjectionMatrix( scopeAngle, aspectRatio, mostNear, mostFar );
 }
 
-XMMATRIX Camera::SetOrthographicProjectionMatrix( float width, float height, float mostNear, float mostFar )
+Donya::Vector4x4 Camera::SetOrthographicProjectionMatrix( float width, float height, float mostNear, float mostFar )
 {
 	XMStoreFloat4x4( &projection, XMMatrixOrthographicLH( width, height, mostNear, mostFar ) );
 	return GetProjectionMatrix();
 }
-XMMATRIX Camera::SetPerspectiveProjectionMatrix( float aspectRatio )
+Donya::Vector4x4 Camera::SetPerspectiveProjectionMatrix( float aspectRatio )
 {
 	return SetPerspectiveProjectionMatrix( scopeAngle, aspectRatio, 0.1f, 1000.0f );
 }
-XMMATRIX Camera::SetPerspectiveProjectionMatrix( float scopeAngle, float aspectRatio, float mostNear, float mostFar )
+Donya::Vector4x4 Camera::SetPerspectiveProjectionMatrix( float scopeAngle, float aspectRatio, float mostNear, float mostFar )
 {
 	XMStoreFloat4x4( &projection, XMMatrixPerspectiveFovLH( scopeAngle, aspectRatio, mostNear, mostFar ) );
 	return GetProjectionMatrix();
 }
 
-XMMATRIX Camera::CalcViewMatrix() const
+Donya::Vector4x4 Camera::CalcViewMatrix() const
 {
-	XMMATRIX R{};
+	Donya::Vector4x4 R{};
 	{
 		Donya::Quaternion invRot = posture.Conjugate();
-		XMFLOAT4X4 rotate = invRot.RequireRotationMatrix();
-
-		R = XMLoadFloat4x4( &rotate );
+		R = invRot.RequireRotationMatrix();
 	}
 
-	XMMATRIX T = XMMatrixTranslation( -pos.x, -pos.y, -pos.z );
+	Donya::Vector4x4 T = Donya::Vector4x4::MakeTranslation( -pos );
 
 	return { T * R };
-}
-
-XMMATRIX Camera::GetProjectionMatrix() const
-{
-	return XMLoadFloat4x4( &projection );
 }
 
 void Camera::Update( const Donya::Vector3 &targetPos )
@@ -309,7 +302,7 @@ void Camera::Zoom()
 	radius = Donya::Vector3{ pos - focus }.Length();
 }
 
-void Multiply( XMFLOAT3 *pOutput, const XMFLOAT4X4 &M )
+void Multiply( XMFLOAT3 *pOutput, const Donya::Vector4x4 &M )
 {
 	XMFLOAT3 &V = *pOutput;
 
@@ -423,77 +416,68 @@ Donya::Vector3 Camera::ToWorldPos( const Donya::Vector2 &screenPos )
 
 #if USE_IMGUI
 
-void Camera::ShowParametersToImGui()
+void Camera::ShowImGuiNode()
 {
-#if USE_IMGUI
-
-	if ( ImGui::BeginIfAllowed() )
+	if ( ImGui::TreeNode( u8"カメラ" ) )
 	{
-		if ( ImGui::TreeNode( u8"カメラ" ) )
+		if ( ImGui::TreeNode( u8"操作方法" ) )
 		{
-			if ( ImGui::TreeNode( u8"操作方法" ) )
+			std::string key		{ u8"\"R\" キー : 位置と注視点をリセット. " };
+			std::string zoom	{ u8"マウスホイール : ズームイン・アウト." };
+			std::string rotate	{ u8"左クリック(＋移動) : 注視点を軸に回転移動." };
+			std::string pan		{ u8"ホイール押し込み（＋移動） or\n右クリック(＋移動) : 位置と注視点を移動." };
+
+			auto ShowString = []( const std::string &str )
 			{
-				std::string key		{ u8"\"R\" キー : 位置と注視点をリセット. " };
-				std::string zoom	{ u8"マウスホイール : ズームイン・アウト." };
-				std::string rotate	{ u8"左クリック(＋移動) : 注視点を軸に回転移動." };
-				std::string pan		{ u8"ホイール押し込み（＋移動） or\n右クリック(＋移動) : 位置と注視点を移動." };
+				ImGui::Text( str.c_str() );
+			};
 
-				auto ShowString = []( const std::string &str )
-				{
-					ImGui::Text( str.c_str() );
-				};
-
-				ShowString( key		);
-				ShowString( zoom	);
-				ShowString( rotate	);
-				ShowString( pan		);
-
-				ImGui::TreePop();
-			}
-
-			if ( ImGui::TreeNode( "Parameter" ) )
-			{
-				std::string vec3Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f]" };
-				std::string vec4Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]" };
-				auto ShowVec3 = [&vec3Info]( std::string name, const Donya::Vector3 &param )
-				{
-					ImGui::Text( ( name + vec3Info ).c_str(), param.x, param.y, param.z );
-				};
-				auto ShowVec4 = [&vec4Info]( std::string name, const Donya::Vector4 &param )
-				{
-					ImGui::Text( ( name + vec4Info ).c_str(), param.x, param.y, param.z, param.w );
-				};
-
-				Donya::Vector3 up		= posture.RotateVector( Donya::Vector3::Up()	);
-				Donya::Vector3 right	= posture.RotateVector( Donya::Vector3::Right()	);
-				Donya::Vector3 front	= posture.RotateVector( Donya::Vector3::Front()	);
-
-				ShowVec3( "Pos",	pos		);
-				ShowVec3( "Focus",	focus	);
-				ShowVec3( "Up",		up		);
-				ShowVec3( "Right",	right	);
-				ShowVec3( "Front",	front	);
-			
-				Donya::Vector4 vec4Posture
-				{
-					posture.x,
-					posture.y,
-					posture.z,
-					posture.w
-				};
-				ShowVec4( "Posture", vec4Posture );
-				ImGui::Text( "Norm[%5.3f]", posture.Length() );
-
-				ImGui::TreePop();
-			}
+			ShowString( key		);
+			ShowString( zoom	);
+			ShowString( rotate	);
+			ShowString( pan		);
 
 			ImGui::TreePop();
 		}
 
-		ImGui::End();
-	}
+		if ( ImGui::TreeNode( "Parameter" ) )
+		{
+			std::string vec3Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f]" };
+			std::string vec4Info{ "[X:%5.3f][Y:%5.3f][Z:%5.3f][W:%5.3f]" };
+			auto ShowVec3 = [&vec3Info]( std::string name, const Donya::Vector3 &param )
+			{
+				ImGui::Text( ( name + vec3Info ).c_str(), param.x, param.y, param.z );
+			};
+			auto ShowVec4 = [&vec4Info]( std::string name, const Donya::Vector4 &param )
+			{
+				ImGui::Text( ( name + vec4Info ).c_str(), param.x, param.y, param.z, param.w );
+			};
 
-#endif // USE_IMGUI
+			Donya::Vector3 up		= posture.RotateVector( Donya::Vector3::Up()	);
+			Donya::Vector3 right	= posture.RotateVector( Donya::Vector3::Right()	);
+			Donya::Vector3 front	= posture.RotateVector( Donya::Vector3::Front()	);
+
+			ShowVec3( "Pos",	pos		);
+			ShowVec3( "Focus",	focus	);
+			ShowVec3( "Up",		up		);
+			ShowVec3( "Right",	right	);
+			ShowVec3( "Front",	front	);
+			
+			Donya::Vector4 vec4Posture
+			{
+				posture.x,
+				posture.y,
+				posture.z,
+				posture.w
+			};
+			ShowVec4( "Posture", vec4Posture );
+			ImGui::Text( "Norm[%5.3f]", posture.Length() );
+
+			ImGui::TreePop();
+		}
+
+		ImGui::TreePop();
+	}
 }
 
 #endif // USE_IMGUI

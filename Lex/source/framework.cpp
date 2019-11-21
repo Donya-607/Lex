@@ -27,7 +27,7 @@ using namespace DirectX;
 
 static constexpr char *ImGuiWindowName = "File Information";
 
-Framework::Framework( HWND hwnd ) :
+OldFramework::OldFramework( HWND hwnd ) :
 	hWnd( hwnd ),
 	camera(),
 	light(),
@@ -44,7 +44,7 @@ Framework::Framework( HWND hwnd ) :
 {
 	DragAcceptFiles( hWnd, TRUE );
 }
-Framework::~Framework()
+OldFramework::~OldFramework()
 {
 	if ( isCaptureWindow )
 	{
@@ -60,7 +60,7 @@ Framework::~Framework()
 	}
 };
 
-LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
+LRESULT CALLBACK OldFramework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam )
 {
 #ifdef USE_IMGUI
 	if ( ImGui_ImplWin32_WndProcHandler( hWnd, msg, wParam, lParam ) )
@@ -213,7 +213,7 @@ LRESULT CALLBACK Framework::HandleMessage( HWND hWnd, UINT msg, WPARAM wParam, L
 	return 0;
 }
 
-void Framework::CalcFrameStats()
+void OldFramework::CalcFrameStats()
 {
 	// Code computes the average frames per second, and also the 
 	// average time it takes to render one frame.  These stats 
@@ -241,7 +241,7 @@ void Framework::CalcFrameStats()
 	}
 }
 
-int Framework::Run()
+int OldFramework::Run()
 {
 	if ( !Init() ) { return 0; }
 	// else
@@ -309,7 +309,7 @@ int Framework::Run()
 	return static_cast<int>( msg.wParam );
 }
 
-bool Framework::Init()
+bool OldFramework::Init()
 {
 	#pragma region DirectX
 
@@ -446,7 +446,7 @@ bool Framework::Init()
 	return true;
 }
 
-void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
+void OldFramework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 {
 #ifdef USE_IMGUI
 
@@ -539,7 +539,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 	{
 		ShowMouseInfo();
 		
-		camera.ShowParametersToImGui();
+		camera.ShowImGuiNode();
 		ImGui::Text( "" );
 
 		ChangeLightByImGui();
@@ -563,7 +563,7 @@ void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
 #if DEBUG_MODE
 #include "Donya/StaticMesh.h"
 #endif // DEBUG_MODE
-void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
+void OldFramework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 {
 	// ClearRenderTargetView, ClearDepthStencilView
 	{
@@ -694,8 +694,14 @@ void Framework::Render( float elapsedTime/*Elapsed seconds from last frame*/ )
 	_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Present()" );
 }
 
-void Framework::ReserveLoadFile( std::string filePath )
+void OldFramework::ReserveLoadFile( std::string filePath )
 {
+	/*
+	一時メモ：
+	Donyaのストレージから新しいものが来るたびにひっぱってきて，
+	すべてに対しCanLoadFile()を検証，合格したなら予約リストに追加する。
+	*/
+
 	auto CanLoadFile = []( std::string filePath )->bool
 	{
 		constexpr std::array<const char *, 5> EXTENSIONS
@@ -732,7 +738,7 @@ void Framework::ReserveLoadFile( std::string filePath )
 	}
 }
 
-void Framework::StartLoadIfVacant()
+void OldFramework::StartLoadIfVacant()
 {
 	if ( pCurrentLoading )		{ return; }
 	if ( reservedAbsFilePaths.empty() )	{ return; }
@@ -794,7 +800,7 @@ void Framework::StartLoadIfVacant()
 	pLoadThread = std::make_unique<std::thread>( Load, loadFilePath, pCurrentLoading.get() );
 }
 
-void Framework::AppendModelIfLoadFinished()
+void OldFramework::AppendModelIfLoadFinished()
 {
 	if ( !pCurrentLoading ) { return; }
 	// else
@@ -821,7 +827,7 @@ void Framework::AppendModelIfLoadFinished()
 	pCurrentLoading.reset( nullptr );
 }
 
-void Framework::ShowNowLoadingModels()
+void OldFramework::ShowNowLoadingModels()
 {
 #if USE_IMGUI
 
@@ -862,7 +868,7 @@ void Framework::ShowNowLoadingModels()
 #endif // USE_IMGUI
 }
 
-bool Framework::OpenCommonDialogAndFile()
+bool OldFramework::OpenCommonDialogAndFile()
 {
 	char chosenFilesFullPath[MAX_PATH]	= { 0 };
 	char chosenFileName[MAX_PATH]		= { 0 };
@@ -923,12 +929,12 @@ std::string GetSaveFileNameByCommonDialog( const HWND &hWnd )
 	return filePath;
 }
 
-void Framework::SetMouseCapture()
+void OldFramework::SetMouseCapture()
 {
 	SetCapture( hWnd );
 	isCaptureWindow = true;
 }
-void Framework::ReleaseMouseCapture()
+void OldFramework::ReleaseMouseCapture()
 {
 	bool result = ReleaseCapture();
 	isCaptureWindow = false;
@@ -941,7 +947,7 @@ void Framework::ReleaseMouseCapture()
 #endif // DEBUG_MODE
 }
 
-void Framework::PutLimitMouseMoveArea()
+void OldFramework::PutLimitMouseMoveArea()
 {
 	constexpr int ADJUST = 8;
 	const POINT MOUSE_SIZE = Donya::Mouse::GetMouseSize();
@@ -997,7 +1003,7 @@ void Framework::PutLimitMouseMoveArea()
 	}
 }
 
-void Framework::ShowMouseInfo()
+void OldFramework::ShowMouseInfo()
 {
 #if USE_IMGUI
 
@@ -1014,7 +1020,7 @@ void Framework::ShowMouseInfo()
 
 #endif // USE_IMGUI
 }
-void Framework::ShowModelInfo()
+void OldFramework::ShowModelInfo()
 {
 #if USE_IMGUI
 
@@ -1067,7 +1073,7 @@ void Framework::ShowModelInfo()
 
 #endif // USE_IMGUI
 }
-void Framework::ChangeLightByImGui()
+void OldFramework::ChangeLightByImGui()
 {
 #if USE_IMGUI 
 

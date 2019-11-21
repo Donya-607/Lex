@@ -138,6 +138,24 @@
     <ClInclude Include="Source\Donya\WindowsUtil.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Music.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SceneManager.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Fader.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SceneLex.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animation.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -224,6 +242,18 @@
     <ClCompile Include="Source\Donya\WindowsUtil.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\SceneManager.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Fader.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SceneLex.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Animation.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\SkinnedMesh.hlsli">
@@ -239,7 +269,6 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <Natvis Include="Donya\Donya.natvis" />
     <Natvis Include="Source\Donya\Donya.natvis" />
   </ItemGroup>
 </Project>

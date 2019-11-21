@@ -767,7 +767,7 @@ namespace Donya
 #endif // USE_FBX_SDK
 
 #if USE_IMGUI
-	void Loader::EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const
+	void Loader::EnumPreservingDataToImGui() const
 	{
 		ImVec2 childFrameSize( 0.0f, 0.0f );
 

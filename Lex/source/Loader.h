@@ -343,7 +343,7 @@ namespace Donya
 		/// This function don't ImGui::Begin() and Begin::End().<para></para>
 		/// please call between ImGui::Begin() to ImGui::End().
 		/// </summary>
-		void EnumPreservingDataToImGui( const char *ImGuiWindowIdentifier ) const;
+		void EnumPreservingDataToImGui() const;
 	#endif // USE_IMGUI
 
 	};

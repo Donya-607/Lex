@@ -20,11 +20,38 @@
 
 #include "Camera.h"
 #include "Loader.h"
+#include "SceneManager.h"
 #include "SkinnedMesh.h"
 
 #define scast static_cast
 
 class Framework
+{
+private:
+	std::unique_ptr<SceneMng> pSceneMng;
+public:
+	Framework();
+	~Framework();
+	Framework( const Framework & )  = delete;
+	Framework( const Framework && ) = delete;
+	Framework &operator = ( const Framework & )  = delete;
+	Framework &operator = ( const Framework && ) = delete;
+public:
+	bool Init();
+	void Uninit();
+
+	void Update( float elapsedTime /* Elapsed seconds from last frame */ );
+
+	void Draw( float elapsedTime /* Elapsed seconds from last frame */ );
+private:
+	bool LoadSounds();
+	/// <summary>
+	/// Valid only when Debug-mode.
+	/// </summary>
+	void DebugShowInformation();
+};
+
+class OldFramework
 {
 public:
 	static constexpr char *TITLE_BAR_CAPTION = "Lex - I can open a files by D&D.";
@@ -72,12 +99,12 @@ private:
 	std::queue<std::string>		reservedAbsFilePaths;
 	std::queue<std::string>		reservedFileNamesUTF8;		// For UI.
 public:
-	Framework( HWND hwnd );
-	~Framework();
-	Framework( const Framework &  ) = delete;
-	Framework( const Framework && ) = delete;
-	Framework & operator = ( const Framework &  ) = delete;
-	Framework & operator = ( const Framework && ) = delete;
+	OldFramework( HWND hwnd );
+	~OldFramework();
+	OldFramework( const OldFramework &  ) = delete;
+	OldFramework( const OldFramework && ) = delete;
+	OldFramework & operator = ( const OldFramework &  ) = delete;
+	OldFramework & operator = ( const OldFramework && ) = delete;
 public:
 	int Run();
 	LRESULT CALLBACK HandleMessage( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam );

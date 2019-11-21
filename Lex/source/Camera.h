@@ -29,7 +29,7 @@ private:
 	Donya::Vector3		velocity;
 	MouseCoord			mouse;
 	Donya::Quaternion	posture;
-	DirectX::XMFLOAT4X4	projection;
+	Donya::Vector4x4	projection;
 public:
 	Camera();
 	Camera( float scopeAngle );
@@ -47,15 +47,16 @@ public:
 
 	void ResetOrthographicProjection();
 	void ResetPerspectiveProjection();
-	DirectX::XMMATRIX SetOrthographicProjectionMatrix( float width, float height, float mostNear, float mostFar );
+	Donya::Vector4x4 SetOrthographicProjectionMatrix( float width, float height, float mostNear, float mostFar );
 	/// <summary>
 	/// ScopeAngle, Near, Far are used to default.
 	/// </summary>
-	DirectX::XMMATRIX SetPerspectiveProjectionMatrix( float aspectRatio );
-	DirectX::XMMATRIX SetPerspectiveProjectionMatrix( float scopeAngle, float aspectRatio, float mostNear, float mostFar );
-	DirectX::XMMATRIX CalcViewMatrix() const;
-	DirectX::XMMATRIX GetProjectionMatrix() const;
-	Donya::Vector3 GetPos() const { return pos; }
+	Donya::Vector4x4 SetPerspectiveProjectionMatrix( float aspectRatio );
+	Donya::Vector4x4 SetPerspectiveProjectionMatrix( float scopeAngle, float aspectRatio, float mostNear, float mostFar );
+	Donya::Vector4x4 CalcViewMatrix() const;
+
+	Donya::Vector4x4 GetProjectionMatrix()	const { return projection; }
+	Donya::Vector3   GetPos()				const { return pos; }
 public:
 	void Update( const Donya::Vector3 &targetPos );	// You can set nullptr.
 private:
@@ -76,7 +77,7 @@ private:
 #if USE_IMGUI
 
 public:
-	void ShowParametersToImGui();
+	void ShowImGuiNode();
 
 #endif // USE_IMGUI
 };

@@ -152,6 +152,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Animation.h" />
     <ClInclude Include="Source\Donya\AudioSystem.h" />
     <ClInclude Include="Source\Donya\Benchmark.h" />
     <ClInclude Include="Source\Donya\Blend.h" />
@@ -186,13 +187,19 @@
     <ClInclude Include="Source\Donya\WindowsUtil.h" />
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\Common.h" />
+    <ClInclude Include="Source\Fader.h" />
     <ClInclude Include="Source\Framework.h" />
     <ClInclude Include="Source\Loader.h" />
     <ClInclude Include="Source\misc.h" />
     <ClInclude Include="Source\Motion.h" />
+    <ClInclude Include="Source\Music.h" />
+    <ClInclude Include="Source\Scene.h" />
+    <ClInclude Include="Source\SceneLex.h" />
+    <ClInclude Include="Source\SceneManager.h" />
     <ClInclude Include="Source\SkinnedMesh.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Animation.cpp" />
     <ClCompile Include="Source\Donya\AudioSystem.cpp" />
     <ClCompile Include="Source\Donya\Blend.cpp" />
     <ClCompile Include="Source\Donya\Collision.cpp" />
@@ -217,9 +224,12 @@
     <ClCompile Include="Source\Donya\WindowsUtil.cpp" />
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\Common.cpp" />
+    <ClCompile Include="Source\Fader.cpp" />
     <ClCompile Include="Source\Framework.cpp" />
     <ClCompile Include="Source\Loader.cpp" />
     <ClCompile Include="Source\main.cpp" />
+    <ClCompile Include="Source\SceneLex.cpp" />
+    <ClCompile Include="Source\SceneManager.cpp" />
     <ClCompile Include="Source\SkinnedMesh.cpp" />
   </ItemGroup>
   <ItemGroup>

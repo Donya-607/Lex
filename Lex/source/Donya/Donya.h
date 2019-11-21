@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 // see https://maminus.hatenadiary.org/entry/20130226/1361895337
 // I want to lightly this file.
 #ifdef _M_IX86
@@ -81,6 +84,10 @@ namespace Donya
 	ID3D11Device				*GetDevice();
 	ID3D11DeviceContext			*GetImmediateContext();
 
+	/// <summary>
+	/// Returns true if a storage has at least more than one dragged file.
+	/// </summary>
+	bool						IsThereDraggedFiles();
 	/// <summary>
 	/// Returns the file paths that were drag-and-dropped.<para></para>
 	/// If set the true to the "removeFromStorage" flag, the storage will be empty.

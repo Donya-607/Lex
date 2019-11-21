@@ -39,7 +39,7 @@ INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _
 
 	// Donya::SetWindowIcon( instance, IDI_ICON );
 
-	Framework framework{};
+	OldFramework framework{};
 	framework.Init();
 
 	while ( Donya::MessageLoop() )
@@ -50,37 +50,11 @@ INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _
 		framework.Update( Donya::GetElapsedTime() );
 
 		framework.Draw( Donya::GetElapsedTime() );
-		Donya::Present( 1 );
+		Donya::Present();
 	}
 
 	framework.Uninit();
 
 	auto   returnValue = Donya::Uninit();
 	return returnValue;
-}
-
-void RegisterWindowClass( HINSTANCE instance )
-{
-	std::wstring title = Donya::MultiToWide( std::string{ Framework::TITLE_BAR_CAPTION } );
-
-	WNDCLASSEX wcex;
-	wcex.cbSize			= sizeof( WNDCLASSEX );
-	wcex.style			= CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc	= fnWndProc;
-	wcex.cbClsExtra		= 0;
-	wcex.cbWndExtra		= 0;
-	wcex.hInstance		= instance;
-	wcex.hIcon			= 0;
-	wcex.hCursor		= LoadCursor( NULL, IDC_ARROW );
-	wcex.hbrBackground	= (HBRUSH)( COLOR_WINDOW + 1 );
-	wcex.lpszMenuName	= NULL;
-	wcex.lpszClassName	= title.data();
-	wcex.hIconSm		= 0;
-	RegisterClassEx( &wcex );
-}
-
-LRESULT CALLBACK fnWndProc( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam )
-{
-	Framework *f = reinterpret_cast<Framework*>( GetWindowLongPtr( hwnd, GWLP_USERDATA ) );
-	return f ? f->HandleMessage( hwnd, msg, wparam, lparam ) : DefWindowProc( hwnd, msg, wparam, lparam );
 }
