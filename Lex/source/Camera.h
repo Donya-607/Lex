@@ -36,7 +36,7 @@ public:
 		void SetNoOperation()
 		{
 			moveVelocity	= Donya::Vector3::Zero();
-			rotation		= Donya::Vector3::Zero();
+			rotation		= Donya::Quaternion::Identity();
 			slerpPercent	= 0.0f;
 		}
 	};
