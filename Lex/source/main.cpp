@@ -5,6 +5,7 @@
 #include <time.h>
 #include <windows.h>
 
+#include "Donya/Donya.h"
 #include "Donya/Useful.h"
 #include "Donya/WindowsUtil.h"
 
@@ -14,12 +15,18 @@
 void RegisterWindowClass( HINSTANCE instance );
 LRESULT CALLBACK fnWndProc( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam );
 
-INT WINAPI wWinMain( HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_line, INT cmd_show )
+INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _In_ LPWSTR cmdLine, _In_ INT cmdShow )
 {
 #if defined( DEBUG ) | defined( _DEBUG )
-	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
-	// When memory leak detected, if you assign the output number to _crtBreakAlloc,
-	// program will be stop in that memory allocate place.
+	// reference:https://docs.microsoft.com/ja-jp/visualstudio/debugger/crt-debug-heap-details?view=vs-2015
+	_CrtSetDbgFlag
+	(
+		_CRTDBG_ALLOC_MEM_DF
+		| _CRTDBG_LEAK_CHECK_DF
+		// | _CRTDBG_CHECK_ALWAYS_DF
+	);
+	// When memory leak detected, if you assign the output number to "_crtBreakAlloc",
+	// program will be stop in that memory allocate place. ex : _crtBreakAlloc = 123;
 	// _crtBreakAlloc = ;
 #endif
 
@@ -27,51 +34,29 @@ INT WINAPI wWinMain( HINSTANCE instance, HINSTANCE prev_instance, LPWSTR cmd_lin
 
 	srand( scast<unsigned int>( time( NULL ) ) );
 
-	RegisterWindowClass( instance );
+	std::string title{ "‚¨‚ä‚¤‚¬" };
+	Donya::Init( cmdShow, Common::ScreenWidth(), Common::ScreenHeight(), title.c_str(), /* fullScreenMode = */ false );
 
-	HWND hwnd{};
+	// Donya::SetWindowIcon( instance, IDI_ICON );
 
-	// Create Window
+	Framework framework{};
+	framework.Init();
+
+	while ( Donya::MessageLoop() )
 	{
-		RECT rect =
-		{
-			0, 0,
-			Common::ScreenWidthL(),
-			Common::ScreenHeightL()
-		};
-		AdjustWindowRect( &rect, WS_OVERLAPPEDWINDOW, FALSE );
+		Donya::ClearViews();
 
-		int width  = rect.right  - rect.left;
-		int height = rect.bottom - rect.top;
+		Donya::SystemUpdate();
+		framework.Update( Donya::GetElapsedTime() );
 
-		RECT rectDesk = Donya::GetDesktopRect();
-
-		std::wstring title = Donya::MultiToWide( std::string{ Framework::TITLE_BAR_CAPTION } );
-		hwnd = CreateWindow
-		(
-			title.data(),
-			L"",
-			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-			( rectDesk.right  >> 1 ) - ( width  >> 1 ),
-			( rectDesk.bottom >> 1 ) - ( height >> 1 ) - Donya::GetCaptionBarHeight(),
-			width,
-			height,
-			NULL,
-			NULL,
-			instance,
-			NULL
-		);
-		ShowWindow( hwnd, cmd_show );
+		framework.Draw( Donya::GetElapsedTime() );
+		Donya::Present( 1 );
 	}
 
-	Framework f{ hwnd };
-	SetWindowLongPtr
-	(
-		hwnd,
-		GWLP_USERDATA,
-		reinterpret_cast<LONG_PTR>( &f )
-	);
-	return f.Run();
+	framework.Uninit();
+
+	auto   returnValue = Donya::Uninit();
+	return returnValue;
 }
 
 void RegisterWindowClass( HINSTANCE instance )

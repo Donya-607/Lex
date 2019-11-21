@@ -8,6 +8,7 @@
 #include <Windows.h>
 #include <Windows.Foundation.h> // Use Windows::Foundation::Initialize(), Windows::Foundation::Uninitialize().
 #include <wrl.h>
+#include <vector>
 
 #include "Blend.h"
 #include "Constant.h"
@@ -560,6 +561,10 @@ enum WindowStyle : unsigned long
 
 namespace Donya
 {
+	/// <summary>
+	/// This member exclusive use for Lex. Because the library's window procedure can not change from external.<para></para>
+	/// So in the future, if user can register user definition window procedure, TODO: refactoring this.
+	/// </summary>
 	struct SystemMemberGathering
 	{
 		struct
@@ -607,6 +612,14 @@ namespace Donya
 			bool isAppendFPS{ false };
 		}
 		windowCaptionConfig;
+
+		struct
+		{
+			int  pressMouseButton{ 0 }; // None:0, Left:VK_LBUTTON, Middle:VK_MBUTTON, Right:VK_RBUTTON.
+			bool isCaptureWindow{ false };
+		}
+		loopingMouse;
+		std::vector<std::string> draggedFilePaths{};
 	public:
 		SystemMemberGathering() :
 			screen(),
@@ -615,10 +628,87 @@ namespace Donya
 			hWnd(),
 			highResoTimer(),
 			d3d11(),
-			windowCaptionConfig()
+			windowCaptionConfig(),
+			loopingMouse(),
+			draggedFilePaths()
 		{}
 	};
 	static std::unique_ptr<SystemMemberGathering> smg{};
+
+	namespace LoopingMouse
+	{
+		void SetMouseCapture()
+		{
+			/* HWND wasCapturedWnd = */ SetCapture( smg->hWnd );
+			smg->loopingMouse.isCaptureWindow = true;
+		}
+		void ReleaseMouseCapture()
+		{
+			BOOL result = ReleaseCapture();
+			smg->loopingMouse.isCaptureWindow = false;
+
+			// TODO : Process an error.
+			//if ( !result )
+			//{
+			//}
+		}
+
+		void PutLimitMouseMoveArea()
+		{
+			constexpr int ADJUST = 8; // Add a margin. This prevent a countinuous looping a mouse.
+			const POINT MOUSE_SIZE = Donya::Mouse::Size();
+
+			// [0]:Left, [1]:Right.
+			const int EDGE_X[2]
+			{
+				0 + MOUSE_SIZE.x,
+				Private::RegisteredScreenWidth() - MOUSE_SIZE.x
+			};
+			// [0]:Up, [1]:Down.
+			const int EDGE_Y[2]
+			{
+				0 + MOUSE_SIZE.y,
+				Private::RegisteredScreenHeight() - MOUSE_SIZE.y
+			};
+			enum Direction { Left = 0, Right = 1, Up = 0, Down = 1 };
+
+			int mx{}, my{};
+			Donya::Mouse::Coordinate( &mx, &my );
+
+			bool isReset = false;
+
+			if ( mx < EDGE_X[Left] )
+			{
+				mx = EDGE_X[Right] - ADJUST;
+				isReset = true;
+			}
+			else
+			if ( EDGE_X[Right] < mx )
+			{
+				mx = EDGE_X[Left] + ADJUST;
+				isReset = true;
+			}
+
+			if ( my < EDGE_Y[Up] )
+			{
+				my = EDGE_Y[Down] - ADJUST;
+				isReset = true;
+			}
+			else
+			if ( EDGE_Y[Down] < my )
+			{
+				my = EDGE_Y[Up] + ADJUST;
+				isReset = true;
+			}
+
+			if ( isReset )
+			{
+				POINT client = GetClientCoordinate( smg->hWnd );
+
+				SetCursorPos( client.x + mx, client.y + my );
+			}
+		}
+	}
 	
 	LRESULT CALLBACK WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
 	{
@@ -631,23 +721,82 @@ namespace Donya
 
 	#endif
 
+		auto SetLoopingMouseCapture		= []( int mouseVKCode )
+		{
+			if ( smg->loopingMouse.pressMouseButton ) { return; }
+			// else
+
+			smg->loopingMouse.pressMouseButton = mouseVKCode;
+			LoopingMouse::SetMouseCapture();
+		};
+		auto ReleaseLoopingMouseCapture	= []( int mouesVKCode )
+		{
+			if ( !smg->loopingMouse.isCaptureWindow ) { return; }
+			// else
+
+			int  nowPressButton =  smg->loopingMouse.pressMouseButton;
+			if ( nowPressButton == mouesVKCode || !nowPressButton )
+			{
+				LoopingMouse::ReleaseMouseCapture();
+			}
+
+			smg->loopingMouse.pressMouseButton = NULL;
+		};
+
 		switch ( msg )
 		{
-		case WM_PAINT:
-		{
-			PAINTSTRUCT ps;
-			HDC hdc;
-			hdc = BeginPaint( hwnd, &ps );
-			EndPaint( hwnd, &ps );
+		case WM_CREATE:
 			break;
-		}
 		case WM_DESTROY:
 			PostQuitMessage( 0 );
 			break;
-		case WM_CREATE:
+		case WM_DROPFILES:
+			{
+				constexpr size_t FILE_PATH_LENGTH = 512U;
+
+				HDROP	hDrop = ( HDROP )wParam;
+				size_t	fileCount = DragQueryFile( hDrop, -1, NULL, NULL );
+
+				std::unique_ptr<char[]> filename = std::make_unique<char[]>( FILE_PATH_LENGTH );
+
+				for ( size_t i = 0; i < fileCount; ++i )
+				{
+					DragQueryFileA( hDrop, i, filename.get(), FILE_PATH_LENGTH );
+
+					smg->draggedFilePaths.emplace_back( std::string{ filename.get() } );
+				}
+
+				DragFinish( hDrop );
+			}
 			break;
+		case WM_ENTERSIZEMOVE:
+			{
+				// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
+				smg->highResoTimer.Stop();
+			}
+			break;
+		case WM_EXITSIZEMOVE:
+			{
+				// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
+				// Here we reset everything based on the new window dimensions.
+				smg->highResoTimer.Start();
+			}
+			break;
+		case WM_KEYDOWN:
+			{
+				if ( wParam == VK_ESCAPE )
+				{
+					PostMessage( smg->hWnd, WM_CLOSE, 0, 0 );
+				}
+			}
+			break;
+		#pragma region Mouse Process
 		case WM_MOUSEMOVE:
 			Donya::Mouse::UpdateMouseCoordinate( lParam );
+			if ( smg->loopingMouse.isCaptureWindow )
+			{
+				LoopingMouse::PutLimitMouseMoveArea();
+			}
 			break;
 		case WM_MOUSEWHEEL:
 			Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ true, wParam, lParam );
@@ -655,30 +804,88 @@ namespace Donya
 		case WM_MOUSEHWHEEL:
 			Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
 			break;
-		case WM_KEYDOWN:
-		{
-			if ( wParam == VK_ESCAPE )
+		case WM_LBUTTONDOWN:
+			SetLoopingMouseCapture( VK_LBUTTON );
+			break;
+		case WM_MBUTTONDOWN:
+			SetLoopingMouseCapture( VK_MBUTTON );
+			break;
+		case WM_RBUTTONDOWN:
+			SetLoopingMouseCapture( VK_RBUTTON );
+			break;
+		case WM_LBUTTONUP:
+			ReleaseLoopingMouseCapture( VK_LBUTTON );
+			break;
+		case WM_MBUTTONUP:
+			ReleaseLoopingMouseCapture( VK_MBUTTON );
+			break;
+		case WM_RBUTTONUP:
+			ReleaseLoopingMouseCapture( VK_RBUTTON );
+			break;
+		#pragma endregion
+		case WM_PAINT:
 			{
-				PostMessage( hwnd, WM_CLOSE, 0, 0 );
+				PAINTSTRUCT ps;
+				HDC hdc;
+				hdc = BeginPaint( smg->hWnd, &ps );
+				EndPaint( smg->hWnd, &ps );
+				break;
 			}
-			break;
-		}
-		case WM_ENTERSIZEMOVE:
-		{
-			// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
-			smg->highResoTimer.Stop();
-			break;
-		}
-		case WM_EXITSIZEMOVE:
-		{
-			// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
-			// Here we reset everything based on the new window dimensions.
-			smg->highResoTimer.Start();
-			break;
-		}
 		default:
-			return DefWindowProc( hwnd, msg, wParam, lParam );
+			return DefWindowProc( smg->hWnd, msg, wParam, lParam );
 		}
+
+		// Old procedure(the main library's procedure).
+
+		//switch ( msg )
+		//{
+		//case WM_PAINT:
+		//{
+		//	PAINTSTRUCT ps;
+		//	HDC hdc;
+		//	hdc = BeginPaint( hwnd, &ps );
+		//	EndPaint( hwnd, &ps );
+		//	break;
+		//}
+		//case WM_DESTROY:
+		//	PostQuitMessage( 0 );
+		//	break;
+		//case WM_CREATE:
+		//	break;
+		//case WM_MOUSEMOVE:
+		//	Donya::Mouse::UpdateMouseCoordinate( lParam );
+		//	break;
+		//case WM_MOUSEWHEEL:
+		//	Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ true, wParam, lParam );
+		//	break;
+		//case WM_MOUSEHWHEEL:
+		//	Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
+		//	break;
+		//case WM_KEYDOWN:
+		//{
+		//	if ( wParam == VK_ESCAPE )
+		//	{
+		//		PostMessage( hwnd, WM_CLOSE, 0, 0 );
+		//	}
+		//	break;
+		//}
+		//case WM_ENTERSIZEMOVE:
+		//{
+		//	// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
+		//	smg->highResoTimer.Stop();
+		//	break;
+		//}
+		//case WM_EXITSIZEMOVE:
+		//{
+		//	// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
+		//	// Here we reset everything based on the new window dimensions.
+		//	smg->highResoTimer.Start();
+		//	break;
+		//}
+		//default:
+		//	return DefWindowProc( hwnd, msg, wParam, lParam );
+		//}
+
 		return 0;
 	}
 
@@ -741,6 +948,8 @@ namespace Donya
 
 		ShowWindow( smg->hWnd, nCmdShow );
 		UpdateWindow( smg->hWnd );
+
+		DragAcceptFiles( smg->hWnd, TRUE );
 	}
 
 	void CreateDevices()
@@ -1199,6 +1408,11 @@ namespace Donya
 
 	#endif
 
+		if ( smg->loopingMouse.isCaptureWindow )
+		{
+			LoopingMouse::ReleaseMouseCapture();
+		}
+
 		BOOL isFullScreen = FALSE;
 		smg->d3d11.swapChain->GetFullscreenState( &isFullScreen, 0 );
 		if ( isFullScreen )
@@ -1213,9 +1427,18 @@ namespace Donya
 		return exitCode;
 	}
 
-	HWND				&GetHWnd()				{ return smg->hWnd; }
-	ID3D11Device		*GetDevice()			{ return smg->d3d11.device.Get(); }
-	ID3D11DeviceContext	*GetImmediateContext()	{ return smg->d3d11.immediateContext.Get(); }
+	HWND						&GetHWnd()				{ return smg->hWnd; }
+	ID3D11Device				*GetDevice()			{ return smg->d3d11.device.Get(); }
+	ID3D11DeviceContext			*GetImmediateContext()	{ return smg->d3d11.immediateContext.Get(); }
+
+	std::vector<std::string>	FetchDraggedFilePaths	( bool removeFromStorage = true )
+	{
+		std::vector<std::string> copy = smg->draggedFilePaths;
+
+		if ( removeFromStorage ) { smg->draggedFilePaths.clear(); }
+
+		return copy;
+	}
 
 	namespace Private
 	{

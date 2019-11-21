@@ -77,9 +77,15 @@ namespace Donya
 	/// </summary>
 	int Uninit();
 
-	HWND				&GetHWnd();
-	ID3D11Device		*GetDevice();
-	ID3D11DeviceContext	*GetImmediateContext();
+	HWND						&GetHWnd();
+	ID3D11Device				*GetDevice();
+	ID3D11DeviceContext			*GetImmediateContext();
+
+	/// <summary>
+	/// Returns the file paths that were drag-and-dropped.<para></para>
+	/// If set the true to the "removeFromStorage" flag, the storage will be empty.
+	/// </summary>
+	std::vector<std::string>	FetchDraggedFilePaths( bool removeFromStorage = true );
 
 	/// <summary>
 	/// This namespace there for Donya engine.
