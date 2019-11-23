@@ -19,8 +19,9 @@ public:
 	/// </summary>
 	enum class Mode
 	{
-		Free,	// The rotate origin is myself. The focus point will be invalid.
-		Look,	// Keep looking the focus point. The rotation is like satellite.
+		Free,		// The rotate origin is myself. The focus point will be invalid.
+		Look,		// Keep looking the focus point. The rotation is invalid.
+		Satellite,	// The movement is like satellite. Keep looking the focus point. The rotation is invalid.
 	};
 	/// <summary>
 	/// Store information of drive the camera.
