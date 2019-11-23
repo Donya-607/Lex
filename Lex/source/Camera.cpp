@@ -98,9 +98,9 @@ public:
 	virtual float				GetZNear()				const { return m.zNear; }
 	virtual float				GetZFar()				const { return m.zFar; }
 	virtual Donya::Vector2		GetScreenSize()			const { return m.screenSize; }
-	virtual Donya::Vector3		GetPosition()			const { return dest.pos; }
-	virtual Donya::Vector3		GetFocusPoint()			const { return dest.focus; }
-	virtual Donya::Quaternion	GetOrientation()		const { return dest.orientation; }
+	virtual Donya::Vector3		GetPosition()			const { return m.pos; }
+	virtual Donya::Vector3		GetFocusPoint()			const { return m.focus; }
+	virtual Donya::Quaternion	GetOrientation()		const { return m.orientation; }
 	virtual Donya::Vector4x4	CalcViewMatrix()		const
 	{
 		Donya::Quaternion invRotation = m.orientation.Conjugate(); // Conjugate() represent inverse rotation only when using to rotation.
@@ -111,7 +111,13 @@ public:
 	}
 	virtual Donya::Vector4x4	GetProjectionMatrix()	const { return projection; }
 protected:
-	virtual void Interpolation( float lerpFactor )
+	virtual void AssignMemberToDestination()
+	{
+		dest.pos			= m.pos;
+		dest.focus			= m.focus;
+		dest.orientation	= m.orientation;
+	}
+	virtual void InterpolateMember( float lerpFactor )
 	{
 		auto LerpPoint = []( const Donya::Vector3 &start, const Donya::Vector3 &last, float factor )
 		{
@@ -221,6 +227,11 @@ public:
 	{
 		m = member;
 		SetProjectionPerspective();
+
+		AssignMemberToDestination();
+
+		focusDistance = ( m.focus - m.pos ).Length();
+		UpdateFocusPoint();
 	}
 	void Uninit() override
 	{
@@ -232,7 +243,7 @@ public:
 		Move( controller );
 		Rotate( controller );
 
-		Interpolation( controller.slerpPercent );
+		InterpolateMember( controller.slerpPercent );
 	}
 private:
 	void UpdateFocusPoint()
@@ -281,6 +292,8 @@ public:
 	{
 		m = member;
 		SetProjectionPerspective();
+
+		AssignMemberToDestination();
 	}
 	void Uninit() override
 	{
@@ -291,12 +304,17 @@ public:
 	{
 		Move( controller );
 
-		Interpolation( controller.slerpPercent );
+		InterpolateMember( controller.slerpPercent );
 	}
 private:
 	void Move( ICamera::Controller controller )
 	{
-		
+		if ( controller.moveInLocalSpace )
+		{
+			controller.moveVelocity = dest.orientation.RotateVector( controller.moveVelocity );
+		}
+
+		dest.pos += controller.moveVelocity;
 	}
 };
 
@@ -316,6 +334,8 @@ public:
 	{
 		m = member;
 		SetProjectionPerspective();
+
+		AssignMemberToDestination();
 	}
 	void Uninit() override
 	{
@@ -326,122 +346,45 @@ public:
 	{
 		Move( controller );
 
-		Interpolation( controller.slerpPercent );
+		InterpolateMember( controller.slerpPercent );
+
+		LookAtFocus();
+		PutPositionOnCircumference();
 	}
 private:
+	void LookAtFocus()
+	{
+		const Donya::Vector3 nLookDir = ( m.focus - m.pos ).Normalized();
+		m.orientation = Donya::Quaternion::LookAt( m.orientation, nLookDir );
+	}
+	void PutPositionOnCircumference()
+	{
+		float focusDistance = ( m.focus - m.pos ).Length();
+		const Donya::Vector3 nFront = m.orientation.LocalFront();
+
+		m.pos = m.focus + ( -nFront * focusDistance );
+	}
+
 	void Move( ICamera::Controller controller )
 	{
-		auto OrbitAround = [&]()
-		{
-			if ( mouse.prev == mouse.current ) { return; }
-			// else
-
-			constexpr float ROTATION_SPEED = 1.0f;
-
-			/* // TODO:I wanna change the way of calculation of rotation-amount. that calculate by world-space mouse-position.
-			Donya::Vector3 from	= ToWorldPos( mouse.prev	);
-			Donya::Vector3 to	= ToWorldPos( mouse.current	);
-			Donya::Vector3 diff = to - from;
-			*/
-
-			Donya::Vector2 diff = mouse.current - mouse.prev;
-
-			// Rotate orientation.
-			if ( !ZeroEqual( diff.x ) )
-			{
-				float radian = ToRadian( diff.x * ROTATION_SPEED );
-				Donya::Vector3 up = Donya::Vector3::Up(); // world-space axis.
-
-				Donya::Quaternion rotate = Donya::Quaternion::Make( up, radian );
-				orientation = rotate * orientation;
-			}
-			if ( !ZeroEqual( diff.y ) )
-			{
-				float radian = ToRadian( diff.y * ROTATION_SPEED );
-				Donya::Vector3 right = orientation.RotateVector( Donya::Vector3::Right() ); // camera-space axis.
-
-				Donya::Quaternion rotate = Donya::Quaternion::Make( right, radian );
-				orientation = rotate * orientation;
-			}
-
-			// Calculate front-vector. thereby I can decide camera-position.
-			Donya::Vector3  front = orientation.RotateVector( Donya::Vector3::Front() );
-			if ( ZeroEqual( front.LengthSq() ) ) { return; }
-			// else
-
-			front *= radius;
-			pos = focus + ( -front );
-		};
-
-		auto Pan = [&]()
-		{
-			if ( mouse.prev == mouse.current ) { return; }
-			// else
-
-			// If you want move to right, the camera(myself) must move to left.
-			Donya::Vector2 old{ mouse.prev };
-			Donya::Vector2 now( mouse.current );
-			old.x *= -1;
-			now.x *= -1;
-
-			Donya::Vector3 from = ToWorldPos( old );
-			Donya::Vector3 to = ToWorldPos( now );
-
-			Donya::Vector3 moveVec = to - from;
-
-			pos += moveVec;
-			focus += moveVec;
-		};
-
-		auto CalcDistToVirtualScreen = [&]()
-		{
-			// see http://marupeke296.com/ALG_No7_MoveCameraWithCursor.html
-
-			float FOV = scopeAngle;
-			FOV *= 0.5f;
-
-			virtualDistance = Common::ScreenHeightF() / ( 2 * tanf( FOV ) );
-		};
-
-		auto Multiply = []( Donya::Vector3 *pOutput, const Donya::Vector4x4 &M )
-		{
-			Donya::Vector3 &V = *pOutput;
-
-			float x = ( V.x * M._11 ) + ( V.y * M._21 ) + ( V.z * M._31 );
-			float y = ( V.x * M._12 ) + ( V.y * M._22 ) + ( V.z * M._32 );
-			float z = ( V.x * M._13 ) + ( V.y * M._23 ) + ( V.z * M._33 );
-
-			V.x = x;
-			V.y = y;
-			V.z = z;
-		};
-		auto ToWorldPos = []( const Donya::Vector2 &screenPos )->Donya::Vector3
-		{
-			// see http://marupeke296.com/ALG_No7_MoveCameraWithCursor.html
-
-			Donya::Vector3 worldPos{};
-			{
-				Donya::Vector3 virtualPos{ screenPos.x, screenPos.y, virtualDistance };
-
-				Multiply( &virtualPos, orientation.RequireRotationMatrix() );
-
-				worldPos = virtualPos;
-			}
-
-			float rayLength{}; // The "a" of reference site.
-			{
-				Donya::Vector3 anyPoint = Donya::Vector3::Zero();
-				Donya::Vector3 virNormal = pos - focus;
-				float dotSample = Donya::Vector3::Dot( { anyPoint - pos }, virNormal );
-				float dotTarget = Donya::Vector3::Dot( { worldPos - pos }, virNormal );
-
-				rayLength = dotSample / dotTarget;
-			}
-
-			Donya::Vector3 onPlanePos = pos + ( Donya::Vector3{ worldPos - pos } *rayLength );
-			return onPlanePos;
-		};
-
+		Dolly( controller.moveVelocity.z );
+		Pan( controller.moveVelocity.x );
+		Tilt( controller.moveVelocity.y );
+	}
+	void Dolly( float moveAmount )
+	{
+		const Donya::Vector3 movement = Donya::Vector3::Front() * moveAmount;
+		dest.pos += dest.orientation.RotateVector( movement );
+	}
+	void Pan( float moveAmount )
+	{
+		const Donya::Vector3 movement = Donya::Vector3::Right() * moveAmount;
+		dest.pos += dest.orientation.RotateVector( movement );
+	}
+	void Tilt( float moveAmount )
+	{
+		const Donya::Vector3 movement = Donya::Vector3::Up() * moveAmount;
+		dest.pos += dest.orientation.RotateVector( movement );
 	}
 };
 

@@ -31,7 +31,7 @@ public:
 		Donya::Vector3		moveVelocity{};				// Set move vector(contain speed).
 		Donya::Quaternion	rotation{};					// Set the rotation. This parameter is enable only when the camera mode is Free.
 		float				slerpPercent{ 1.0f };		// Set percentage of interpolation(0.0f ~ 1.0f). This affects the movement and the rotation.
-		bool				moveInLocalSpace{ true };	// Specify the space of movement. world-space or local-space(with current orientation).
+		bool				moveInLocalSpace{ true };	// Specify the space of movement(world-space or camera-space). If the Satellite mode, moving space is fixed to camera-space.
 	public:
 		// This condition is same as default constructed condition.
 		void SetNoOperation()
