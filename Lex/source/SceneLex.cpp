@@ -46,7 +46,7 @@ public:
 		bool		isSucceeded{};	// Is Succeeded the loading process ?
 	};
 public:
-	Camera							camera;
+	ICamera							iCamera;
 	DirectionalLight				directionalLight;
 	Donya::Vector4					mtlColor;
 
@@ -61,7 +61,7 @@ public:
 	bool							drawWireFrame;
 public:
 	Impl() :
-		camera(), directionalLight(), mtlColor( 1.0f, 1.0f, 1.0f, 1.0f ),
+		iCamera(), directionalLight(), mtlColor( 1.0f, 1.0f, 1.0f, 1.0f ),
 		models(),
 		pLoadThread( nullptr ), pCurrentLoading( nullptr ),
 		currentLoadingFileNameUTF8(), reservedAbsFilePaths(), reservedFileNamesUTF8(),
@@ -80,19 +80,17 @@ public:
 public:
 	void Init()
 	{
-		camera.SetToHomePosition
-		(
-			{ 16.0f, 16.0f, -16.0f },
-			{ 0.0f, 0.0f, 0.0f }
-		);
-		camera.SetPerspectiveProjectionMatrix
-		(
-			Common::ScreenWidthF() / Common::ScreenHeightF()
-		);
+		iCamera.Init( ICamera::Mode::Satellite );
+		iCamera.SetZRange( 0.1f, 1000.0f );
+		iCamera.SetFOV( ToRadian( 30.0f ) );
+		iCamera.SetScreenSize( { Common::ScreenWidthF(), Common::ScreenHeightF() } );
+		iCamera.SetPosition( { 16.0f, 16.0f, -16.0f } );
+		iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
+		iCamera.SetProjectionPerspective();
 	}
 	void Uninit()
 	{
-		
+		iCamera.Uninit();
 	}
 
 	void Update( float elapsedTime )
@@ -135,12 +133,12 @@ public:
 	void Draw( float elapsedTime )
 	{
 		Donya::Vector4x4 W = Donya::Vector4x4::Identity();
-		Donya::Vector4x4 V = camera.CalcViewMatrix();
-		Donya::Vector4x4 P = camera.GetProjectionMatrix();
+		Donya::Vector4x4 V = iCamera.CalcViewMatrix();
+		Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 
 		Donya::Vector4x4 WVP = W * V * P;
 
-		Donya::Vector4 cameraPos{ camera.GetPos(), 1.0f };
+		Donya::Vector4 cameraPos{ iCamera.GetPosition(), 1.0f };
 
 		for ( auto &it : models )
 		{
@@ -157,14 +155,15 @@ public:
 private:
 	void CameraUpdate()
 	{
-		auto MakeControlStructWithMouse = []()
+		auto MakeControlStructWithMouse = []()->ICamera::Controller
 		{
 			if ( !Donya::Keyboard::Press( VK_MENU ) )
 			{
-				Donya::Camera::Controller noop{};
+				ICamera::Controller noop{};
 				noop.SetNoOperation();
 				return noop;
 			}
+			// else
 
 			static Donya::Int2 prevMouse{};
 			static Donya::Int2 currMouse{};
@@ -179,10 +178,11 @@ private:
 			bool isDriveMouse = ( prevMouse != currMouse ) || Donya::Mouse::WheelRot() || isInputMouseButton;
 			if ( !isDriveMouse )
 			{
-				Donya::Camera::Controller noop{};
+				ICamera::Controller noop{};
 				noop.SetNoOperation();
 				return noop;
 			}
+			// else
 
 			Donya::Vector3 diff{};
 			{
@@ -228,18 +228,18 @@ private:
 				front.Normalize();
 			}
 
-			Donya::Camera::Controller ctrl{};
-			ctrl.moveVelocity = movement;
-			ctrl.rotation = rotation;
-			ctrl.slerpPercent = 1.0f;
-			ctrl.moveAtLocalSpace = true;
+			ICamera::Controller ctrl{};
+			ctrl.moveVelocity		= movement;
+			ctrl.rotation			= {};
+			ctrl.slerpPercent		= 1.0f;
+			ctrl.moveInLocalSpace	= true;
 
 			return ctrl;
 		};
-		pCamera->Update( MakeControlStructWithMouse() );
+		iCamera.Update( MakeControlStructWithMouse() );
 		if ( Donya::Keyboard::Trigger( 'R' ) )
 		{
-			pCamera->SetPosition( { 0.0f, 360.0f, -512.0f } );
+			iCamera.SetPosition( { 16.0f, 16.0f, -16.0f } );
 		}
 	}
 
@@ -489,7 +489,11 @@ private:
 
 			if ( ImGui::TreeNode( u8"環境設定" ) )
 			{
-				camera.ShowImGuiNode();
+				if ( ImGui::TreeNode( u8"カメラ" ) )
+				{
+					iCamera.ShowImGuiNode();
+					ImGui::TreePop();
+				}
 				
 				constexpr float DIRECTION_RANGE = 8.0f;
 				ImGui::SliderFloat3( u8"方向性ライト・向き",		&directionalLight.direction.x, -DIRECTION_RANGE, DIRECTION_RANGE );

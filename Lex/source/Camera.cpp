@@ -55,10 +55,12 @@ public:
 	virtual void SetPosition				( const Donya::Vector3 &point )
 	{
 		dest.pos = point;
+		LookAtDestFocus();
 	}
 	virtual void SetFocusPoint				( const Donya::Vector3 &point )
 	{
 		dest.focus = point;
+		LookAtDestFocus();
 	}
 	virtual void SetFocusToFront			( float distance )
 	{
@@ -111,6 +113,14 @@ public:
 	}
 	virtual Donya::Vector4x4	GetProjectionMatrix()	const { return projection; }
 protected:
+	/// <summary>
+	/// The dest.orientation will look to dest.focus by dest.pos.
+	/// </summary>
+	virtual void LookAtDestFocus()
+	{
+		const Donya::Vector3 nLookDir = ( dest.focus - dest.pos ).Normalized();
+		dest.orientation = Donya::Quaternion::LookAt( dest.orientation, nLookDir );
+	}
 	virtual void AssignMemberToDestination()
 	{
 		dest.pos			= m.pos;
@@ -409,8 +419,8 @@ void ICamera::Init( Mode initialMode )
 		ToRadian( 30.0f ),				// FOV
 		0.1f, 1000.0f,					// zNear, zFar
 		{ 1920.0f, 1080.0f },			// screenSize
-		{ 0.0f, 0.0f, 0.0f },			// pos
-		{ 0.0f, 0.0f, 1.0f },			// focus
+		{ 0.0f, 0.0f, -1.0f },			// pos
+		{ 0.0f, 0.0f, 0.0f },			// focus
 		Donya::Quaternion::Identity()	// orientation
 	};
 	pCamera = std::make_unique<FreeCamera>();
@@ -504,27 +514,27 @@ void ICamera::SetProjectionPerspective( float aspectRatio )
 Donya::Vector3		ICamera::GetPosition()			const
 {
 	AssertIfNullptr();
-	pCamera->GetPosition();
+	return pCamera->GetPosition();
 }
 Donya::Vector3		ICamera::GetFocusPoint()		const
 {
 	AssertIfNullptr();
-	pCamera->GetFocusPoint();
+	return pCamera->GetFocusPoint();
 }
 Donya::Quaternion	ICamera::GetOrientation()		const
 {
 	AssertIfNullptr();
-	pCamera->GetOrientation();
+	return pCamera->GetOrientation();
 }
 Donya::Vector4x4	ICamera::CalcViewMatrix()		const
 {
 	AssertIfNullptr();
-	pCamera->CalcViewMatrix();
+	return pCamera->CalcViewMatrix();
 }
 Donya::Vector4x4	ICamera::GetProjectionMatrix()	const
 {
 	AssertIfNullptr();
-	pCamera->GetProjectionMatrix();
+	return pCamera->GetProjectionMatrix();
 }
 
 #if USE_IMGUI

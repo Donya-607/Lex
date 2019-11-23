@@ -1,7 +1,7 @@
 #include "Animation.h"
 
-#include "Header/Constant.h"
-#include "Header/Sprite.h"
+#include "Donya/Constant.h"
+#include "Donya/Sprite.h"
 
 SpriteSheet::SpriteSheet() :
 	spriteSheet( NULL ),

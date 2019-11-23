@@ -97,8 +97,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DXSDK_DIR)Lib\$(PlatformTarget);$(SolutionDir)\External\DirectXTK\Bin\Desktop_2015\Win32\$(Configuration);$(SolutionDir)\External\FBX SDK\2016.1.2\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTK_d.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;libfbxsdk-md.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(DXSDK_DIR)Lib\$(PlatformTarget);$(SolutionDir)External\DirectXTK\Bin\Desktop_2015\Win32\$(Configuration);$(SolutionDir)External\FBX SDK\2016.1.2\lib\vs2015\$(PlatformTarget)\$(Configuration);$(SolutionDir)External\FMOD\LowLevel\lib\;$(SolutionDir)External\FMOD\Studio\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>DirectXTK_d.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;libfbxsdk-md.lib;fmodL_vc.lib;fmodstudioL_vc.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -130,8 +130,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DXSDK_DIR)Lib\$(PlatformTarget);$(SolutionDir)\External\DirectXTK\Bin\Desktop_2015\Win32\$(Configuration);$(SolutionDir)\External\FBX SDK\2016.1.2\lib\vs2015\$(PlatformTarget)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTK.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;libfbxsdk-md.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(DXSDK_DIR)Lib\$(PlatformTarget);$(SolutionDir)External\DirectXTK\Bin\Desktop_2015\Win32\$(Configuration);$(SolutionDir)External\FBX SDK\2016.1.2\lib\vs2015\$(PlatformTarget)\$(Configuration);$(SolutionDir)External\FMOD\LowLevel\lib\;$(SolutionDir)External\FMOD\Studio\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>DirectXTK.lib;d3d11.lib;dxgi.lib;d3dcompiler.lib;libfbxsdk-md.lib;fmod_vc.lib;fmodstudio_vc.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -244,7 +244,7 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)/Shader/%(Filename).cso</ObjectFileOutput>
       <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AssemblyCode</AssemblerOutput>
       <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)Shader/%(Filename).cod</AssemblerOutputFile>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Shader/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Data/Shader/%(Filename).cso</ObjectFileOutput>
       <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AssemblyCode</AssemblerOutput>
       <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Shader/%(Filename).cod</AssemblerOutputFile>
     </FxCompile>
@@ -256,7 +256,7 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)Shader/%(Filename).cso</ObjectFileOutput>
       <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AssemblyCode</AssemblerOutput>
       <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)Shader/%(Filename).cod</AssemblerOutputFile>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Shader/%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Data/Shader/%(Filename).cso</ObjectFileOutput>
       <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AssemblyCode</AssemblerOutput>
       <AssemblerOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)Shader/%(Filename).cod</AssemblerOutputFile>
     </FxCompile>

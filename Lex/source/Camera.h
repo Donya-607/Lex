@@ -85,7 +85,13 @@ public:
 	/// This set only screen size, so you should call SetProjectionXXX() after this.
 	/// </summary>
 	void SetScreenSize				( const Donya::Vector2 &screenSize );
+	/// <summary>
+	/// The orientation will be also setting.
+	/// </summary>
 	void SetPosition				( const Donya::Vector3 &point );
+	/// <summary>
+	/// The orientation will be also setting.
+	/// </summary>
 	void SetFocusPoint				( const Donya::Vector3 &point );
 	/// <summary>
 	/// This method is valid when the camera's orientation is valid.

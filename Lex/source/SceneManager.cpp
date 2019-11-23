@@ -1,8 +1,9 @@
 #include "SceneManager.h"
 
+#include "Donya/Resource.h"
+
 #include "Common.h"
 #include "Fader.h"
-#include "Donya//Resource.h"
 #include "Scene.h"
 #include "SceneLex.h"
 

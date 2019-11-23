@@ -34,12 +34,12 @@ INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _
 
 	srand( scast<unsigned int>( time( NULL ) ) );
 
-	std::string title{ "‚¨‚ä‚¤‚¬" };
+	std::string title{ "Lex" };
 	Donya::Init( cmdShow, Common::ScreenWidth(), Common::ScreenHeight(), title.c_str(), /* fullScreenMode = */ false );
 
 	// Donya::SetWindowIcon( instance, IDI_ICON );
 
-	OldFramework framework{};
+	Framework framework{};
 	framework.Init();
 
 	while ( Donya::MessageLoop() )

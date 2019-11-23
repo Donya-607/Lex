@@ -21,7 +21,7 @@ public:
 	SceneMng & operator = ( const SceneMng &  ) = delete;
 	SceneMng & operator = ( const SceneMng && ) = delete;
 public:
-	void Init( Scene::Type initScene = Scene::Type::Logo );
+	void Init( Scene::Type initScene );
 	void Uninit();
 
 	void Update( float elapsedTime );

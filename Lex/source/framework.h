@@ -23,8 +23,6 @@
 #include "SceneManager.h"
 #include "SkinnedMesh.h"
 
-#define scast static_cast
-
 class Framework
 {
 private:
@@ -62,7 +60,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>	d3dRenderTargetView;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView>	d3dDepthStencilView;
 private:
-	Camera camera;
+	// Camera camera;
 	struct Light
 	{
 		Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
