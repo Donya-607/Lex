@@ -40,24 +40,26 @@ public:
 			slerpPercent	= 0.0f;
 		}
 	};
-private:
+// private:
+public: // I want to hide the "Configuration" struct, but if hide it, a derived from "BaseCamera" class can not access. :(
 	/// <summary>
 	/// Use when change the mode. Store a user specified parameter, then change the mode and set the parameter.
 	/// </summary>
-	struct Coniguration
+	struct Configuration
 	{
 		float				FOV{};
+		float				zNear{};
+		float				zFar{};
 		Donya::Vector2		screenSize{};
 		Donya::Vector3		pos{};
 		Donya::Vector3		focus{};
 		Donya::Quaternion	orientation{};
-		Donya::Vector4x4	projection{};
 	};
-private:
-	Mode currentMode;
-
+public:
 	class BaseCamera;
+private:
 	std::unique_ptr<BaseCamera> pCamera;
+	Mode currentMode;
 public:
 	ICamera();
 	~ICamera();
@@ -69,17 +71,30 @@ public:
 public:
 	void ChangeMode( Mode nextMode );
 
+	/// <summary>
+	/// This set only z-range(near, far), so you should call SetProjectionXXX() after this.
+	/// </summary>
 	void SetZRange					( float zNear, float zFar );
+	/// <summary>
+	/// This set only Field-Of-View, so you should call SetProjectionXXX() after this.
+	/// </summary>
 	void SetFOV						( float FOV );
+	/// <summary>
+	/// Please don't set zero to the height of screenSize. Because will be divided the width by height.<para></para>
+	/// This set only screen size, so you should call SetProjectionXXX() after this.
+	/// </summary>
 	void SetScreenSize				( const Donya::Vector2 &screenSize );
 	void SetPosition				( const Donya::Vector3 &point );
-	void SetFocus					( const Donya::Vector3 &point );
+	void SetFocusPoint				( const Donya::Vector3 &point );
+	/// <summary>
+	/// This method is valid when the camera's orientation is valid.
+	/// </summary>
 	void SetFocusToFront			( float distance );
 	void SetOrientation				( const Donya::Quaternion &orientation );
 	/// <summary>
 	/// If set { 0, 0 } to the "viewSize", use registered screen size.
 	/// </summary>
-	void SetProjectionOrthogonal	( const Donya::Vector2 &viewSize = { 0.0f, 0.0f } );
+	void SetProjectionOrthographic	( const Donya::Vector2 &viewSize = { 0.0f, 0.0f } );
 	/// <summary>
 	/// If set 0.0f to the "aspectRatio", calculate by registered screen size.
 	/// </summary>
@@ -96,6 +111,10 @@ public:
 	void ShowImGuiNode();
 
 #endif // USE_IMGUI
+private:
+	void AssertIfNullptr() const;
+
+	Configuration BuildCurrentConfiguration() const;
 };
 
 // Donya's version.
