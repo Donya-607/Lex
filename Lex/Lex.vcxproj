@@ -248,6 +248,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\SkinnedMesh.hlsli" />
+    <None Include="Shader\Techniques.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\SkinnedMeshPS.hlsl">

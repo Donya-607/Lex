@@ -10,11 +10,12 @@ static const int MAX_BONE_COUNT = 32;
 
 cbuffer CONSTANT_BUFFER : register( b0 )
 {
-	row_major float4x4	worldViewProjection;
-	row_major float4x4	world;
-	row_major float4x4	boneTransforms[MAX_BONE_COUNT];
-	float4				lightColor;
-	float4				lightDir;
+	row_major float4x4	cbWorldViewProjection;
+	row_major float4x4	cbWorld;
+	row_major float4x4	cbBoneTransforms[MAX_BONE_COUNT];
+	float4				cbLightColor;
+	float4				cbLightDirection;
+	float4				cbMaterialColor;
 };
 
 cbuffer MATERIAL_CONSTANT_BUFFER : register( b1 )

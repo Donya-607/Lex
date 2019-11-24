@@ -40,6 +40,7 @@ namespace Donya
 			// DirectX::XMFLOAT4	eyePosition;
 			DirectX::XMFLOAT4	lightColor;
 			DirectX::XMFLOAT4	lightDir;
+			DirectX::XMFLOAT4	materialColor;
 		};
 
 		struct MaterialConstantBuffer
@@ -148,6 +149,7 @@ namespace Donya
 			const DirectX::XMFLOAT4X4	&worldViewProjection,
 			const DirectX::XMFLOAT4X4	&world,
 			const DirectX::XMFLOAT4		&eyePosition,
+			const DirectX::XMFLOAT4		&materialColor,
 			const DirectX::XMFLOAT4		&lightColor,
 			const DirectX::XMFLOAT4		&lightDirection,
 			bool isEnableFill = true

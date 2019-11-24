@@ -157,6 +157,7 @@ public:
 			(
 				WVP, W,
 				cameraPos,
+				mtlColor,
 				directionalLight.color,
 				directionalLight.direction,
 				( drawWireFrame ) ? false : true

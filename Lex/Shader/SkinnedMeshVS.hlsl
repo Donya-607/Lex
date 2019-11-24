@@ -42,7 +42,7 @@ void ApplyBoneMatrices( uint4 boneIndices, float4 boneWeights, inout float4 inou
 	for ( int i = 0; i < 4/* float4 */; ++i )
 	{
 		weight			= boneWeights[i];
-		transform		= boneTransforms[boneIndices[i]];
+		transform		= cbBoneTransforms[boneIndices[i]];
 
 		resultPos		+= ( weight * mul( inPosition,	transform ) ).xyz;
 		resultNormal	+= ( weight * mul( inNormal,	transform ) ).xyz;
@@ -56,23 +56,13 @@ VS_OUT main( VS_IN vin )
 {
 	ApplyBoneMatrices( vin.bones, vin.weights, vin.pos, vin.normal );
 	// vin.normal.w = 0; // This process already done at ApplyBoneMatrices().
-
-	float4 nNorm	= normalize( mul( vin.normal, world ) );
-	float4 nLight	= normalize( lightDir );
-
-	VS_OUT vout = (VS_OUT)( 0 );
-	vout.pos		= mul( vin.pos, worldViewProjection );
-
-	vout.normal		= nNorm;
-
+	
+	VS_OUT vout		= ( VS_OUT )( 0 );
+	vout.pos		= mul( vin.pos, cbWorldViewProjection );
+	vout.normal		= normalize( mul( vin.normal, cbWorld ) );
 	vout.texCoord	= vin.texCoord;
-
 	vout.color.rgba = 1.0f;
-
-	// vout.color	= diffuse * max( dot( -nLight, nNorm ), 0.0f ); // Lambert's cosine law
-	// vout.color.a	= 1.0f;
-	// vout.color	= VisualizeBoneInfluence( vin.bones, vin.weights );
-
+	
 	// vout.eyeVector	= eyePosition - normalize( vout.pos );
 
 	return vout;

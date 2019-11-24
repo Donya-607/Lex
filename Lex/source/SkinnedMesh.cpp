@@ -366,7 +366,7 @@ namespace Donya
 		return true;
 	}
 
-	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
+	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &materialColor, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
 	{
 		if ( !wasCreated )
 		{
@@ -474,6 +474,7 @@ namespace Donya
 				}
 				cb.lightColor			= lightColor;
 				cb.lightDir				= lightDirection;
+				cb.materialColor		= materialColor;
 				// cb.eyePosition			= eyePosition;
 				pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 			}
