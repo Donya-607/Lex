@@ -64,7 +64,7 @@ namespace Donya
 	/// </summary>
 	class Loader
 	{
-		static constexpr unsigned int PROGRAM_VERSION = 1;
+		static constexpr unsigned int PROGRAM_VERSION = 2;
 	private:
 		static constexpr const char *SERIAL_ID = "Loader";
 		static std::mutex cerealMutex;
@@ -311,7 +311,7 @@ namespace Donya
 		/// .bin, .json(Expect, only file of saved by this Loader class).<para></para>
 		/// The "outputErrorString" can set nullptr.
 		/// </summary>
-		bool Load( const std::string &filePath, std::string *outputErrorString );
+		bool Load( const std::string &filePath, std::string *outputErrorString, bool outputDebugProgress = true );
 
 		/// <summary>
 		/// We expect the "filePath" contain extension also.
@@ -324,10 +324,10 @@ namespace Donya
 		const std::vector<Mesh>   *GetMeshes()	const { return &meshes;			}
 		const std::vector<Motion> *GetMotions()	const { return &motions;		}
 	private:
-		bool LoadByCereal( const std::string &filePath, std::string *outputErrorString );
+		bool LoadByCereal( const std::string &filePath, std::string *outputErrorString, bool outputDebugProgress );
 		
 	#if USE_FBX_SDK
-		bool LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString );
+		bool LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString, bool outputDebugProgress );
 
 		void MakeAbsoluteFilePath( const std::string &filePath );
 

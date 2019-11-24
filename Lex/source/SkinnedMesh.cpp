@@ -316,6 +316,7 @@ namespace Donya
 			}
 		}
 
+		wasCreated = true;
 		return true;
 	}
 

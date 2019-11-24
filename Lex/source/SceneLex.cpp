@@ -128,7 +128,14 @@ public:
 
 	#endif // DEBUG_MODE
 
+		AppendModelIfLoadFinished();
 
+		FetchDraggedFilePaths();
+		
+		StartLoadIfVacant();
+		
+		ShowNowLoadingModels();
+		
 		CameraUpdate();
 	}
 
@@ -242,6 +249,15 @@ private:
 		if ( Donya::Keyboard::Trigger( 'R' ) )
 		{
 			iCamera.SetPosition( { 16.0f, 16.0f, -16.0f } );
+		}
+	}
+
+	void FetchDraggedFilePaths()
+	{
+		std::vector<std::string> filePathStorage = Donya::FetchDraggedFilePaths();
+		for ( const auto &it : filePathStorage )
+		{
+			ReserveLoadFileIfLoadable( it );
 		}
 	}
 
@@ -381,15 +397,10 @@ private:
 		if ( !pCurrentLoading ) { return; }
 		// else
 
-		const Donya::Vector2 WINDOW_POS{ Common::HalfScreenWidthF(), Common::HalfScreenHeightF() };
-		const Donya::Vector2 WINDOW_SIZE{ 360.0f, 180.0f };
-		auto Convert = []( const Donya::Vector2 &vec )
-		{
-			return ImVec2{ vec.x, vec.y };
-		};
+		constexpr Donya::Vector2 WINDOW_POS {  32.0f, 632.0f };
+		constexpr Donya::Vector2 WINDOW_SIZE{ 360.0f, 180.0f };
 
-		ImGui::SetNextWindowPos( Convert( WINDOW_POS ), ImGuiCond_Once );
-		ImGui::SetNextWindowSize( Convert( WINDOW_SIZE ), ImGuiCond_Once );
+		SetNextImGuiWindow( WINDOW_POS, WINDOW_SIZE );
 
 		if ( ImGui::BeginIfAllowed( "Loading Files" ) )
 		{
@@ -469,9 +480,31 @@ private:
 		return filePath;
 	}
 
+	/// <summary>
+	/// If set to { 0, 0 }, that parameter will be ignored.
+	/// </summary>
+	void SetNextImGuiWindow( const Donya::Vector2 &pos = { 0.0f, 0.0f }, const Donya::Vector2 &size = { 0.0f, 0.0f } )
+	{
+	#if USE_IMGUI
+
+		auto Convert = []( const Donya::Vector2 &vec )
+		{
+			return ImVec2{ vec.x, vec.y };
+		};
+
+		if ( !pos.IsZero()  ) { ImGui::SetNextWindowPos ( Convert( pos  ), ImGuiCond_Once ); }
+		if ( !size.IsZero() ) { ImGui::SetNextWindowSize( Convert( size ), ImGuiCond_Once ); }
+
+	#endif // USE_IMGUI
+	}
+
 	void UseImGui()
 	{
 	#if USE_IMGUI
+
+		constexpr Donya::Vector2 WINDOW_POS {  32.0f,  32.0f };
+		constexpr Donya::Vector2 WINDOW_SIZE{ 720.0f, 600.0f };
+		SetNextImGuiWindow( WINDOW_POS, WINDOW_SIZE );
 
 		if ( ImGui::BeginIfAllowed() )
 		{

@@ -5,10 +5,14 @@
 namespace Common
 {
 	constexpr long	SCREEN_WIDTH_L	= 1600L;
+	// constexpr long	SCREEN_WIDTH_L	= 1920L;
+
 	constexpr int	SCREEN_WIDTH_I	= scast<int>	( SCREEN_WIDTH_L	);
 	constexpr float	SCREEN_WIDTH_F	= scast<float>	( SCREEN_WIDTH_L	);
 
 	constexpr long	SCREEN_HEIGHT_L	= 900L;
+	// constexpr long	SCREEN_HEIGHT_L	= 1080L;
+
 	constexpr int	SCREEN_HEIGHT_I	= scast<int>	( SCREEN_HEIGHT_L	);
 	constexpr float	SCREEN_HEIGHT_F	= scast<float>	( SCREEN_HEIGHT_L	);
 

@@ -8,9 +8,7 @@
 #include <fbxsdk.h>
 #endif // USE_FBX_SDK
 
-#include "Donya/Useful.h"
-
-#include "Common.h"		// Use scast macro.
+#include "Donya/Useful.h" // Use OutputDebugStr(), scast macro.
 
 #undef min
 #undef max
@@ -18,6 +16,16 @@
 #if USE_FBX_SDK
 namespace FBX = fbxsdk;
 #endif // USE_FBX_SDK
+
+void OutputDebugProgress( const std::string &str, bool isAllowOutput )
+{
+	if ( !isAllowOutput ) { return; }
+	// else
+
+	const std::string prefix { "[Donya.LoadProgress]:" };
+	const std::string postfix{ "\n" };
+	Donya::OutputDebugStr( ( prefix + str + postfix ).c_str() );
+}
 
 namespace Donya
 {
@@ -245,7 +253,7 @@ namespace Donya
 
 		FBX::FbxTime samplingStep;
 		samplingStep.SetTime( 0, 0, 1, 0, 0, timeMode );
-		samplingStep = scast<FBX::FbxLongLong>( samplingStep.Get() * scast<FBX::FbxLongLong>( pMotion->samplingRate ) );
+		samplingStep = scast<FBX::FbxLongLong>( scast<double>( samplingStep.Get() ) * pMotion->samplingRate );
 
 		pMotion->motion.resize( animationCount );
 		for ( int i = 0; i < animationCount; ++i )
@@ -273,7 +281,7 @@ namespace Donya
 
 #endif // USE_FBX_SDK
 
-	bool Loader::Load( const std::string &filePath, std::string *outputErrorString )
+	bool Loader::Load( const std::string &filePath, std::string *outputErrorString, bool outputProgress )
 	{
 		std::string fullPath = ToFullPath( filePath );
 
@@ -300,7 +308,14 @@ namespace Donya
 
 		if ( ShouldUseFBXSDK( fullPath ) )
 		{
-			return LoadByFBXSDK( fullPath, outputErrorString );
+			OutputDebugProgress( std::string{ "Start By FBX:" + filePath }, outputProgress );
+
+			bool succeeded = LoadByFBXSDK( fullPath, outputErrorString, outputProgress );
+
+			const std::string resultString = ( succeeded ) ? "Load By FBX Successful:" : "Load By FBX Failed:";
+			OutputDebugProgress( resultString + filePath, outputProgress );
+
+			return succeeded;
 		}
 		// else
 
@@ -327,7 +342,14 @@ namespace Donya
 		auto resultExt = ShouldLoadByCereal( fullPath );
 		if ( !strcmp( ".bin", resultExt ) )
 		{
-			return LoadByCereal( fullPath, outputErrorString );
+			OutputDebugProgress( std::string{ "Start By Cereal:" + filePath }, outputProgress );
+
+			bool succeeded = LoadByCereal( fullPath, outputErrorString, outputProgress );
+
+			const std::string resultString = ( succeeded ) ? "Load By Cereal Successful:" : "Load By Cereal Failed:";
+			OutputDebugProgress( resultString + filePath, outputProgress );
+
+			return succeeded;
 		}
 
 		return false;
@@ -343,26 +365,26 @@ namespace Donya
 		seria.Save( bin, filePath.c_str(),  SERIAL_ID, *this );
 	}
 	
-	bool Loader::LoadByCereal( const std::string &filePath, std::string *outputErrorString )
+	bool Loader::LoadByCereal( const std::string &filePath, std::string *outputErrorString, bool outputProgress )
 	{
 		Serializer::Extension ext = Serializer::Extension::BINARY;
 
 		std::lock_guard<std::mutex> lock( cerealMutex );
 		
 		Serializer seria;
-		seria.Load( ext, filePath.c_str(), SERIAL_ID, *this );
+		bool succeeded = seria.Load( ext, filePath.c_str(), SERIAL_ID, *this );
 
 		// I should overwrite file-directory after load, because this will overwritten by Serializer::Load().
 		fileDirectory = ExtractFileDirectoryFromFullPath( filePath );
 
-		return true;
+		return succeeded;
 	}
 
 #if USE_FBX_SDK
 
-#define USE_TRIANGULATE ( false )
+#define USE_TRIANGULATE ( true )
 
-	bool Loader::LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString )
+	bool Loader::LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString, bool outputProgress )
 	{
 		fileDirectory	= ExtractFileDirectoryFromFullPath( filePath );
 		fileName		= filePath.substr( fileDirectory.size() );
@@ -383,8 +405,11 @@ namespace Donya
 		};
 
 		FBX::FbxScene *pScene = FBX::FbxScene::Create( pManager, "" );
-		#pragma region Import
+
+		// Import.
 		{
+			OutputDebugProgress( "Start Import.", outputProgress );
+
 			FBX::FbxImporter *pImporter		= FBX::FbxImporter::Create( pManager, "" );
 			if ( !pImporter->Initialize( absFilePath.c_str(), -1, pManager->GetIOSettings() ) )
 			{
@@ -413,16 +438,21 @@ namespace Donya
 			}
 
 			pImporter->Destroy();
+
+			OutputDebugProgress( "Finish Import.", outputProgress );
 		}
-		#pragma endregion
 
 		pLock.reset( nullptr );
 
-	#ifdef USE_TRIANGULATE
+	#if USE_TRIANGULATE
 		{
+			OutputDebugProgress( "Start Triangulate", outputProgress );
+
 			FBX::FbxGeometryConverter geometryConverter( pManager );
 			bool replace = true;
 			geometryConverter.Triangulate( pScene, replace );
+
+			OutputDebugProgress( "Finish Triangulate", outputProgress );
 		}
 	#endif
 
@@ -432,6 +462,8 @@ namespace Donya
 		std::vector<BoneInfluencesPerControlPoint> influencesPerCtrlPoints{};
 
 		size_t meshCount = fetchedMeshes.size();
+		OutputDebugProgress( "Start Meshes load. Meshes count:[" + std::to_string( meshCount ) + "]", outputProgress );
+
 		meshes.resize( meshCount );
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
@@ -445,6 +477,8 @@ namespace Donya
 			FetchVertices( i, pMesh, influencesPerCtrlPoints );
 			FetchMaterial( i, pMesh );
 			FetchGlobalTransform( i, pMesh );
+
+			OutputDebugProgress( "Finish Mesh[" + std::to_string( i ) + "].Polygon.", outputProgress );
 
 			// Fetch the motion.
 			{
@@ -465,7 +499,11 @@ namespace Donya
 					motions.pop_back();
 				}
 			}
+
+			OutputDebugProgress( "Finish Mesh[" + std::to_string( i ) + "].Motion.", outputProgress );
 		}
+
+		OutputDebugProgress( "Finish Meshes load.", outputProgress );
 
 		Uninitialize();
 		return true;
