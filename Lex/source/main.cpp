@@ -40,7 +40,8 @@ INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _
 
 	while ( Donya::MessageLoop() )
 	{
-		Donya::ClearViews();
+		constexpr FLOAT clearColor[4]{ 0.5f, 0.5f, 0.5f, 1.0f };
+		Donya::ClearViews( clearColor );
 
 		Donya::SystemUpdate();
 		framework.Update( Donya::GetElapsedTime() );

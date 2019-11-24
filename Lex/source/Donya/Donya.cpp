@@ -1165,15 +1165,15 @@ namespace Donya
 		// ImGui::StyleColorsLight();
 		ImGui::StyleColorsDark();
 
-		std::string meiryo{ "c:\\Windows\\Fonts\\meiryo.ttc" };
-		std::string consolab{ "c:\\Windows\\Fonts\\consolab.ttf" };
-		float size = 24.0f;
+		constexpr const char *meiryo	= "c:\\Windows\\Fonts\\meiryo.ttc";
+		constexpr const char *consolab	= "c:\\Windows\\Fonts\\consolab.ttf";
+		constexpr float fontSize = 20.0f;
 
 		ImGuiIO &io = ImGui::GetIO();
 		io.Fonts->AddFontFromFileTTF
 		(
-			meiryo.c_str(),
-			size,
+			meiryo,
+			fontSize,
 			NULL,
 			// io.Fonts->GetGlyphRangesJapanese()
 			glyphRangesJapanese
@@ -1373,13 +1373,14 @@ namespace Donya
 	}
 	void ClearViews( const FLOAT( &fillColor )[4] )
 	{
-		Donya::GetImmediateContext()->ClearRenderTargetView
+		ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
+		pImmediateContext->ClearRenderTargetView
 		(
 			smg->d3d11.renderTargetView.Get(),
 			fillColor
 		);
 
-		Donya::GetImmediateContext()->ClearDepthStencilView
+		pImmediateContext->ClearDepthStencilView
 		(
 			smg->d3d11.depthStencilView.Get(),
 			D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
