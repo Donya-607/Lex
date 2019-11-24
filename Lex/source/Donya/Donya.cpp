@@ -2,11 +2,11 @@
 
 #include <d3d11.h>
 #include <memory>
-#include <sstream>
+#include <sstream>				// For window caption.
 #include <string>
-#include <roapi.h> // Use Windows::Foundation::Initialize(), Windows::Foundation::Uninitialize().
+#include <roapi.h>				// Use Windows::Foundation::Initialize(), Windows::Foundation::Uninitialize().
 #include <Windows.h>
-#include <Windows.Foundation.h> // Use Windows::Foundation::Initialize(), Windows::Foundation::Uninitialize().
+#include <Windows.Foundation.h>	// Use Windows::Foundation::Initialize(), Windows::Foundation::Uninitialize().
 #include <wrl.h>
 #include <vector>
 
@@ -21,10 +21,11 @@
 #include "Sound.h"
 #include "Sprite.h"
 #include "Useful.h"
-#include "UseImgui.h"
+#include "UseImGui.h"
 #include "WindowsUtil.h"
 
-#pragma comment( lib, "runtimeobject.lib" ) // Use Windows::Foundation::Initialize(), Windows::Foundation::Uninitialize().
+#pragma comment( lib, "runtimeobject.lib" )	// Use Windows::Foundation::Initialize(), Windows::Foundation::Uninitialize().
+#pragma comment( lib, "Shell32.lib" )		// For Drag-and-Drop.
 
 #if USE_IMGUI
 
@@ -553,7 +554,7 @@ static constexpr ImWchar glyphRangesJapanese[] =
 
 #endif // USE_IMGUI
 
-enum WindowStyle : unsigned long
+enum WindowStyle : DWORD
 {
 	General			= WS_OVERLAPPEDWINDOW | WS_VISIBLE ^ ( WS_THICKFRAME | WS_MAXIMIZEBOX ),
 	FullScreen		= WS_VISIBLE | WS_POPUP,
@@ -710,11 +711,11 @@ namespace Donya
 		}
 	}
 	
-	LRESULT CALLBACK WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
+	LRESULT CALLBACK WndProc( HWND hArgWnd, UINT msg, WPARAM wParam, LPARAM lParam )
 	{
 	#if USE_IMGUI
 
-		if ( ImGui_ImplWin32_WndProcHandler( hwnd, msg, wParam, lParam ) )
+		if ( ImGui_ImplWin32_WndProcHandler( hArgWnd, msg, wParam, lParam ) )
 		{
 			return 1;
 		}
@@ -786,7 +787,7 @@ namespace Donya
 			{
 				if ( wParam == VK_ESCAPE )
 				{
-					PostMessage( smg->hWnd, WM_CLOSE, 0, 0 );
+					PostMessage( hArgWnd, WM_CLOSE, 0, 0 );
 				}
 			}
 			break;
@@ -827,12 +828,12 @@ namespace Donya
 			{
 				PAINTSTRUCT ps;
 				HDC hdc;
-				hdc = BeginPaint( smg->hWnd, &ps );
-				EndPaint( smg->hWnd, &ps );
+				hdc = BeginPaint( hArgWnd, &ps );
+				EndPaint( hArgWnd, &ps );
 				break;
 			}
 		default:
-			return DefWindowProc( smg->hWnd, msg, wParam, lParam );
+			return DefWindowProc( hArgWnd, msg, wParam, lParam );
 		}
 
 		// Old procedure(the main library's procedure).
@@ -892,19 +893,28 @@ namespace Donya
 	void RegisterWindowClass( const std::wstring &windowCaption, const HINSTANCE &hInstance )
 	{
 		WNDCLASSEX wcex;
-		wcex.cbSize			= sizeof( WNDCLASSEX );
+		wcex.cbSize			= sizeof( wcex );
 		wcex.style			= CS_HREDRAW | CS_VREDRAW;
 		wcex.lpfnWndProc	= WndProc;
 		wcex.cbClsExtra		= 0;
 		wcex.cbWndExtra		= 0;
 		wcex.hInstance		= hInstance;
-		wcex.hIcon			= LoadIcon( hInstance, MAKEINTRESOURCE( 316 ) );
+		wcex.hIcon			= LoadIcon  ( NULL, IDI_APPLICATION ); // LoadIcon( hInstance, MAKEINTRESOURCE( 316 ) );
 		wcex.hCursor		= LoadCursor( NULL, IDC_ARROW );
 		wcex.hbrBackground	= ( HBRUSH )( COLOR_WINDOW + 1 );
 		wcex.lpszMenuName	= NULL;
 		wcex.lpszClassName	= windowCaption.c_str();
-		wcex.hIconSm		= 0;
-		RegisterClassEx( &wcex );
+		wcex.hIconSm		= NULL;
+
+		auto  result = RegisterClassEx( &wcex );
+		if ( !result )
+		{
+			std::wstring errorMessage = Donya::ConvertLastErrorMessage();
+			Donya::OutputDebugStr( errorMessage.c_str() );
+
+			_ASSERT_EXPR( 0, errorMessage.c_str() );
+			exit( -1 );
+		}
 	}
 	
 	void InitWindow( int nCmdShow )
@@ -921,7 +931,7 @@ namespace Donya
 			smg->screen.heightL
 		};
 
-		unsigned long windowStyle =
+		DWORD windowStyle =
 		( smg->screen.fullScreenMode )
 		? WindowStyle::FullScreen
 		: WindowStyle::General;
@@ -929,22 +939,38 @@ namespace Donya
 		// Convert Window-area(contain caption-bar size) -> Client-area(only screen size).
 		AdjustWindowRect( &rect, windowStyle, FALSE );
 
+		LONG adjustedRectWidth  = rect.right - rect.left;
+		LONG adjustedRectHeight = rect.bottom - rect.top;
+
 		RECT desktopRect = Donya::GetDesktopRect();
+
+		std::wstring currentErrMsg = Donya::ConvertLastErrorMessage();
+		Donya::OutputDebugStr( currentErrMsg.c_str() );
 
 		smg->hWnd = CreateWindow
 		(
 			wideCaption.c_str(),
 			wideCaption.c_str(),
 			windowStyle,
-			( desktopRect.right  >> 1 ) - ( smg->screen.width  >> 1 ), // Specify to center.
-			( desktopRect.bottom >> 1 ) - ( smg->screen.height >> 1 ) - ( Donya::GetCaptionBarHeight() >> 1 ), // Specify to center.
+			( desktopRect.right  >> 1 ) - ( adjustedRectWidth  >> 1 ), // Specify to center.
+			( desktopRect.bottom >> 1 ) - ( adjustedRectHeight >> 1 ) + ( Donya::GetCaptionBarHeight() >> 1 ), // Specify to center.
 			rect.right  - rect.left,
 			rect.bottom - rect.top,
-			NULL,
-			NULL,
+			( HWND   )( NULL ),
+			( HMENU  )( NULL ),
 			hInstance,
-			NULL
+			( LPVOID )( NULL )
 		);
+		if ( !smg->hWnd )
+		{
+			std::wstring errorMessage = Donya::ConvertLastErrorMessage();
+			Donya::OutputDebugStr( errorMessage.c_str() );
+
+			_ASSERT_EXPR( 0, errorMessage.c_str() );
+			exit( -1 );
+			return;
+		}
+		// else
 
 		ShowWindow( smg->hWnd, nCmdShow );
 		UpdateWindow( smg->hWnd );

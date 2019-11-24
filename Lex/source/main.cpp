@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <locale.h>
 #include <memory>
 #include <tchar.h>
@@ -11,9 +10,6 @@
 
 #include "Common.h"
 #include "Framework.h"
-
-void RegisterWindowClass( HINSTANCE instance );
-LRESULT CALLBACK fnWndProc( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam );
 
 INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _In_ LPWSTR cmdLine, _In_ INT cmdShow )
 {

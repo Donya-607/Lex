@@ -1,5 +1,7 @@
 #include "WindowsUtil.h"
 
+#include <tchar.h>
+
 namespace Donya
 {
 	RECT GetDesktopRect()
@@ -50,5 +52,31 @@ namespace Donya
 
 		POINT  coord{ client.left, client.top };
 		return coord;
+	}
+
+	std::wstring ConvertLastErrorMessage()
+	{
+		// see http://yamatyuu.net/computer/program/sdk/base/errmsg1/index.html
+
+		DWORD  errorCode = GetLastError();
+		LPVOID lpMessageBuffer{};
+		FormatMessage
+		(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER					// Ask FormatMessage() to allocate memory internally.
+			| FORMAT_MESSAGE_IGNORE_INSERTS					// Request to function to ignore the last argument(Arguments).
+			| FORMAT_MESSAGE_FROM_SYSTEM,					// Request to function to use system message.
+			NULL,
+			errorCode,
+			MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),	// Specify language.
+			( LPTSTR )( &lpMessageBuffer ),
+			0,
+			NULL
+		);
+
+		std::wstring convertedMessage{ ( LPCTSTR )( lpMessageBuffer ) };
+
+		LocalFree( lpMessageBuffer );
+
+		return convertedMessage;
 	}
 }

@@ -92,7 +92,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)External\Cereal\include\;$(SolutionDir)External\DirectXTK\Inc\;$(SolutionDir)External\FBX SDK\2016.1.2\include\;$(SolutionDir)External\FMOD\LowLevel\inc\;$(SolutionDir)External\FMOD\Studio\inc\;$(SolutionDir)External\ImGui\;$(ProjectDir)Source\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External\Cereal\include\;$(SolutionDir)External\DirectXTK\Inc\;$(SolutionDir)External\FBX SDK\2016.1.2\include\;$(SolutionDir)External\FMOD\LowLevel\inc\;$(SolutionDir)External\FMOD\Studio\inc\;$(ProjectDir)External\ImGui\;$(ProjectDir)Source\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -123,7 +123,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)External\Cereal\include\;$(SolutionDir)External\DirectXTK\Inc\;$(SolutionDir)External\FBX SDK\2016.1.2\include\;$(SolutionDir)External\FMOD\LowLevel\inc\;$(SolutionDir)External\FMOD\Studio\inc\;$(SolutionDir)External\ImGui\;$(ProjectDir)Source\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)External\Cereal\include\;$(SolutionDir)External\DirectXTK\Inc\;$(SolutionDir)External\FBX SDK\2016.1.2\include\;$(SolutionDir)External\FMOD\LowLevel\inc\;$(SolutionDir)External\FMOD\Studio\inc\;$(ProjectDir)External\ImGui\;$(ProjectDir)Source\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -152,6 +152,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="External\ImGui\imconfig.h" />
+    <ClInclude Include="External\ImGui\imgui.h" />
+    <ClInclude Include="External\ImGui\imgui_impl_dx11.h" />
+    <ClInclude Include="External\ImGui\imgui_impl_win32.h" />
+    <ClInclude Include="External\ImGui\imgui_internal.h" />
+    <ClInclude Include="External\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="External\ImGui\imstb_textedit.h" />
+    <ClInclude Include="External\ImGui\imstb_truetype.h" />
     <ClInclude Include="Source\Animation.h" />
     <ClInclude Include="Source\Donya\AudioSystem.h" />
     <ClInclude Include="Source\Donya\Benchmark.h" />
@@ -199,6 +207,12 @@
     <ClInclude Include="Source\SkinnedMesh.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="External\ImGui\imgui.cpp" />
+    <ClCompile Include="External\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="External\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="External\ImGui\imgui_impl_dx11.cpp" />
+    <ClCompile Include="External\ImGui\imgui_impl_win32.cpp" />
+    <ClCompile Include="External\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Source\Animation.cpp" />
     <ClCompile Include="Source\Donya\AudioSystem.cpp" />
     <ClCompile Include="Source\Donya\Blend.cpp" />

@@ -20,6 +20,8 @@
 #include "Loader.h"
 #include "SKinnedMesh.h"
 
+#pragma comment( lib, "comdlg32.lib" ) // For common-dialog.
+
 using namespace DirectX;
 
 struct SceneLex::Impl

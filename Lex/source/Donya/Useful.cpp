@@ -51,11 +51,15 @@ namespace Donya
 
 	void OutputDebugStr( const char		*string )
 	{
+	#if DEBUG_MODE
 		OutputDebugStringA( string );
+	#endif // DEBUG_MODE
 	}
 	void OutputDebugStr( const wchar_t	*string )
 	{
+	#if DEBUG_MODE
 		OutputDebugStringW( string );
+	#endif // DEBUG_MODE
 	}
 
 	bool IsExistFile( const std::string &wholePath )

@@ -4,11 +4,10 @@
 #include <algorithm>
 #include <thread>
 
-#include "Donya/Benchmark.h"
+#include "Donya/Blend.h"
 #include "Donya/Donya.h"
 #include "Donya/Keyboard.h"
-#include "Donya/Mouse.h"
-#include "Donya/Resource.h"
+#include "Donya/Sound.h"
 #include "Donya/UseImGui.h"
 #include "Donya/Useful.h"
 #include "Donya/WindowsUtil.h"
@@ -16,23 +15,6 @@
 #include "Camera.h"
 #include "Common.h"
 #include "Loader.h"
-
-#include "Framework.h"
-
-#include <array>
-
-#include "Donya/Blend.h"
-#include "Donya/Constant.h"
-#include "Donya/Donya.h"
-#include "Donya/Keyboard.h"
-#include "Donya/Mouse.h"
-#include "Donya/Resource.h"
-#include "Donya/ScreenShake.h"
-#include "Donya/Sound.h"
-#include "Donya/Useful.h"
-#include "Donya/UseImgui.h"
-
-#include "Common.h"
 #include "Music.h"
 
 using namespace DirectX;
@@ -62,7 +44,7 @@ void Framework::Uninit()
 	pSceneMng->Uninit();
 }
 
-void Framework::Update( float elapsedTime/*Elapsed seconds from last frame*/ )
+void Framework::Update( float elapsedTime /*Elapsed seconds from last frame*/ )
 {
 #if DEBUG_MODE
 
