@@ -56,7 +56,6 @@ public:
 	int								nowPressMouseButton;	// [None:0][Left:VK_LBUTTON][Middle:VK_MBUTTON][Right:VK_RBUTTON]
 	Donya::Int2						prevMouse;
 	Donya::Int2						currMouse;
-	Donya::Int2						diffMouse;				// Store currMouse - prevMouse.
 
 	float							cameraVirtualDistance;	// The distance to virtual screen that align to Common::ScreenSize() from camera. Calc when detected a click.
 	float							cameraRotateSpeed;
@@ -74,7 +73,7 @@ public:
 public:
 	Impl() :
 		iCamera(), directionalLight(), mtlColor( 1.0f, 1.0f, 1.0f, 1.0f ),
-		nowPressMouseButton(), prevMouse(), currMouse(), diffMouse(),
+		nowPressMouseButton(), prevMouse(), currMouse(),
 		cameraVirtualDistance( 1.0f ), cameraRotateSpeed(), cameraMoveSpeed(),
 		models(),
 		pLoadThread( nullptr ), pCurrentLoading( nullptr ),
@@ -223,7 +222,6 @@ private:
 		prevMouse    = currMouse;
 		currMouse.x  = scast<int>( pMouse.x );
 		currMouse.y  = scast<int>( pMouse.y );
-		diffMouse    = ( Donya::WasMouseLooped() ) ? Donya::Int2{ 0, 0 } : currMouse - prevMouse;
 
 		// HACK : This algorithm is not beautiful... :(
 		bool isInputMouseButton = Donya::Mouse::Press( Donya::Mouse::Kind::LEFT ) || Donya::Mouse::Press( Donya::Mouse::Kind::MIDDLE ) || Donya::Mouse::Press( Donya::Mouse::Kind::RIGHT );
@@ -296,7 +294,7 @@ private:
 		constexpr float SLERP_FACTOR = 0.2f; // TODO : To be changeable this.
 		controller.slerpPercent = SLERP_FACTOR;
 
-		bool isDriveMouse		= ( ( diffMouse.x + diffMouse.y ) != 0 ) || Donya::Mouse::WheelRot() || nowPressMouseButton;
+		bool isDriveMouse		= ( currMouse != prevMouse ) || Donya::Mouse::WheelRot() || nowPressMouseButton;
 		bool isAllowDrive		= Donya::Keyboard::Press( VK_MENU ) && !Donya::IsMouseHoveringImGuiWindow();
 		if ( !isAllowDrive || !isDriveMouse )
 		{
@@ -306,6 +304,8 @@ private:
 		// else
 
 		Donya::Vector3 wsMouseMove{}; // World space.
+		Donya::Vector3 csMouseMove{}; // Camera space.
+		if ( !Donya::WasMouseLooped() )
 		{
 			Donya::Vector2 old = prevMouse.Float();
 			Donya::Vector2 now = currMouse.Float();
@@ -318,9 +318,7 @@ private:
 			const Donya::Vector3 wsNow = ScreenToWorld( now );
 
 			wsMouseMove = wsNow - wsOld;
-		}
-		Donya::Vector3 csMouseMove{}; // Camera space.
-		{
+
 			Donya::Quaternion invCameraRotation = iCamera.GetOrientation().Conjugate();
 			csMouseMove = invCameraRotation.RotateVector( wsMouseMove );
 		}

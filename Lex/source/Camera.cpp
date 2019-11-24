@@ -387,6 +387,10 @@ private:
 	{
 		focusDistance = ( m.focus - m.pos ).Length();
 	}
+	void CalcDestFocusDistance()
+	{
+		focusDistance = ( dest.focus - dest.pos ).Length();
+	}
 
 	void PutPositionOnCircumference()
 	{
@@ -421,12 +425,12 @@ public:
 	void SetPosition( const Donya::Vector3 &point ) override
 	{
 		BaseCamera::SetPosition( point );
-		CalcFocusDistance();
+		CalcDestFocusDistance();
 	}
 	void SetFocusPoint( const Donya::Vector3 &point ) override
 	{
 		BaseCamera::SetFocusPoint( point );
-		CalcFocusDistance();
+		CalcDestFocusDistance();
 	}
 	void SetFocusToFront( float distance ) override
 	{
