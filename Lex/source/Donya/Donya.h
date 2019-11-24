@@ -85,6 +85,11 @@ namespace Donya
 	ID3D11DeviceContext			*GetImmediateContext();
 
 	/// <summary>
+	/// Returns true when only if the mouse was looped in current frame.
+	/// </summary>
+	bool						WasMouseLooped();
+
+	/// <summary>
 	/// Returns true if a storage has at least more than one dragged file.
 	/// </summary>
 	bool						IsThereDraggedFiles();

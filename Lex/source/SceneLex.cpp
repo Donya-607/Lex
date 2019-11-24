@@ -53,6 +53,15 @@ public:
 	DirectionalLight				directionalLight;
 	Donya::Vector4					mtlColor;
 
+	int								nowPressMouseButton;	// [None:0][Left:VK_LBUTTON][Middle:VK_MBUTTON][Right:VK_RBUTTON]
+	Donya::Int2						prevMouse;
+	Donya::Int2						currMouse;
+	Donya::Int2						diffMouse;				// Store currMouse - prevMouse.
+
+	float							cameraVirtualDistance;	// The distance to virtual screen that align to Common::ScreenSize() from camera. Calc when detected a click.
+	float							cameraRotateSpeed;
+	Donya::Vector3					cameraMoveSpeed;
+
 	std::vector<MeshAndInfo>		models;
 
 	std::unique_ptr<std::thread>	pLoadThread{};
@@ -65,6 +74,8 @@ public:
 public:
 	Impl() :
 		iCamera(), directionalLight(), mtlColor( 1.0f, 1.0f, 1.0f, 1.0f ),
+		nowPressMouseButton(), prevMouse(), currMouse(), diffMouse(),
+		cameraVirtualDistance( 1.0f ), cameraRotateSpeed(), cameraMoveSpeed(),
 		models(),
 		pLoadThread( nullptr ), pCurrentLoading( nullptr ),
 		currentLoadingFileNameUTF8(), reservedAbsFilePaths(), reservedFileNamesUTF8(),
@@ -83,13 +94,26 @@ public:
 public:
 	void Init()
 	{
+		MouseUpdate();
+
 		iCamera.Init( ICamera::Mode::Satellite );
 		iCamera.SetZRange( 0.1f, 1000.0f );
 		iCamera.SetFOV( ToRadian( 30.0f ) );
 		iCamera.SetScreenSize( { Common::ScreenWidthF(), Common::ScreenHeightF() } );
-		iCamera.SetPosition( { 16.0f, 16.0f, -16.0f } );
+		iCamera.SetPosition( { 0.0f, 0.0f, -64.0f } );
 		iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
 		iCamera.SetProjectionPerspective();
+
+		CalcDistToVirtualScreen();
+
+		constexpr float MOVE_SPEED	= 1.0f;
+		constexpr float FRONT_SPEED	= 3.0f;
+		constexpr float ROT_SPEED	= ToRadian( 1.0f );
+
+		cameraRotateSpeed = ROT_SPEED;
+		cameraMoveSpeed.x = MOVE_SPEED;
+		cameraMoveSpeed.y = MOVE_SPEED;
+		cameraMoveSpeed.z = FRONT_SPEED;
 	}
 	void Uninit()
 	{
@@ -98,6 +122,8 @@ public:
 
 	void Update( float elapsedTime )
 	{
+		MouseUpdate();
+
 	#if USE_IMGUI
 
 		UseImGui();
@@ -111,6 +137,16 @@ public:
 			if ( Donya::Keyboard::Trigger( 'C' ) )
 			{
 				bool breakPoint{};
+			}
+			if ( Donya::Keyboard::Trigger( 'R' ) )
+			{
+				iCamera.SetPosition( { 0.0f, 0.0f, -64.0f } );
+				iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
+				iCamera.SetOrientation( { 0.0f, 0.0f, 0.0f, 1.0f } );
+			}
+			if ( Donya::Keyboard::Trigger( 'T' ) )
+			{
+				Donya::ToggleShowStateOfImGui();
 			}
 
 			// bool isAccept = meshes.empty();
@@ -175,17 +211,152 @@ public:
 			};
 			static Donya::Geometric::Cube cube = InitializedCube();
 
-			cube.Render( nullptr, true, true, WVP, W, directionalLight.direction, directionalLight.color );
+			cube.Render( nullptr, true, true, WVP, W, directionalLight.direction, mtlColor );
 		}
 
 	#endif // DEBUG_MODE
 	}
 private:
+	void MouseUpdate()
+	{
+		POINT pMouse = Donya::Mouse::Coordinate();
+		prevMouse    = currMouse;
+		currMouse.x  = scast<int>( pMouse.x );
+		currMouse.y  = scast<int>( pMouse.y );
+		diffMouse    = ( Donya::WasMouseLooped() ) ? Donya::Int2{ 0, 0 } : currMouse - prevMouse;
+
+		// HACK : This algorithm is not beautiful... :(
+		bool isInputMouseButton = Donya::Mouse::Press( Donya::Mouse::Kind::LEFT ) || Donya::Mouse::Press( Donya::Mouse::Kind::MIDDLE ) || Donya::Mouse::Press( Donya::Mouse::Kind::RIGHT );
+		if ( isInputMouseButton )
+		{
+			if ( !nowPressMouseButton )
+			{
+				if ( Donya::Mouse::Press( Donya::Mouse::Kind::LEFT ) )
+				{
+					nowPressMouseButton = VK_LBUTTON;
+				}
+				else
+				if ( Donya::Mouse::Press( Donya::Mouse::Kind::MIDDLE ) )
+				{
+					nowPressMouseButton = VK_MBUTTON;
+				}
+				else
+				if ( Donya::Mouse::Press( Donya::Mouse::Kind::RIGHT ) )
+				{
+					nowPressMouseButton = VK_RBUTTON;
+				}
+			}
+		}
+		else
+		{
+			nowPressMouseButton = NULL;
+		}
+	}
+	void CalcDistToVirtualScreen()
+	{
+		// see http://marupeke296.com/ALG_No7_MoveCameraWithCursor.html
+	
+		const float FOV = iCamera.GetFOV();
+		const Donya::Vector2 cameraScreenSize = iCamera.GetScreenSize();
+	
+		cameraVirtualDistance = cameraScreenSize.y / ( 2.0f * tanf( FOV * 0.5f ) );
+	}
+
+	Donya::Vector3 ScreenToWorld( const Donya::Vector2 &screenPos )
+	{
+		 //see http://marupeke296.com/ALG_No7_MoveCameraWithCursor.html
+
+		const Donya::Vector3	cameraPos		= iCamera.GetPosition();
+		const Donya::Vector3	cameraFocus		= iCamera.GetFocusPoint();
+		const Donya::Quaternion	cameraPosture	= iCamera.GetOrientation();
+	
+		Donya::Vector3 wsScreenPos{ screenPos.x, screenPos.y, cameraVirtualDistance };
+		wsScreenPos = cameraPosture.RotateVector( wsScreenPos );
+	
+		float rayLength{}; // This is the "a" of reference site.
+		{
+			Donya::Vector3 anyPosition	= Donya::Vector3::Zero(); // The position on plane of world space.
+			Donya::Vector3 virNormal	= cameraPos - cameraFocus;
+			float dotSample = Donya::Vector3::Dot( { anyPosition - cameraPos }, virNormal );
+			float dotTarget = Donya::Vector3::Dot( { wsScreenPos - cameraPos }, virNormal );
+	
+			rayLength = dotSample / dotTarget;
+		}
+	
+		const Donya::Vector3 vCameraToScreen = wsScreenPos - cameraPos;
+		const Donya::Vector3 onPlanePos = cameraPos + ( vCameraToScreen * rayLength );
+		return onPlanePos;
+	}
+
 	void CameraUpdate()
 	{
+		ICamera::Controller controller{};
+		controller.SetNoOperation();
+
+		constexpr float SLERP_FACTOR = 0.2f; // TODO : To be changeable this.
+		controller.slerpPercent = SLERP_FACTOR;
+
+		bool isDriveMouse		= ( ( diffMouse.x + diffMouse.y ) != 0 ) || Donya::Mouse::WheelRot() || nowPressMouseButton;
+		bool isAllowDrive		= Donya::Keyboard::Press( VK_MENU ) && !Donya::IsMouseHoveringImGuiWindow();
+		if ( !isAllowDrive || !isDriveMouse )
+		{
+			iCamera.Update( controller );
+			return;
+		}
+		// else
+
+		Donya::Vector3 wsMouseMove{}; // World space.
+		{
+			Donya::Vector2 old = prevMouse.Float();
+			Donya::Vector2 now = currMouse.Float();
+
+			// If you want move to right, the camera must move to left.
+			old.x *= -1.0f;
+			now.x *= -1.0f;
+
+			const Donya::Vector3 wsOld = ScreenToWorld( old );
+			const Donya::Vector3 wsNow = ScreenToWorld( now );
+
+			wsMouseMove = wsNow - wsOld;
+		}
+		Donya::Vector3 csMouseMove{}; // Camera space.
+		{
+			Donya::Quaternion invCameraRotation = iCamera.GetOrientation().Conjugate();
+			csMouseMove = invCameraRotation.RotateVector( wsMouseMove );
+		}
+
+		Donya::Vector3 moveVelocity{};
+		{
+			if ( nowPressMouseButton == VK_MBUTTON )
+			{
+				moveVelocity.x = csMouseMove.x * cameraMoveSpeed.x;
+				moveVelocity.y = csMouseMove.y * cameraMoveSpeed.y;
+			}
+
+			moveVelocity.z = scast<float>( Donya::Mouse::WheelRot() ) * cameraMoveSpeed.z;
+		}
+
+		float roll{}, pitch{}, yaw{};
+		if ( nowPressMouseButton == VK_LBUTTON )
+		{
+			yaw   = csMouseMove.x * cameraRotateSpeed;
+			pitch = csMouseMove.y * cameraRotateSpeed;
+			roll  = 0.0f; // Unused.
+		}
+
+		controller.moveVelocity		= moveVelocity;
+		controller.roll				= roll;
+		controller.pitch			= pitch;
+		controller.yaw				= yaw;
+		controller.slerpPercent		= SLERP_FACTOR;
+		controller.moveInLocalSpace	= true;
+
+		iCamera.Update( controller );
+		
+		/*
 		auto MakeControlStructWithMouse = []()->ICamera::Controller
 		{
-			if ( !Donya::Keyboard::Press( VK_MENU ) )
+			if ( !Donya::Keyboard::Press( VK_MENU ) || Donya::IsMouseHoveringImGuiWindow() )
 			{
 				ICamera::Controller noop{};
 				noop.SetNoOperation();
@@ -266,11 +437,7 @@ private:
 
 			return ctrl;
 		};
-		iCamera.Update( MakeControlStructWithMouse() );
-		if ( Donya::Keyboard::Trigger( 'R' ) )
-		{
-			iCamera.SetPosition( { 16.0f, 16.0f, -16.0f } );
-		}
+		*/
 	}
 
 	void FetchDraggedFilePaths()
@@ -548,6 +715,15 @@ private:
 				if ( ImGui::TreeNode( u8"ÉJÉÅÉâ" ) )
 				{
 					iCamera.ShowImGuiNode();
+
+					if ( ImGui::TreeNode( u8"ë¨Ç≥" ) )
+					{
+						ImGui::DragFloat3( u8"à⁄ìÆë¨ìx", &cameraMoveSpeed.x, 0.2f );
+						ImGui::DragFloat ( u8"âÒì]ë¨ìx", &cameraRotateSpeed, ToRadian( 1.0f ) );
+
+						ImGui::TreePop();
+					}
+
 					ImGui::TreePop();
 				}
 				

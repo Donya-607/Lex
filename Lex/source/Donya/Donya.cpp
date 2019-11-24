@@ -616,8 +616,9 @@ namespace Donya
 
 		struct
 		{
-			int  pressMouseButton{ 0 }; // None:0, Left:VK_LBUTTON, Middle:VK_MBUTTON, Right:VK_RBUTTON.
+			int  pressMouseButton{ 0 };		// None:0, Left:VK_LBUTTON, Middle:VK_MBUTTON, Right:VK_RBUTTON.
 			bool isCaptureWindow{ false };
+			bool nowLoopTiming{ false };	// True when only if the mouse was looped in current frame.
 		}
 		loopingMouse;
 		std::vector<std::string> draggedFilePaths{};
@@ -707,6 +708,7 @@ namespace Donya
 				POINT client = GetClientCoordinate( smg->hWnd );
 
 				SetCursorPos( client.x + mx, client.y + my );
+				smg->loopingMouse.nowLoopTiming = true;
 			}
 		}
 	}
@@ -1302,6 +1304,7 @@ namespace Donya
 		UpdateWindowCaption();
 
 		Donya::Mouse::ResetMouseWheelRot();
+		smg->loopingMouse.nowLoopTiming = false;
 
 		MSG msg{};
 
@@ -1457,6 +1460,8 @@ namespace Donya
 	HWND						&GetHWnd()				{ return smg->hWnd; }
 	ID3D11Device				*GetDevice()			{ return smg->d3d11.device.Get(); }
 	ID3D11DeviceContext			*GetImmediateContext()	{ return smg->d3d11.immediateContext.Get(); }
+
+	bool						WasMouseLooped()		{ return smg->loopingMouse.nowLoopTiming; }
 
 	bool						IsThereDraggedFiles()	{ return ( smg->draggedFilePaths.empty() ) ? false : true; }
 	std::vector<std::string>	FetchDraggedFilePaths	( bool removeFromStorage )

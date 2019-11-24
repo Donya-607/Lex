@@ -150,6 +150,24 @@ protected:
 			m.orientation.Normalize();
 		}
 	}
+	virtual void RotateByRollPitchYaw( ICamera::Controller controller )
+	{
+		// HACK : The rotation axes should fetch from rotated orientation ? or it is OK to use prepared axes ?
+
+		auto RotateIfNotZero = [&]( const Donya::Vector3 &axis, float angle )
+		{
+			if ( ZeroEqual( angle ) ) { return; }
+			// else
+
+			const Donya::Quaternion rotation = Donya::Quaternion::Make( axis, angle );
+			dest.orientation.RotateBy( rotation );
+			dest.orientation.Normalize();
+		};
+
+		RotateIfNotZero( dest.orientation.LocalFront(),	controller.roll  );
+		RotateIfNotZero( dest.orientation.LocalRight(),	controller.pitch );
+		RotateIfNotZero( Donya::Vector3::Up(),			controller.yaw   );
+	}
 public:
 #if USE_IMGUI
 
@@ -254,7 +272,7 @@ public:
 	void Update( ICamera::Controller controller ) override
 	{
 		Move( controller );
-		Rotate( controller );
+		RotateByRollPitchYaw( controller );
 
 		InterpolateMember( controller.slerpPercent );
 	}
@@ -272,10 +290,6 @@ private:
 		}
 
 		dest.pos += controller.moveVelocity;
-	}
-	void Rotate( ICamera::Controller controller )
-	{
-		dest.orientation.RotateBy( controller.rotation );
 	}
 public:
 	void SetFocusPoint( const Donya::Vector3 &point ) override
@@ -338,8 +352,10 @@ private:
 
 class SatelliteCamera : public ICamera::BaseCamera
 {
+private:
+	float focusDistance;
 public:
-	SatelliteCamera() : BaseCamera()
+	SatelliteCamera() : BaseCamera(), focusDistance( 1.0f )
 	{}
 	~SatelliteCamera() = default;
 public:
@@ -349,6 +365,8 @@ public:
 		SetProjectionPerspective();
 
 		AssignMemberToDestination();
+
+		CalcFocusDistance();
 	}
 	void Uninit() override
 	{
@@ -358,46 +376,64 @@ public:
 	void Update( ICamera::Controller controller ) override
 	{
 		Move( controller );
+		RotateByRollPitchYaw( controller );
 
 		InterpolateMember( controller.slerpPercent );
 
-		LookAtFocus();
 		PutPositionOnCircumference();
 	}
 private:
-	void LookAtFocus()
+	void CalcFocusDistance()
 	{
-		const Donya::Vector3 nLookDir = ( m.focus - m.pos ).Normalized();
-		m.orientation = Donya::Quaternion::LookAt( m.orientation, nLookDir );
+		focusDistance = ( m.focus - m.pos ).Length();
 	}
+
 	void PutPositionOnCircumference()
 	{
-		float focusDistance = ( m.focus - m.pos ).Length();
 		const Donya::Vector3 nFront = m.orientation.LocalFront();
-
 		m.pos = m.focus + ( -nFront * focusDistance );
 	}
 
-	void Move( ICamera::Controller controller )
+	void Move ( ICamera::Controller controller )
 	{
 		Dolly( controller.moveVelocity.z );
-		Pan( controller.moveVelocity.x );
-		Tilt( controller.moveVelocity.y );
+		Pan  ( controller.moveVelocity.x );
+		Tilt ( controller.moveVelocity.y );
 	}
 	void Dolly( float moveAmount )
 	{
-		const Donya::Vector3 movement = Donya::Vector3::Front() * moveAmount;
-		dest.pos += dest.orientation.RotateVector( movement );
+		// The distance is increase if a moveAmount taking get far(i.e. negative). So addition by inverse.
+		focusDistance += -moveAmount;
 	}
-	void Pan( float moveAmount )
+	void Pan  ( float moveAmount )
 	{
-		const Donya::Vector3 movement = Donya::Vector3::Right() * moveAmount;
-		dest.pos += dest.orientation.RotateVector( movement );
+		const Donya::Vector3 movement = dest.orientation.LocalRight() * moveAmount;
+		dest.pos   += movement;
+		dest.focus += movement;
 	}
-	void Tilt( float moveAmount )
+	void Tilt ( float moveAmount )
 	{
-		const Donya::Vector3 movement = Donya::Vector3::Up() * moveAmount;
-		dest.pos += dest.orientation.RotateVector( movement );
+		const Donya::Vector3 movement = dest.orientation.LocalUp() * moveAmount;
+		dest.pos   += movement;
+		dest.focus += movement;
+	}
+public:
+	void SetPosition( const Donya::Vector3 &point ) override
+	{
+		BaseCamera::SetPosition( point );
+		CalcFocusDistance();
+	}
+	void SetFocusPoint( const Donya::Vector3 &point ) override
+	{
+		BaseCamera::SetFocusPoint( point );
+		CalcFocusDistance();
+	}
+	void SetFocusToFront( float distance ) override
+	{
+		focusDistance = distance;
+		dest.focus = dest.orientation.LocalFront() * distance;
+
+		PutPositionOnCircumference();
 	}
 };
 
@@ -514,6 +550,26 @@ void ICamera::SetProjectionPerspective( float aspectRatio )
 	pCamera->SetProjectionPerspective( aspectRatio );
 }
 
+float				ICamera::GetFOV()				const
+{
+	AssertIfNullptr();
+	return pCamera->GetFOV();
+}
+float				ICamera::GetZNear()				const
+{
+	AssertIfNullptr();
+	return pCamera->GetZNear();
+}
+float				ICamera::GetZFar()				const
+{
+	AssertIfNullptr();
+	return pCamera->GetZFar();
+}
+Donya::Vector2		ICamera::GetScreenSize()		const
+{
+	AssertIfNullptr();
+	return pCamera->GetScreenSize();
+}
 Donya::Vector3		ICamera::GetPosition()			const
 {
 	AssertIfNullptr();
