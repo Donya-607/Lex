@@ -6,7 +6,8 @@
 
 //#include "Donya/Camera.h"
 #include "Donya/Constant.h"
-#include "Donya/Donya.h"		// Use GetFPS().
+#include "Donya/Donya.h"				// Use GetFPS().
+#include "Donya/GeometricPrimitive.h"	// For debug draw collision.
 #include "Donya/Keyboard.h"
 #include "Donya/Mouse.h"
 #include "Donya/Quaternion.h"
@@ -142,7 +143,8 @@ public:
 	void Draw( float elapsedTime )
 	{
 		Donya::Vector4x4 W = Donya::Vector4x4::Identity();
-		Donya::Vector4x4 V = iCamera.CalcViewMatrix();
+		// Donya::Vector4x4 V = iCamera.CalcViewMatrix();
+		Donya::Vector4x4 V = Donya::Vector4x4::Identity();
 		Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 
 		Donya::Vector4x4 WVP = W * V * P;
@@ -160,6 +162,22 @@ public:
 				( drawWireFrame ) ? false : true
 			);
 		}
+
+	#if DEBUG_MODE
+
+		{
+			auto InitializedCube = []()
+			{
+				Donya::Geometric::Cube cube{};
+				cube.Init();
+				return cube;
+			};
+			static Donya::Geometric::Cube cube = InitializedCube();
+
+			cube.Render( nullptr, true, true, WVP, W );
+		}
+
+	#endif // DEBUG_MODE
 	}
 private:
 	void CameraUpdate()
@@ -170,6 +188,7 @@ private:
 			{
 				ICamera::Controller noop{};
 				noop.SetNoOperation();
+				noop.slerpPercent = 0.2f;
 				return noop;
 			}
 			// else
@@ -189,6 +208,7 @@ private:
 			{
 				ICamera::Controller noop{};
 				noop.SetNoOperation();
+				noop.slerpPercent = 0.2f;
 				return noop;
 			}
 			// else
@@ -214,7 +234,7 @@ private:
 			if ( Donya::Mouse::Press( Donya::Mouse::Kind::MIDDLE ) )
 			{
 				constexpr float MOVE_SPEED = 0.1f;
-				movement.x = diff.x * MOVE_SPEED;
+				movement.x =  diff.x * MOVE_SPEED;
 				movement.y = -diff.y * MOVE_SPEED;
 			}
 
@@ -240,7 +260,7 @@ private:
 			ICamera::Controller ctrl{};
 			ctrl.moveVelocity		= movement;
 			ctrl.rotation			= {};
-			ctrl.slerpPercent		= 1.0f;
+			ctrl.slerpPercent		= 0.2f;
 			ctrl.moveInLocalSpace	= true;
 
 			return ctrl;

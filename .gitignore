@@ -242,12 +242,16 @@ ModelManifest.xml
 .fake/
 
 # Edit by EmEditor.
+
 imgui.ini
 External/
 
 ShortcutTo*
 
+Lex/Data/*
+
 *.cso
 *.cod
+*.dll
 
 .gitignore

@@ -186,6 +186,13 @@ public:
 
 		if ( ImGui::TreeNode( u8"目標地点（補間後）" ) )
 		{
+			if ( ImGui::Button( u8"初期化" ) )
+			{
+				dest.pos			= Donya::Vector3{ 0.0f, 0.0f,-1.0f };
+				dest.focus			= Donya::Vector3{ 0.0f, 0.0f, 0.0f };
+				dest.orientation	= Donya::Quaternion::Identity();
+			}
+
 			auto DragVec3 = []( std::string name, Donya::Vector3 *pV )
 			{
 				ImGui::DragFloat3( name.c_str(), &pV->x );
@@ -200,10 +207,6 @@ public:
 				if ( ImGui::Button( u8"正規化" ) )
 				{
 					pQ->Normalize();
-				}
-				if ( ImGui::Button( u8"初期化" ) )
-				{
-					*pQ = Donya::Quaternion::Identity();
 				}
 			};
 

@@ -478,7 +478,7 @@ namespace Donya
 			FetchMaterial( i, pMesh );
 			FetchGlobalTransform( i, pMesh );
 
-			OutputDebugProgress( "Finish Mesh[" + std::to_string( i ) + "].Polygon.", outputProgress );
+			OutputDebugProgress( "Finish Mesh[" + std::to_string( i ) + "].Polygons.", outputProgress );
 
 			// Fetch the motion.
 			{
