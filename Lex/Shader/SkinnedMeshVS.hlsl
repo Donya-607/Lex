@@ -59,9 +59,10 @@ VS_OUT main( VS_IN vin )
 	
 	VS_OUT vout		= ( VS_OUT )( 0 );
 	vout.pos		= mul( vin.pos, cbWorldViewProjection );
+	vout.wsPos		= mul( vin.pos, cbWorld );
+	vout.color.rgba = 1.0f;
 	vout.normal		= normalize( mul( vin.normal, cbWorld ) );
 	vout.texCoord	= vin.texCoord;
-	vout.color.rgba = 1.0f;
 	
 	// vout.eyeVector	= eyePosition - normalize( vout.pos );
 

@@ -1,6 +1,7 @@
 struct VS_OUT
 {
 	float4 pos		: SV_POSITION;
+	float4 wsPos	: POSITION;
 	float4 color	: COLOR;
 	float4 normal	: NORMAL;
 	float2 texCoord	: TEXCOORD1;
@@ -13,6 +14,7 @@ cbuffer CONSTANT_BUFFER : register( b0 )
 	row_major float4x4	cbWorldViewProjection;
 	row_major float4x4	cbWorld;
 	row_major float4x4	cbBoneTransforms[MAX_BONE_COUNT];
+	float4				cbEyePosition;
 	float4				cbLightColor;
 	float4				cbLightDirection;
 	float4				cbMaterialColor;

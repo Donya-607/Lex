@@ -37,7 +37,7 @@ namespace Donya
 			DirectX::XMFLOAT4X4	worldViewProjection;
 			DirectX::XMFLOAT4X4	world;
 			std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> boneTransforms;
-			// DirectX::XMFLOAT4	eyePosition;
+			DirectX::XMFLOAT4	eyePosition;
 			DirectX::XMFLOAT4	lightColor;
 			DirectX::XMFLOAT4	lightDir;
 			DirectX::XMFLOAT4	materialColor;

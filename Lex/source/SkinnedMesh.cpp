@@ -472,10 +472,10 @@ namespace Donya
 				{
 					it = Donya::Vector4x4::Identity().XMFloat();
 				}
+				cb.eyePosition			= eyePosition;
 				cb.lightColor			= lightColor;
 				cb.lightDir				= lightDirection;
 				cb.materialColor		= materialColor;
-				// cb.eyePosition			= eyePosition;
 				pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 			}
 			pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
