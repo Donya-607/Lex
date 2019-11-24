@@ -143,8 +143,8 @@ public:
 	void Draw( float elapsedTime )
 	{
 		Donya::Vector4x4 W = Donya::Vector4x4::Identity();
-		// Donya::Vector4x4 V = iCamera.CalcViewMatrix();
-		Donya::Vector4x4 V = Donya::Vector4x4::Identity();
+		Donya::Vector4x4 V = iCamera.CalcViewMatrix();
+		// Donya::Vector4x4 V = Donya::Vector4x4::Identity();
 		Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 
 		Donya::Vector4x4 WVP = W * V * P;
@@ -174,7 +174,7 @@ public:
 			};
 			static Donya::Geometric::Cube cube = InitializedCube();
 
-			cube.Render( nullptr, true, true, WVP, W );
+			cube.Render( nullptr, true, true, WVP, W, directionalLight.direction, directionalLight.color );
 		}
 
 	#endif // DEBUG_MODE

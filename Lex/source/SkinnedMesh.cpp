@@ -134,7 +134,7 @@ namespace Donya
 		ID3D11Device *pDevice = Donya::GetDevice();
 
 		meshes = loadedMeshes;
-		size_t meshCount = meshes.size();
+		const size_t meshCount = meshes.size();
 
 		// Create VertexBuffers
 		for ( size_t i = 0; i < meshCount; ++i )
@@ -145,7 +145,11 @@ namespace Donya
 				allVertices[i],
 				meshes[i].iVertexBuffer.GetAddressOf()
 			);
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer" );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Create Vertex-Buffer" );
+				return false;
+			}
 		}
 		// Create IndexBuffers
 		for ( size_t i = 0; i < meshCount; ++i )
@@ -156,7 +160,11 @@ namespace Donya
 				allIndices[i],
 				meshes[i].iIndexBuffer.GetAddressOf()
 			);
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer" );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Create Vertex-Buffer" );
+				return false;
+			}
 		}
 		// Create ConstantBuffers
 		{
@@ -166,7 +174,12 @@ namespace Donya
 				sizeof( ConstantBuffer ),
 				iConstantBuffer.GetAddressOf()
 			);
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Constant-Buffer" );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Create Constant-Buffer" );
+				return false;
+			}
+			// else
 
 			hr = CreateConstantBuffer
 			(
@@ -174,7 +187,12 @@ namespace Donya
 				sizeof( MaterialConstantBuffer ),
 				iMaterialCBuffer.GetAddressOf()
 			);
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Constant-Buffer" );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Create Constant-Buffer" );
+				return false;
+			}
+			// else
 		}
 		// Create VertexShader and InputLayout
 		{
@@ -187,66 +205,90 @@ namespace Donya
 				{ "WEIGHTS"		, 0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
 			};
 
-			Resource::CreateVertexShaderFromCso
+			bool succeeded = Resource::CreateVertexShaderFromCso
 			(
 				pDevice,
-				"./Shader/SkinnedMeshVS.cso", "rb",
+				"./Data/Shader/SkinnedMeshVS.cso", "rb",
 				iVertexShader.GetAddressOf(),
 				iInputLayout.GetAddressOf(),
 				d3d11InputElementsDesc,
 				_countof( d3d11InputElementsDesc ),
 				/* enableCache = */ true
 			);
+			if ( !succeeded )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Create vertex-shader from cso file." );
+				return false;
+			}
 		}
 		// Create PixelShader
 		{
-			Resource::CreatePixelShaderFromCso
+			bool succeeded = Resource::CreatePixelShaderFromCso
 			(
 				pDevice,
-				"./Shader/SkinnedMeshPS.cso", "rb",
+				"./Data/Shader/SkinnedMeshPS.cso", "rb",
 				iPixelShader.GetAddressOf(),
 				/* enableCache = */ false
 			);
+			if ( !succeeded )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Create pixel-shader from cso file." );
+				return false;
+			}
 		}
 		// Create Rasterizer States
 		{
 			D3D11_RASTERIZER_DESC d3d11ResterizerDescBase{};
-			d3d11ResterizerDescBase.CullMode = D3D11_CULL_FRONT;
-			d3d11ResterizerDescBase.FrontCounterClockwise = FALSE;
-			d3d11ResterizerDescBase.DepthBias = 0;
-			d3d11ResterizerDescBase.DepthBiasClamp = 0;
-			d3d11ResterizerDescBase.SlopeScaledDepthBias = 0;
-			d3d11ResterizerDescBase.DepthClipEnable = TRUE;
-			d3d11ResterizerDescBase.ScissorEnable = FALSE;
-			d3d11ResterizerDescBase.MultisampleEnable = FALSE;
-			d3d11ResterizerDescBase.AntialiasedLineEnable = TRUE;
+			d3d11ResterizerDescBase.CullMode					= D3D11_CULL_FRONT;
+			d3d11ResterizerDescBase.FrontCounterClockwise		= FALSE;
+			d3d11ResterizerDescBase.DepthBias					= 0;
+			d3d11ResterizerDescBase.DepthBiasClamp				= 0;
+			d3d11ResterizerDescBase.SlopeScaledDepthBias		= 0;
+			d3d11ResterizerDescBase.DepthClipEnable				= TRUE;
+			d3d11ResterizerDescBase.ScissorEnable				= FALSE;
+			d3d11ResterizerDescBase.MultisampleEnable			= FALSE;
+			d3d11ResterizerDescBase.AntialiasedLineEnable		= TRUE;
 
-			D3D11_RASTERIZER_DESC d3d11ResterizerWireDesc = d3d11ResterizerDescBase;
-			D3D11_RASTERIZER_DESC d3d11ResterizerSurfaceDesc = d3d11ResterizerDescBase;
-			d3d11ResterizerWireDesc.FillMode = D3D11_FILL_WIREFRAME;
-			d3d11ResterizerSurfaceDesc.FillMode = D3D11_FILL_SOLID;
-			d3d11ResterizerSurfaceDesc.AntialiasedLineEnable = FALSE;
+			D3D11_RASTERIZER_DESC d3d11ResterizerWireDesc		= d3d11ResterizerDescBase;
+			D3D11_RASTERIZER_DESC d3d11ResterizerSurfaceDesc	= d3d11ResterizerDescBase;
+			d3d11ResterizerWireDesc.FillMode					= D3D11_FILL_WIREFRAME;
+			d3d11ResterizerSurfaceDesc.FillMode					= D3D11_FILL_SOLID;
+			d3d11ResterizerSurfaceDesc.AntialiasedLineEnable	= FALSE;
 
 			hr = pDevice->CreateRasterizerState( &d3d11ResterizerWireDesc, iRasterizerStateWire.GetAddressOf() );
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateRasterizerState()" );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : CreateRasterizerState()" );
+				return false;
+			}
+			// else
 
 			hr = pDevice->CreateRasterizerState( &d3d11ResterizerSurfaceDesc, iRasterizerStateSurface.GetAddressOf() );
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateRasterizerState()" );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : CreateRasterizerState()" );
+				return false;
+			}
+			// else
 		}
 		// Create DepthsStencilState
 		{
 			D3D11_DEPTH_STENCIL_DESC d3dDepthStencilDesc{};
-			d3dDepthStencilDesc.DepthEnable = TRUE;
-			d3dDepthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-			d3dDepthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
-			d3dDepthStencilDesc.StencilEnable = false;
+			d3dDepthStencilDesc.DepthEnable		= TRUE;
+			d3dDepthStencilDesc.DepthWriteMask	= D3D11_DEPTH_WRITE_MASK_ALL;
+			d3dDepthStencilDesc.DepthFunc		= D3D11_COMPARISON_LESS;
+			d3dDepthStencilDesc.StencilEnable	= false;
 
 			hr = pDevice->CreateDepthStencilState
 			(
 				&d3dDepthStencilDesc,
 				iDepthStencilState.GetAddressOf()
 			);
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateDepthStencilState" );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : CreateDepthStencilState()" );
+				return false;
+			}
 		}
 		// Create Texture
 		{
@@ -290,7 +332,7 @@ namespace Donya
 				for ( size_t i = 0; i < textureCount; ++i )
 				{
 					auto &tex = pMtl->textures[i];
-					Resource::CreateTexture2DFromFile
+					bool succeeded = Resource::CreateTexture2DFromFile
 					(
 						pDevice,
 						Donya::MultiToWide( tex.fileName ),
@@ -298,6 +340,10 @@ namespace Donya
 						&tex.texture2DDesc,
 						/* enableCache = */ false
 					);
+					if ( !succeeded )
+					{
+						_ASSERT_EXPR( 0, L"Failed : Create texture from file." );
+					}
 				}
 			};
 
@@ -421,6 +467,11 @@ namespace Donya
 				ConstantBuffer cb{};
 				cb.worldViewProjection	= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), worldViewProjection );
 				cb.world				= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), world );
+				// TODO:Attach a bone matrix here.
+				for ( auto &it : cb.boneTransforms )
+				{
+					it = Donya::Vector4x4::Identity().XMFloat();
+				}
 				cb.lightColor			= lightColor;
 				cb.lightDir				= lightDirection;
 				// cb.eyePosition			= eyePosition;
