@@ -223,6 +223,20 @@ private:
 		currMouse.x  = scast<int>( pMouse.x );
 		currMouse.y  = scast<int>( pMouse.y );
 
+		{
+			// If the mouse movement is big, I regard to "the mouse was looped" that, then discard the difference.
+
+			Donya::Vector2 diff = ( currMouse - prevMouse ).Float();
+			if ( Common::ScreenWidthF()  * 0.8f < fabsf( diff.x ) )
+			{
+				prevMouse.x = currMouse.x;
+			}
+			if ( Common::ScreenHeightF() * 0.8f < fabsf( diff.y ) )
+			{
+				prevMouse.y = currMouse.y;
+			}
+		}
+
 		// HACK : This algorithm is not beautiful... :(
 		bool isInputMouseButton = Donya::Mouse::Press( Donya::Mouse::Kind::LEFT ) || Donya::Mouse::Press( Donya::Mouse::Kind::MIDDLE ) || Donya::Mouse::Press( Donya::Mouse::Kind::RIGHT );
 		if ( isInputMouseButton )
@@ -305,7 +319,6 @@ private:
 
 		Donya::Vector3 wsMouseMove{}; // World space.
 		Donya::Vector3 csMouseMove{}; // Camera space.
-		if ( !Donya::WasMouseLooped() )
 		{
 			Donya::Vector2 old = prevMouse.Float();
 			Donya::Vector2 now = currMouse.Float();
@@ -327,6 +340,8 @@ private:
 		{
 			if ( nowPressMouseButton == VK_MBUTTON )
 			{
+				// TODO : To be changeable this moving direction(normal or inverse).
+
 				moveVelocity.x = csMouseMove.x * cameraMoveSpeed.x;
 				moveVelocity.y = csMouseMove.y * cameraMoveSpeed.y;
 			}
@@ -337,6 +352,8 @@ private:
 		float roll{}, pitch{}, yaw{};
 		if ( nowPressMouseButton == VK_LBUTTON )
 		{
+			// TODO : To be changeable this moving direction(normal or inverse).
+
 			yaw   = csMouseMove.x * cameraRotateSpeed;
 			pitch = csMouseMove.y * cameraRotateSpeed;
 			roll  = 0.0f; // Unused.
