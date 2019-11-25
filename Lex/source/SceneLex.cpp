@@ -540,7 +540,7 @@ private:
 				{
 					createResult = Donya::SkinnedMesh::Create
 					(
-						&pElement->meshInfo.loader,
+						pElement->meshInfo.loader,
 						&pElement->meshInfo.mesh
 					);
 

@@ -296,6 +296,9 @@
     <ClCompile Include="External\ImGui\imgui_widgets.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Motion.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\SkinnedMesh.hlsli">

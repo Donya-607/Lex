@@ -242,6 +242,7 @@
     <ClCompile Include="Source\Framework.cpp" />
     <ClCompile Include="Source\Loader.cpp" />
     <ClCompile Include="Source\main.cpp" />
+    <ClCompile Include="Source\Motion.cpp" />
     <ClCompile Include="Source\SceneLex.cpp" />
     <ClCompile Include="Source\SceneManager.cpp" />
     <ClCompile Include="Source\SkinnedMesh.cpp" />

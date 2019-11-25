@@ -19,7 +19,7 @@ namespace Donya
 		/// Create from Loader object.<para></para>
 		/// if create failed, or already loaded, returns false.
 		/// </summary>
-		static bool Create( const Loader *loader, SkinnedMesh *pOutput );
+		static bool Create( const Loader &loader, SkinnedMesh *pOutput );
 	public:
 		static constexpr const int MAX_BONE_COUNT		= 32;
 		static constexpr const int MAX_BONE_INFLUENCES	= 4;

@@ -18,12 +18,12 @@ using namespace DirectX;
 
 namespace Donya
 {
-	bool SkinnedMesh::Create( const Loader *loader, SkinnedMesh *pOutput )
+	bool SkinnedMesh::Create( const Loader &loader, SkinnedMesh *pOutput )
 	{
-		if ( !loader || !pOutput ) { return false; }
+		if ( !pOutput ) { return false; }
 		// else
 
-		const std::vector<Loader::Mesh> *pLoadedMeshes = loader->GetMeshes();
+		const std::vector<Loader::Mesh> *pLoadedMeshes = loader.GetMeshes();
 		const size_t loadedMeshCount = pLoadedMeshes->size();
 
 		std::vector<std::vector<size_t>> argIndices{};
@@ -78,7 +78,7 @@ namespace Donya
 				mySubset.indexCount		= loadedSubset.indexCount;
 				mySubset.transparency	= loadedSubset.transparency;
 
-				const std::string fileDirectory = loader->GetFileDirectory();
+				const std::string fileDirectory = loader.GetFileDirectory();
 
 				auto FetchMaterialContain =
 				[&fileDirectory]( SkinnedMesh::Material *meshMtl, const Loader::Material &loadedMtl )

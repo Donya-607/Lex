@@ -152,14 +152,17 @@ namespace Donya
 		/// </summary>
 		struct Bone
 		{
-			DirectX::XMFLOAT4X4 transform{};
+			std::string name{};
+			DirectX::XMFLOAT4X4 transform{}; // From initial model space to posed model space.
+			// DirectX::XMFLOAT4X4 transformToBone{}; // From model space to bone space.
 		};
 		/// <summary>
 		/// Gathering of bones(call "skeletal"). This represents a pose.
 		/// </summary>
 		struct Skeletal
 		{
-			std::vector<Bone> skeletal{};
+			size_t				boneCount{};
+			std::vector<Bone>	skeletal{};
 		};
 		/// <summary>
 		/// Gathering of skeletals(call "Motion"). This represents a motion(animation).
@@ -168,9 +171,10 @@ namespace Donya
 		{
 			static constexpr float DEFAULT_SAMPLING_RATE = 1.0f / 24.0f;
 		public:
-			int		meshNo{};	// 0-based.
-			float	samplingRate{ DEFAULT_SAMPLING_RATE };
-			std::vector<Skeletal> motion{};
+			int							meshNo{};	// 0-based.
+			float						samplingRate{ DEFAULT_SAMPLING_RATE };
+			std::vector<std::string>	names{};
+			std::vector<Skeletal>		motion{};
 		};
 
 		struct BoneInfluence

@@ -155,9 +155,9 @@ namespace Donya
 			FetchClusterFromSkin( influences, pSkin );
 		}
 	}
-	void FetchBoneMatrices( FBX::FbxTime time, const FBX::FbxMesh *pMesh, std::vector<Loader::Bone> *pSkeletal )
+	void FetchBoneMatrices( FBX::FbxTime time, const FBX::FbxMesh *pMesh, Loader::Skeletal *pSkeletal )
 	{
-		auto FetchMatricesFromSkin = []( FBX::FbxTime time, const FBX::FbxMesh *pMesh, const FBX::FbxSkin *pSkin, std::vector<Loader::Bone> *pSkeletal )
+		auto FetchMatricesFromSkin = []( FBX::FbxTime time, const FBX::FbxMesh *pMesh, const FBX::FbxSkin *pSkin, Loader::Skeletal *pSkeletal )
 		{
 			const int clusterCount = pSkin->GetClusterCount();
 
@@ -166,44 +166,55 @@ namespace Donya
 			const size_t oldSkeletalCount = pSkeletal->size();
 			pSkeletal->resize( scast<size_t>( clusterCount ) + oldSkeletalCount );
 		#else
-			pSkeletal->resize( scast<size_t>( clusterCount ) );
+			pSkeletal->skeletal.resize( scast<size_t>( clusterCount ) );
 		#endif // APPEND
 		#undef APPEND
 
+			pSkeletal->boneCount = pSkeletal->skeletal.size();
+
 			for ( int i = 0; i < clusterCount; ++i )
 			{
-				Loader::Bone &bone = pSkeletal->at( i );
+				Loader::Bone &bone = pSkeletal->skeletal.at( i );
 
 				// Each joint.
 				const FbxCluster *pCluster = pSkin->GetCluster( i );
 
-				// This matrix transforms coordinates of the initial pose from mesh space to global space.
-				FBX::FbxAMatrix referenceGlobalInitPosition{};
-				pCluster->GetTransformMatrix( referenceGlobalInitPosition );
+				bone.name = pCluster->GetName();
 
-				// This matrix transforms coordinates of the initial pose from bone space to global space.
-				FBX::FbxAMatrix clusterGlobalInitPosition{};
-				pCluster->GetTransformLinkMatrix( clusterGlobalInitPosition );
+				FBX::FbxAMatrix offsetMatrix{};
+				{
+					// This matrix transforms coordinates of the initial pose from mesh space to global space.
+					FBX::FbxAMatrix referenceGlobalInitPosition{};
+					pCluster->GetTransformMatrix( referenceGlobalInitPosition );
 
-				// This matrix transforms coordinates of the current pose from mesh space to global space.
-				FBX::FbxAMatrix referenceGlobalCurrentPosition{};
-				referenceGlobalCurrentPosition = pMesh->GetNode()->EvaluateGlobalTransform( time );
+					// This matrix transforms coordinates of the initial pose from bone space to global space.
+					FBX::FbxAMatrix clusterGlobalInitPosition{};
+					pCluster->GetTransformLinkMatrix( clusterGlobalInitPosition );
 
-				// This matrix transforms coordinates of the current pose from bone space to global space.
-				FBX::FbxAMatrix clusterGlobalCurrentPosition{};
-				FBX::FbxNode *pLinkNode = const_cast<FBX::FbxNode *>( pCluster->GetLink() );
-				clusterGlobalCurrentPosition = pLinkNode->EvaluateGlobalTransform( time );
+					offsetMatrix = clusterGlobalInitPosition.Inverse() * referenceGlobalInitPosition;
+				}
+
+				FBX::FbxAMatrix poseMatrix{};
+				{
+					// This matrix transforms coordinates of the current pose from mesh space to global space.
+					FBX::FbxAMatrix referenceGlobalCurrentPosition{};
+					referenceGlobalCurrentPosition = pMesh->GetNode()->EvaluateGlobalTransform( time );
+
+					// This matrix transforms coordinates of the current pose from bone space to global space.
+					FBX::FbxAMatrix clusterGlobalCurrentPosition{};
+					FBX::FbxNode *pLinkNode = const_cast<FBX::FbxNode *>( pCluster->GetLink() );
+					clusterGlobalCurrentPosition = pLinkNode->EvaluateGlobalTransform( time );
+
+					poseMatrix = referenceGlobalCurrentPosition.Inverse() * clusterGlobalCurrentPosition;
+				}
 
 				// "initial : mesh->global->bone", "current : bone->global->mesh"
 				// First, transform from initial mesh space to initial bone space.
 				// Then,  transfrom from initial bone space to current mesh space(i.e.animated position).
 				// FbxAMatrix is column-major, so multiply from right side.
 
-				FBX::FbxAMatrix transform =
-				referenceGlobalCurrentPosition.Inverse() * clusterGlobalCurrentPosition
-				* clusterGlobalInitPosition.Inverse()    * referenceGlobalInitPosition;
-
-				bone.transform = Convert( transform );
+				bone.transform = Convert( poseMatrix * offsetMatrix );
+				// bone.transformToBone = Convert( poseMatrix.Inverse() );
 			}
 		};
 
@@ -266,11 +277,13 @@ namespace Donya
 			if ( !pTakeInfo )	{ continue; }
 			// else
 
+			pMotion->names.emplace_back( pAnimStackName->Buffer() );
+
 			const FBX::FbxTime beginTime	= pTakeInfo->mLocalTimeSpan.GetStart();
 			const FBX::FbxTime endTime		= pTakeInfo->mLocalTimeSpan.GetStop();
 			for ( FBX::FbxTime currentTime	= beginTime; currentTime < endTime; currentTime += samplingStep )
 			{
-				FetchBoneMatrices( currentTime, pMesh, &pMotion->motion[i].skeletal );
+				FetchBoneMatrices( currentTime, pMesh, &pMotion->motion[i] );
 			}
 		}
 		
