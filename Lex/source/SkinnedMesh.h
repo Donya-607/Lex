@@ -8,6 +8,8 @@
 #include <vector>
 #include <wrl.h>
 
+#include "Motion.h" // For update CB's bone matrix. I should refactoring this.
+
 namespace Donya
 {
 	class Loader;
@@ -146,6 +148,7 @@ namespace Donya
 		);
 		void Render
 		(
+			const Donya::Skeletal		&pose,
 			const DirectX::XMFLOAT4X4	&worldViewProjection,
 			const DirectX::XMFLOAT4X4	&world,
 			const DirectX::XMFLOAT4		&eyePosition,

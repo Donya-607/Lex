@@ -366,7 +366,7 @@ namespace Donya
 		return true;
 	}
 
-	void SkinnedMesh::Render( const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &materialColor, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
+	void SkinnedMesh::Render( const Donya::Skeletal &pose, const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &materialColor, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
 	{
 		if ( !wasCreated )
 		{
@@ -467,11 +467,13 @@ namespace Donya
 				ConstantBuffer cb{};
 				cb.worldViewProjection	= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), worldViewProjection );
 				cb.world				= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), world );
-				// TODO:Attach a bone matrix here.
-				for ( auto &it : cb.boneTransforms )
+				
+				const size_t BONE_COUNT = std::min( scast<int>( pose.boneCount ), MAX_BONE_COUNT );
+				for ( size_t i = 0; i < BONE_COUNT; ++i )
 				{
-					it = Donya::Vector4x4::Identity().XMFloat();
+					cb.boneTransforms[i] = pose.skeletal[i].transform.XMFloat();
 				}
+
 				cb.eyePosition			= eyePosition;
 				cb.lightColor			= lightColor;
 				cb.lightDir				= lightDirection;

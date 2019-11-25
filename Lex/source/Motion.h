@@ -55,6 +55,9 @@ namespace Donya
 		bool wasCreated{ false };
 	private:
 		bool Init( const std::vector<Motion> &motions );
+	public:
+		size_t GetMotionCount() const;
+		Motion FetchMotion( unsigned int motionIndex = 0 );
 	};
 
 	/// <summary>
@@ -70,6 +73,10 @@ namespace Donya
 		Animator();
 		~Animator();
 	public:
+		/// <summary>
+		/// Set zero to current frame(elapsedTime) and "samplingRate".
+		/// </summary>
+		void Init();
 		void Update( float elapsedTime );
 	public:
 		/// <summary>
@@ -81,7 +88,6 @@ namespace Donya
 		/// </summary>
 		void SetSamplingRate( float rate );
 	public:
-		size_t   CalcMotionCount( const Motion &motion ) const;
 		Skeletal FetchCurrentMotion( const Motion &motion, bool useWrapAround = true ) const;
 	};
 }

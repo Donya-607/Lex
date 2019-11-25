@@ -19,7 +19,8 @@
 #include "Camera.h"
 #include "Common.h"
 #include "Loader.h"
-#include "SKinnedMesh.h"
+#include "Motion.h"
+#include "SkinnedMesh.h"
 
 #pragma comment( lib, "comdlg32.lib" ) // For common-dialog.
 
@@ -39,6 +40,24 @@ public:
 	{
 		Donya::Loader		loader{};
 		Donya::SkinnedMesh	mesh{};
+		Donya::MotionChunk	motions{};
+		Donya::Animator		animator{};
+	public:
+		bool CreateByLoader()
+		{
+			bool result{};
+			bool succeeded = true;
+
+			result = Donya::SkinnedMesh::Create( loader, &mesh );
+			if ( !result ) { succeeded = false; }
+
+			result = Donya::MotionChunk::Create( loader, &motions );
+			if ( !result ) { succeeded = false; }
+
+			animator.Init();
+
+			return succeeded;
+		}
 	};
 	struct AsyncLoad
 	{
@@ -167,10 +186,10 @@ public:
 		AppendModelIfLoadFinished();
 
 		FetchDraggedFilePaths();
-		
 		StartLoadIfVacant();
 		
 		ShowNowLoadingModels();
+		UpdateModels( elapsedTime );
 		
 		CameraUpdate();
 	}
@@ -190,6 +209,7 @@ public:
 		{
 			it.mesh.Render
 			(
+				it.animator.FetchCurrentMotion( it.motions.FetchMotion( 0 ) ),
 				WVP, W,
 				cameraPos,
 				mtlColor,
@@ -463,7 +483,6 @@ private:
 			ReserveLoadFileIfLoadable( it );
 		}
 	}
-
 	void ReserveLoadFileIfLoadable( std::string filePath )
 	{
 		auto CanLoadFile = []( std::string filePath )->bool
@@ -525,31 +544,26 @@ private:
 			}
 			// else
 
-			bool createResult = false; // Will be change by below process, if load succeeded.
+			bool createResult = true; // Will be change by below process, if load succeeded.
 
 			// Load model, using lock_guard by pLoadMutex.
 			{
 				Donya::Loader tmpHeavyLoad{}; // For reduce time of lock.
-				bool loadResult = tmpHeavyLoad.Load( filePath, nullptr );
+				bool loadSucceeded = tmpHeavyLoad.Load( filePath, nullptr );
 
 				std::lock_guard<std::mutex> lock( pElement->meshMutex );
 
-				// bool loadResult  = pElement->meshInfo.loader.Load( fullPath, nullptr );
+				// bool loadSucceeded  = pElement->meshInfo.loader.Load( fullPath, nullptr );
 				pElement->meshInfo.loader = tmpHeavyLoad; // Takes only assignment-time.
-				if ( loadResult )
+				if ( loadSucceeded )
 				{
-					createResult = Donya::SkinnedMesh::Create
-					(
-						pElement->meshInfo.loader,
-						&pElement->meshInfo.mesh
-					);
-
+					createResult = pElement->meshInfo.CreateByLoader();
 				}
 			}
 
 			std::lock_guard<std::mutex> lock( pElement->flagMutex );
 
-			pElement->isFinished = true;
+			pElement->isFinished  = true;
 			pElement->isSucceeded = createResult;
 
 			CoUninitialize();
@@ -564,7 +578,6 @@ private:
 		pCurrentLoading	= std::make_unique<AsyncLoad>();
 		pLoadThread		= std::make_unique<std::thread>( Load, loadFilePath, pCurrentLoading.get() );
 	}
-
 	void AppendModelIfLoadFinished()
 	{
 		if ( !pCurrentLoading ) { return; }
@@ -627,6 +640,13 @@ private:
 		}
 
 	#endif // USE_IMGUI
+	}
+	void UpdateModels( float elapsedTime )
+	{
+		for ( auto &it : models )
+		{
+			it.animator.Update( elapsedTime );
+		}
 	}
 
 	bool OpenCommonDialogAndFile()

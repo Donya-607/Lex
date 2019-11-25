@@ -63,11 +63,33 @@ namespace Donya
 		return true;
 	}
 
+	size_t MotionChunk::GetMotionCount() const
+	{
+		return chunk.size();
+	}
+
+	Motion MotionChunk::FetchMotion( unsigned int motionIndex )
+	{
+		if ( GetMotionCount() <= motionIndex )
+		{
+			_ASSERT_EXPR( 0, L"Error : out of range at MotionChunk." );
+			return Motion{};
+		}
+		// else
+
+		return chunk[motionIndex];
+	}
+
 	Animator::Animator() :
 		elapsedTime(), samplingRate()
 	{}
 	Animator::~Animator() = default;
 
+	void Animator::Init()
+	{
+		elapsedTime  = 0.0f;
+		samplingRate = 0.0f;
+	}
 	void Animator::Update( float argElapsedTime )
 	{
 		elapsedTime += argElapsedTime;
@@ -84,14 +106,9 @@ namespace Donya
 		samplingRate = rate;
 	}
 
-	size_t Animator::CalcMotionCount( const Motion &motion ) const
-	{
-		return motion.motion.size();
-	}
-
 	Skeletal Animator::FetchCurrentMotion ( const Motion &motion, bool useWrapAround ) const
 	{
-		const size_t MOTION_COUNT = CalcMotionCount( motion );
+		const size_t MOTION_COUNT = motion.motion.size();
 		const float rate = ( ZeroEqual( samplingRate ) ) ? motion.samplingRate : samplingRate;
 
 		size_t currentFrame = ( ZeroEqual( rate ) ) ? 0U : scast<size_t>( elapsedTime / rate );
