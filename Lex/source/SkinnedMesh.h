@@ -59,7 +59,7 @@ namespace Donya
 
 		struct Material
 		{
-			DirectX::XMFLOAT4 color;	// w channel is used as shininess by only specular.
+			Donya::Vector4 color;	// w channel is used as shininess by only specular.
 			Microsoft::WRL::ComPtr<ID3D11SamplerState> iSampler;
 			struct Texture
 			{
@@ -71,20 +71,20 @@ namespace Donya
 			};
 			std::vector<Texture> textures;
 		public:
-			Material() :color( 0, 0, 0, 0 ), iSampler(), textures()
+			Material() :color( 1.0f, 1.0f, 1.0f, 1.0f ), iSampler(), textures()
 			{}
 		};
 
 		struct Subset
 		{
-			size_t indexStart;
-			size_t indexCount;
-			float  transparency;
-			Material ambient;
-			Material bump;
-			Material diffuse;
-			Material emissive;
-			Material specular;
+			size_t		indexStart;
+			size_t		indexCount;
+			float		transparency;
+			Material	ambient;
+			Material	bump;
+			Material	diffuse;
+			Material	emissive;
+			Material	specular;
 		public:
 			Subset() : indexStart( NULL ), indexCount( NULL ), transparency( 0 ), ambient(), bump(), diffuse(), emissive(), specular()
 			{}
@@ -93,32 +93,15 @@ namespace Donya
 		struct Mesh
 		{
 			int										meshNo;
-			DirectX::XMFLOAT4X4						coordinateConversion;
-			DirectX::XMFLOAT4X4						globalTransform;
+			Donya::Vector4x4						coordinateConversion;
+			Donya::Vector4x4						globalTransform;
 			Microsoft::WRL::ComPtr<ID3D11Buffer>	iIndexBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer>	iVertexBuffer;
 			std::vector<Subset>						subsets;
 		public:
 			Mesh() :
 				meshNo(),
-				coordinateConversion
-				(
-					{
-						1, 0, 0, 0,
-						0, 1, 0, 0,
-						0, 0, 1, 0,
-						0, 0, 0, 1
-					}
-				),
-				globalTransform
-				(
-					{
-						1, 0, 0, 0,
-						0, 1, 0, 0,
-						0, 0, 1, 0,
-						0, 0, 0, 1
-					}
-				),
+				coordinateConversion(), globalTransform(), // These are constructed in identity matrix.
 				iVertexBuffer(), iIndexBuffer(),
 				subsets()
 			{}
@@ -153,12 +136,12 @@ namespace Donya
 		(
 			const Donya::MotionChunk	&motionPerMesh,
 			const Donya::Animator		&currentAnimation,
-			const DirectX::XMFLOAT4X4	&worldViewProjection,
-			const DirectX::XMFLOAT4X4	&world,
-			const DirectX::XMFLOAT4		&eyePosition,
-			const DirectX::XMFLOAT4		&materialColor,
-			const DirectX::XMFLOAT4		&lightColor,
-			const DirectX::XMFLOAT4		&lightDirection,
+			const Donya::Vector4x4		&worldViewProjection,
+			const Donya::Vector4x4		&world,
+			const Donya::Vector4		&eyePosition,
+			const Donya::Vector4		&materialColor,
+			const Donya::Vector4		&lightColor,
+			const Donya::Vector4		&lightDirection,
 			bool isEnableFill = true
 		);
 	};

@@ -8,8 +8,9 @@
 #undef max
 #undef min
 
-#include <cereal/types/vector.hpp>
+#include <cereal/cereal.hpp>
 #include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
 
 #include "Donya/Serializer.h"
 #include "Donya/UseImGui.h"
@@ -26,36 +27,6 @@ namespace fbxsdk
 	class FbxSurfaceMaterial;
 }
 #endif // USE_FBX_SDK
-
-namespace DirectX
-{
-	template<class Archive>
-	void serialize( Archive &archive, XMFLOAT4X4 &f4x4 )
-	{
-		archive
-		(
-			cereal::make_nvp( "_11", f4x4._11 ),
-			cereal::make_nvp( "_12", f4x4._12 ),
-			cereal::make_nvp( "_13", f4x4._13 ),
-			cereal::make_nvp( "_14", f4x4._14 ),
-			
-			cereal::make_nvp( "_21", f4x4._21 ),
-			cereal::make_nvp( "_22", f4x4._22 ),
-			cereal::make_nvp( "_23", f4x4._23 ),
-			cereal::make_nvp( "_24", f4x4._24 ),
-
-			cereal::make_nvp( "_31", f4x4._31 ),
-			cereal::make_nvp( "_32", f4x4._32 ),
-			cereal::make_nvp( "_33", f4x4._33 ),
-			cereal::make_nvp( "_34", f4x4._34 ),
-			
-			cereal::make_nvp( "_41", f4x4._41 ),
-			cereal::make_nvp( "_42", f4x4._42 ),
-			cereal::make_nvp( "_43", f4x4._43 ),
-			cereal::make_nvp( "_44", f4x4._44 )
-		);
-	}
-}
 
 namespace Donya
 {
@@ -77,23 +48,8 @@ namespace Donya
 
 		struct Material
 		{
-			Donya::Vector4 color;	// w channel is used as shininess by only specular.
-			std::vector<std::string> relativeTexturePaths;
-		public:
-			Material() : color( 0, 0, 0, 0 ), relativeTexturePaths()
-			{}
-			Material( const Material &ref )
-			{
-				*this = ref;
-			}
-			Material &operator = ( const Material &ref )
-			{
-				color = ref.color;
-				relativeTexturePaths = ref.relativeTexturePaths;
-				return *this;
-			}
-			~Material()
-			{}
+			Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };	// w channel is used as shininess by only specular.
+			std::vector<std::string> relativeTexturePaths{};
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -113,20 +69,15 @@ namespace Donya
 
 		struct Subset
 		{
-			size_t indexCount;
-			size_t indexStart;
-			float  reflection;
-			float  transparency;
-			Material ambient;
-			Material bump;
-			Material diffuse;
-			Material emissive;
-			Material specular;
-		public:
-			Subset() : indexCount( NULL ), indexStart( NULL ), reflection( 0 ), transparency( 0 ), ambient(), bump(), diffuse(), emissive()
-			{}
-			~Subset()
-			{}
+			size_t		indexCount{};
+			size_t		indexStart{};
+			float		reflection{};
+			float		transparency{};
+			Material	ambient{};
+			Material	bump{};
+			Material	diffuse{};
+			Material	emissive{};
+			Material	specular{};
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -152,20 +103,52 @@ namespace Donya
 		/// </summary>
 		struct Bone
 		{
-			std::string name{};
-			DirectX::XMFLOAT4X4 transform{}; // From initial model space to posed model space.
+			std::string			name{};
+			Donya::Vector4x4	transform{}; // From initial model space to posed model space.
 			// DirectX::XMFLOAT4X4 transformToBone{}; // From model space to bone space.
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( name ),
+					CEREAL_NVP( transform )
+				);
+
+				if ( 1 <= version )
+				{
+					// archive( CEREAL_NVP( x ) );
+				}
+			}
 		};
 		/// <summary>
-		/// Gathering of bones(call "skeletal"). This represents a pose.
+		/// Gathering of bones(I call "skeletal"). This represents a posture at that time.
 		/// </summary>
 		struct Skeletal
 		{
 			size_t				boneCount{};
 			std::vector<Bone>	skeletal{};
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( boneCount ),
+					CEREAL_NVP( skeletal )
+				);
+
+				if ( 1 <= version )
+				{
+					// archive( CEREAL_NVP( x ) );
+				}
+			}
 		};
 		/// <summary>
-		/// Gathering of skeletals(call "Motion"). This represents a motion(animation).
+		/// Gathering of skeletals(I call "Motion"). This represents a motion(animation).
 		/// </summary>
 		struct Motion
 		{
@@ -174,7 +157,25 @@ namespace Donya
 			int							meshNo{};	// 0-based.
 			float						samplingRate{ DEFAULT_SAMPLING_RATE };
 			std::vector<std::string>	names{};
-			std::vector<Skeletal>		motion{};
+			std::vector<Skeletal>		motion{};	// Store consecutive skeletals according to a time.
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( meshNo ),
+					CEREAL_NVP( samplingRate ),
+					CEREAL_NVP( names ),
+					CEREAL_NVP( motion )
+				);
+				
+				if ( 1 <= version )
+				{
+					// archive( CEREAL_NVP( x ) );
+				}
+			}
 		};
 
 		struct BoneInfluence
@@ -225,39 +226,15 @@ namespace Donya
 
 		struct Mesh
 		{
-			int							meshNo;	// 0-based.
-			DirectX::XMFLOAT4X4			coordinateConversion;
-			DirectX::XMFLOAT4X4			globalTransform;
-			std::vector<Subset>			subsets;
-			std::vector<size_t>			indices;
-			std::vector<Donya::Vector3>	normals;
-			std::vector<Donya::Vector3>	positions;
-			std::vector<Donya::Vector2>	texCoords;
-			std::vector<BoneInfluencesPerControlPoint>	influences;
-		public:
-			Mesh() : meshNo( 0 ),
-			coordinateConversion
-			(
-				{
-					1, 0, 0, 0,
-					0, 1, 0, 0,
-					0, 0, 1, 0,
-					0, 0, 0, 1
-				}
-			),
-			globalTransform
-			(
-				{
-					1, 0, 0, 0,
-					0, 1, 0, 0,
-					0, 0, 1, 0,
-					0, 0, 0, 1
-				}
-			),
-			subsets(), indices(), normals(), positions(), texCoords(),
-			influences()
-			{}
-			Mesh( const Mesh & ) = default;
+			int							meshNo{};	// 0-based.
+			Donya::Vector4x4			coordinateConversion{};
+			Donya::Vector4x4			globalTransform{};
+			std::vector<Subset>			subsets{};
+			std::vector<size_t>			indices{};
+			std::vector<Donya::Vector3>	normals{};
+			std::vector<Donya::Vector3>	positions{};
+			std::vector<Donya::Vector2>	texCoords{};
+			std::vector<BoneInfluencesPerControlPoint>	influences{};
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -273,6 +250,10 @@ namespace Donya
 					CEREAL_NVP( influences )
 				);
 				if ( 1 <= version )
+				{
+					archive( CEREAL_NVP( meshNo ) );
+				}
+				if ( 2 <= version )
 				{
 					// archive();
 				}
@@ -304,7 +285,11 @@ namespace Donya
 			);
 			if ( 1 <= version )
 			{
-				// archive();
+				archive( CEREAL_NVP( motions ) );
+			}
+			if ( 2 <= version )
+			{
+				// archive( CEREAL_NVP( x ) );
 			}
 		}
 	public:
@@ -347,6 +332,11 @@ namespace Donya
 		/// This function don't ImGui::Begin() and Begin::End().<para></para>
 		/// please call between ImGui::Begin() to ImGui::End().
 		/// </summary>
+		void AdjustParameterByImGuiNode();
+		/// <summary>
+		/// This function don't ImGui::Begin() and Begin::End().<para></para>
+		/// please call between ImGui::Begin() to ImGui::End().
+		/// </summary>
 		void EnumPreservingDataToImGui() const;
 	#endif // USE_IMGUI
 
@@ -354,9 +344,12 @@ namespace Donya
 
 }
 
-CEREAL_CLASS_VERSION( Donya::Loader, 0 )
-CEREAL_CLASS_VERSION( Donya::Loader::Material, 0 )
-CEREAL_CLASS_VERSION( Donya::Loader::Subset, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader,				1 )
+CEREAL_CLASS_VERSION( Donya::Loader::Material,		0 )
+CEREAL_CLASS_VERSION( Donya::Loader::Subset,		0 )
+CEREAL_CLASS_VERSION( Donya::Loader::Bone,			0 )
+CEREAL_CLASS_VERSION( Donya::Loader::Skeletal,		0 )
+CEREAL_CLASS_VERSION( Donya::Loader::Motion,		0 )
 CEREAL_CLASS_VERSION( Donya::Loader::BoneInfluence, 0 )
 CEREAL_CLASS_VERSION( Donya::Loader::BoneInfluencesPerControlPoint, 0 )
-CEREAL_CLASS_VERSION( Donya::Loader::Mesh, 0 )
+CEREAL_CLASS_VERSION( Donya::Loader::Mesh,			1 )

@@ -493,6 +493,11 @@ namespace Donya
 			FetchMaterial( i, pMesh );
 			FetchGlobalTransform( i, pMesh );
 
+			// Convert right-hand space to left-hand space.
+			{
+				meshes[i].coordinateConversion._11 = -1.0f;
+			}
+
 			OutputDebugProgress( "Finish Mesh[" + std::to_string( i ) + "].Polygons.", outputProgress );
 
 			// Fetch the motion.
@@ -820,6 +825,41 @@ namespace Donya
 #endif // USE_FBX_SDK
 
 #if USE_IMGUI
+	void Loader::AdjustParameterByImGuiNode()
+	{
+		if ( ImGui::TreeNode( u8"パラメータの変更" ) )
+		{
+			ImGui::Text( u8"ここで変更したパラメータは保存できますが，即時反映はされません" );
+
+			auto ShowFloat4x4 = []( const std::string &caption, Donya::Vector4x4 *p4x4 )
+			{
+				if ( ImGui::TreeNode( caption.c_str() ) )
+				{
+					ImGui::SliderFloat4( "11, 12, 13, 14", &p4x4->_11, -1.0f, 1.0f );
+					ImGui::SliderFloat4( "21, 22, 23, 24", &p4x4->_21, -1.0f, 1.0f );
+					ImGui::SliderFloat4( "31, 32, 33, 34", &p4x4->_31, -1.0f, 1.0f );
+					ImGui::SliderFloat4( "41, 42, 43, 44", &p4x4->_41, -1.0f, 1.0f );
+
+					ImGui::TreePop();
+				}
+			};
+
+			const size_t meshCount = meshes.size();
+			for ( size_t i = 0; i < meshCount; ++i )
+			{
+				auto &mesh = meshes[i];
+				const std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
+				if ( ImGui::TreeNode( meshCaption.c_str() ) )
+				{
+					ShowFloat4x4( "CoordinateConversion", &mesh.coordinateConversion );
+
+					ImGui::TreePop();
+				}
+			}
+
+			ImGui::TreePop();
+		}
+	}
 	void Loader::EnumPreservingDataToImGui() const
 	{
 		ImVec2 childFrameSize( 0.0f, 0.0f );
@@ -833,7 +873,6 @@ namespace Donya
 			{
 				const size_t verticesCount = mesh.indices.size();
 				std::string verticesCaption = "Vertices[Count:" + std::to_string( verticesCount ) + "]";
-
 				if ( ImGui::TreeNode( verticesCaption.c_str() ) )
 				{
 					if ( ImGui::TreeNode( "Positions" ) )

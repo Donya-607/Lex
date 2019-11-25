@@ -159,8 +159,7 @@ namespace Donya
 
 				const std::string fileDirectory = loader.GetFileDirectory();
 
-				auto FetchMaterialContain =
-				[&fileDirectory]( SkinnedMesh::Material *meshMtl, const Loader::Material &loadedMtl )
+				auto FetchMaterialContain = [&fileDirectory]( SkinnedMesh::Material *meshMtl, const Loader::Material &loadedMtl )
 				{
 					meshMtl->color.x = loadedMtl.color.x;
 					meshMtl->color.y = loadedMtl.color.y;
@@ -445,7 +444,7 @@ namespace Donya
 		return true;
 	}
 
-	void SkinnedMesh::Render( const Donya::MotionChunk &motionPerMesh, const Donya::Animator &currentAnimation, const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &materialColor, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
+	void SkinnedMesh::Render( const Donya::MotionChunk &motionPerMesh, const Donya::Animator &currentAnimation, const Donya::Vector4x4 &worldViewProjection, const Donya::Vector4x4 &world, const Donya::Vector4 &eyePosition, const Donya::Vector4 &materialColor, const Donya::Vector4 &lightColor, const Donya::Vector4 &lightDirection, bool isEnableFill )
 	{
 		if ( !wasCreated )
 		{
@@ -457,9 +456,14 @@ namespace Donya
 
 		// Apply coordinateConversion, TODO : Should refactoring this.
 		{
-			DirectX::XMFLOAT4X4 identity{}; DirectX::XMStoreFloat4x4( &identity, DirectX::XMMatrixIdentity() );
-			identity._11 = -1.0f;
-			static DirectX::XMFLOAT4X4 coordConversion = identity;	// I'm not want to initialize to identity every frame.
+			// Initialize to convert rhs to lhs.
+			static Donya::Vector4x4 coordConversion
+			{
+				-1.0f, 0.0f, 0.0f, 0.0f,
+				 0.0f, 1.0f, 0.0f, 0.0f,
+				 0.0f, 0.0f, 1.0f, 0.0f,
+				 0.0f, 0.0f, 0.0f, 1.0f,
+			};
 
 		#if USE_IMGUI
 			if ( ImGui::BeginIfAllowed( "SkinnedMesh" ) )
@@ -532,21 +536,9 @@ namespace Donya
 		{
 			// Update Constant Buffer
 			{
-				auto Mul4x4 = []( const DirectX::XMFLOAT4X4 &lhs, const DirectX::XMFLOAT4X4 &rhs )
-				->DirectX::XMFLOAT4X4
-				{
-					DirectX::XMFLOAT4X4 rv{};
-					DirectX::XMStoreFloat4x4
-					(
-						&rv,
-						DirectX::XMLoadFloat4x4( &lhs ) * DirectX::XMLoadFloat4x4( &rhs )
-					);
-					return rv;
-				};
-
 				ConstantBuffer cb{};
-				cb.worldViewProjection	= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), worldViewProjection );
-				cb.world				= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), world );
+				cb.worldViewProjection	= ( ( mesh.globalTransform * mesh.coordinateConversion ) * worldViewProjection ).XMFloat();
+				cb.world				= ( ( mesh.globalTransform * mesh.coordinateConversion ) * world ).XMFloat();
 				
 				const Donya::Motion		useMotion		= motionPerMesh.FetchMotion( mesh.meshNo );
 				const Donya::Skeletal	currentPosture	= currentAnimation.FetchCurrentMotion( useMotion );
@@ -562,10 +554,10 @@ namespace Donya
 				};
 				TransformBones( &cb.boneTransforms, currentPosture );
 
-				cb.eyePosition			= eyePosition;
-				cb.lightColor			= lightColor;
-				cb.lightDir				= lightDirection;
-				cb.materialColor		= materialColor;
+				cb.eyePosition			= eyePosition.XMFloat();
+				cb.lightColor			= lightColor.XMFloat();
+				cb.lightDir				= lightDirection.XMFloat();
+				cb.materialColor		= materialColor.XMFloat();
 				pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 			}
 			pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
@@ -581,18 +573,16 @@ namespace Donya
 				// Update Material-Constant Buffer
 				{
 					MaterialConstantBuffer mtlCB{};
-					mtlCB.ambient	= subset.ambient.color;
-					mtlCB.bump		= subset.bump.color;
-					mtlCB.diffuse	= subset.diffuse.color;
-					mtlCB.emissive	= subset.emissive.color;
-					mtlCB.specular	= subset.specular.color;
+					mtlCB.ambient	= subset.ambient.color.XMFloat();
+					mtlCB.bump		= subset.bump.color.XMFloat();
+					mtlCB.diffuse	= subset.diffuse.color.XMFloat();
+					mtlCB.emissive	= subset.emissive.color.XMFloat();
+					mtlCB.specular	= subset.specular.color.XMFloat();
 
 					pImmediateContext->UpdateSubresource( iMaterialCBuffer.Get(), 0, nullptr, &mtlCB, 0, 0 );
 				}
 				pImmediateContext->VSSetConstantBuffers( 1, 1, iMaterialCBuffer.GetAddressOf() );
 				pImmediateContext->PSSetConstantBuffers( 1, 1, iMaterialCBuffer.GetAddressOf() );
-
-				// TODO:diffuseˆÈŠO‚Ì‚à‚Ì‚à“K—p‚·‚é
 
 				pImmediateContext->PSSetSamplers( 0, 1, subset.diffuse.iSampler.GetAddressOf() );
 

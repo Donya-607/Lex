@@ -4,7 +4,6 @@
 #include <thread>
 #include <vector>
 
-//#include "Donya/Camera.h"
 #include "Donya/Constant.h"
 #include "Donya/Donya.h"				// Use GetFPS().
 #include "Donya/GeometricPrimitive.h"	// For debug draw collision.
@@ -831,6 +830,7 @@ private:
 							}
 						}
 
+						it->loader.AdjustParameterByImGuiNode();
 						it->loader.EnumPreservingDataToImGui();
 						ImGui::TreePop();
 					}

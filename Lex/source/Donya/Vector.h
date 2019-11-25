@@ -3,7 +3,7 @@
 #include <cstdint> // use for std::uint32_t
 #include <DirectXMath.h>
 
-#include "cereal/cereal.hpp"
+#include <cereal/cereal.hpp>
 
 namespace Donya
 {
@@ -30,6 +30,12 @@ namespace Donya
 		void serialize( Archive &archive, std::uint32_t version )
 		{
 			archive( CEREAL_NVP( x ), CEREAL_NVP( y ) );
+		}
+	public:
+		constexpr XMFLOAT2 XMFloat() const
+		{
+			// HACK:Can I prevent slice by this ?
+			return static_cast<XMFLOAT2>( *this );
 		}
 	public:
 		constexpr Vector2 operator - () const { return Vector2{ -x, -y }; }
@@ -169,6 +175,12 @@ namespace Donya
 		void serialize( Archive &archive, std::uint32_t version )
 		{
 			archive( CEREAL_NVP( x ), CEREAL_NVP( y ), CEREAL_NVP( z ) );
+		}
+	public:
+		constexpr XMFLOAT3 XMFloat() const
+		{
+			// HACK:Can I prevent slice by this ?
+			return static_cast<XMFLOAT3>( *this );
 		}
 	public:
 		constexpr Vector3 operator - () const { return Vector3{ -x, -y, -z }; }
@@ -328,6 +340,12 @@ namespace Donya
 			archive( CEREAL_NVP( x ), CEREAL_NVP( y ), CEREAL_NVP( z ), CEREAL_NVP( w ) );
 		}
 	public:
+		constexpr XMFLOAT4 XMFloat() const
+		{
+			// HACK:Can I prevent slice by this ?
+			return static_cast<XMFLOAT4>( *this );
+		}
+	public:
 		constexpr Vector4 operator - () const { return Vector4{ -x, -y, -z, -w }; }
 		Vector4 operator += ( float scalar )
 		{
@@ -478,7 +496,7 @@ namespace Donya
 				NVP( _31 ), NVP( _32 ), NVP( _33 ), NVP( _34 ),
 				NVP( _41 ), NVP( _42 ), NVP( _43 ), NVP( _44 )
 			);
-		#undef N
+		#undef NVP
 		}
 	public:
 		/// <summary>
