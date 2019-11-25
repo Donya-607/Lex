@@ -7,7 +7,7 @@ struct VS_OUT
 	float2 texCoord	: TEXCOORD1;
 };
 
-static const int MAX_BONE_COUNT = 32;
+static const int MAX_BONE_COUNT = 64;
 
 cbuffer CONSTANT_BUFFER : register( b0 )
 {

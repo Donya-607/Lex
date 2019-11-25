@@ -1,5 +1,7 @@
 #include "SkinnedMesh.h"
 
+#include <algorithm>
+
 #include "Donya/Direct3DUtil.h"
 #include "Donya/Donya.h"
 #include "Donya/Resource.h"
@@ -28,6 +30,109 @@ namespace Donya
 
 		std::vector<std::vector<size_t>> argIndices{};
 		std::vector<std::vector<Vertex>> argVertices{};
+		
+		auto AssignBoneInfluences = []( Donya::SkinnedMesh::Vertex *pVertex, const Donya::Loader::BoneInfluencesPerControlPoint &influences )
+		{
+			/*
+			1,	Store all influences data to temporary storage.
+			2,	Sort with weight the storage by descending order.
+			3,	Assign the higher data of storage to vertex as many as MAX_BONE_INFLUENCES(bone array size).
+			4,	Assign the remaining storage data to highest weight bone.
+			*/
+
+			const size_t influenceCount = influences.cluster.size();
+
+			// No.1
+			std::vector<Donya::Loader::BoneInfluence> storage{ influenceCount };
+			for ( size_t i = 0; i < influenceCount; ++i )
+			{
+				storage[i].index  = influences.cluster[i].index;
+				storage[i].weight = influences.cluster[i].weight;
+			}
+
+			// No.2
+			auto Compare = []( const Donya::Loader::BoneInfluence &lhs, const Donya::Loader::BoneInfluence &rhs )
+			{
+				return ( lhs.weight < rhs.weight ) ? true : false;
+			};
+			std::sort( storage.begin(), storage.end(), Compare );
+
+			// No.3
+			size_t  loopIndex = 0;
+			for ( ; loopIndex < MAX_BONE_INFLUENCES; ++loopIndex )
+			{
+				if ( influenceCount <= loopIndex )
+				{
+					// Prevent error.
+					pVertex->boneIndices[loopIndex] = 0;
+					pVertex->boneWeights[loopIndex] = 0.0f;
+					continue;
+				}
+				// else
+
+				pVertex->boneIndices[loopIndex] = storage[loopIndex].index;
+				pVertex->boneWeights[loopIndex] = storage[loopIndex].weight;
+			}
+
+			// No.4
+			size_t highestBoneIndex{};
+			{
+				float highestWeight = 0.0f;
+				for ( size_t i = 0; i < MAX_BONE_INFLUENCES; ++i )
+				{
+					float selectWeight = pVertex->boneWeights[i];
+					if ( highestWeight < selectWeight )
+					{
+						highestBoneIndex	= i;
+						highestWeight		= selectWeight;
+					}
+				}
+			}
+
+			for ( ; loopIndex < influenceCount; ++loopIndex )
+			{
+				pVertex->boneIndices[highestBoneIndex] = storage[loopIndex].index;
+				pVertex->boneWeights[highestBoneIndex] = storage[loopIndex].weight;
+			}
+
+			/*
+			for ( size_t i = 0; i < influenceCount; ++i )
+			{
+				pVertex->boneIndices[i] = influences.cluster[i].index;
+				pVertex->boneWeights[i] = influences.cluster[i].weight;
+			}
+			*/
+		};
+		auto AssignVertices = [&AssignBoneInfluences]( std::vector<Vertex> *pVertices, const Donya::Loader::Mesh &loadedMesh )
+		{
+			const std::vector<Donya::Vector3> &normals   = loadedMesh.normals;
+			const std::vector<Donya::Vector3> &positions = loadedMesh.positions;
+			const std::vector<Donya::Vector2> &texCoords = loadedMesh.texCoords;
+			const std::vector<Loader::BoneInfluencesPerControlPoint> &boneInfluences = loadedMesh.influences;
+
+			const size_t positionCount	= positions.size();
+			const size_t normalCount	= normals.size();
+			const size_t texCoordCount	= texCoords.size();
+
+			const size_t vertexCount	= positionCount;
+			pVertices->resize( vertexCount );
+			for ( size_t i = 0; i < vertexCount; ++i )
+			{
+				auto &vertex = ( *pVertices )[i];
+
+				vertex.pos		= positions[i];
+
+				vertex.normal	= ( i < normalCount )
+				? ( positions[i] - Donya::Vector3::Zero() ).Normalized()	// Assign approximate normal.
+				: normals[i];
+
+				vertex.texCoord	= ( i < texCoordCount )
+				? texCoords[i]
+				: Donya::Vector2::Zero();
+
+				AssignBoneInfluences( &vertex, boneInfluences[i] );
+			}
+		};
 
 		std::vector<SkinnedMesh::Mesh> meshes{};
 		meshes.resize( loadedMeshCount );
@@ -35,35 +140,13 @@ namespace Donya
 		{
 			auto &loadedMesh = ( *pLoadedMeshes )[i];
 
+			meshes[i].meshNo				= loadedMesh.meshNo;
 			meshes[i].coordinateConversion	= loadedMesh.coordinateConversion;
 			meshes[i].globalTransform		= loadedMesh.globalTransform;
 
 			std::vector<Vertex> vertices{};
-			{
-				const std::vector<Donya::Vector3> &normals   = loadedMesh.normals;
-				const std::vector<Donya::Vector3> &positions = loadedMesh.positions;
-				const std::vector<Donya::Vector2> &texCoords = loadedMesh.texCoords;
-				const std::vector<Loader::BoneInfluencesPerControlPoint> &boneInfluences = loadedMesh.influences;
+			AssignVertices( &vertices, loadedMesh );
 
-				vertices.resize( std::max( normals.size(), positions.size() ) );
-				size_t end = vertices.size();
-				for ( size_t j = 0; j < end; ++j )
-				{
-					vertices[j].normal		= normals[j];
-					vertices[j].pos			= positions[j];
-					
-					vertices[j].texCoord	= ( j < texCoords.size() )
-											? texCoords[j]
-											: Donya::Vector2{};
-
-					size_t influenceCount = boneInfluences[j].cluster.size();
-					for ( size_t k = 0; k < influenceCount; ++k )
-					{
-						vertices[j].boneIndices[k] = boneInfluences[j].cluster[k].index;
-						vertices[j].boneWeights[k] = boneInfluences[j].cluster[k].weight;
-					}
-				}
-			}
 			argVertices.emplace_back( vertices );
 			argIndices.emplace_back( loadedMesh.indices );
 			
@@ -366,7 +449,7 @@ namespace Donya
 		return true;
 	}
 
-	void SkinnedMesh::Render( const Donya::Skeletal &pose, const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &materialColor, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
+	void SkinnedMesh::Render( const Donya::MotionChunk &motionPerMesh, const Donya::Animator &currentAnimation, const DirectX::XMFLOAT4X4 &worldViewProjection, const DirectX::XMFLOAT4X4 &world, const DirectX::XMFLOAT4 &eyePosition, const DirectX::XMFLOAT4 &materialColor, const DirectX::XMFLOAT4 &lightColor, const DirectX::XMFLOAT4 &lightDirection, bool isEnableFill )
 	{
 		if ( !wasCreated )
 		{
@@ -376,6 +459,7 @@ namespace Donya
 		if ( meshes.empty() ) { return; }
 		// else
 
+		// Apply coordinateConversion, TODO : Should refactoring this.
 		{
 			DirectX::XMFLOAT4X4 identity{}; DirectX::XMStoreFloat4x4( &identity, DirectX::XMMatrixIdentity() );
 			identity._11 = -1.0f;
@@ -468,11 +552,19 @@ namespace Donya
 				cb.worldViewProjection	= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), worldViewProjection );
 				cb.world				= Mul4x4( Mul4x4( mesh.globalTransform, mesh.coordinateConversion ), world );
 				
-				const size_t BONE_COUNT = std::min( scast<int>( pose.boneCount ), MAX_BONE_COUNT );
-				for ( size_t i = 0; i < BONE_COUNT; ++i )
+				const Donya::Motion		useMotion		= motionPerMesh.FetchMotion( mesh.meshNo );
+				const Donya::Skeletal	currentPosture	= currentAnimation.FetchCurrentMotion( useMotion );
+				auto TransformBones = []( std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> *pBoneTransform, const Donya::Skeletal &pose )
 				{
-					cb.boneTransforms[i] = pose.skeletal[i].transform.XMFloat();
-				}
+					const size_t poseBoneCount = pose.skeletal.size();
+					for ( size_t i = 0; i < MAX_BONE_COUNT; ++i )
+					{
+						( *pBoneTransform )[i] = ( poseBoneCount <= i )
+						? Donya::Vector4x4::Identity().XMFloat()
+						: pose.skeletal[i].transform.XMFloat();
+					}
+				};
+				TransformBones( &cb.boneTransforms, currentPosture );
 
 				cb.eyePosition			= eyePosition;
 				cb.lightColor			= lightColor;

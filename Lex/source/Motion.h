@@ -18,7 +18,7 @@ namespace Donya
 		Donya::Vector4x4	transform{};
 	};
 	/// <summary>
-	/// Gathering of bones(call "skeletal"). This represents a pose.
+	/// Gathering of bones(I call "skeletal"). This represents a posture at that time.
 	/// </summary>
 	struct Skeletal
 	{
@@ -26,7 +26,7 @@ namespace Donya
 		std::vector<Bone>	skeletal{};
 	};
 	/// <summary>
-	/// Gathering of skeletals(call "Motion"). This represents a motion(animation).
+	/// Gathering of skeletals(I call "Motion"). This represents a motion(animation).
 	/// </summary>
 	class Motion
 	{
@@ -36,11 +36,11 @@ namespace Donya
 		int							meshNo{};	// 0-based.
 		float						samplingRate{ DEFAULT_SAMPLING_RATE };
 		std::vector<std::string>	names{};
-		std::vector<Skeletal>		motion{};
+		std::vector<Skeletal>		motion{};	// Store consecutive skeletals according to a time.
 	};
 
 	/// <summary>
-	/// Contain a some motions.
+	/// This class contain a motions per mesh.
 	/// </summary>
 	class MotionChunk
 	{
@@ -51,13 +51,16 @@ namespace Donya
 		/// </summary>
 		static bool Create( const Donya::Loader &loader, MotionChunk *pOutput );
 	private:
-		std::vector<Motion> chunk{};
+		std::vector<Motion> motionsPerMesh{};
 		bool wasCreated{ false };
 	private:
 		bool Init( const std::vector<Motion> &motions );
 	public:
 		size_t GetMotionCount() const;
-		Motion FetchMotion( unsigned int motionIndex = 0 );
+		/// <summary>
+		/// The "motionNumber" link to mesh number.
+		/// </summary>
+		Motion FetchMotion( unsigned int motionNumber ) const;
 	};
 
 	/// <summary>

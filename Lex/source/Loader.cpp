@@ -822,14 +822,14 @@ namespace Donya
 	{
 		ImVec2 childFrameSize( 0.0f, 0.0f );
 
-		size_t meshCount = meshes.size();
+		const size_t meshCount = meshes.size();
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
 			const auto &mesh = meshes[i];
-			std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
+			const std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
 			if ( ImGui::TreeNode( meshCaption.c_str() ) )
 			{
-				size_t verticesCount = mesh.indices.size();
+				const size_t verticesCount = mesh.indices.size();
 				std::string verticesCaption = "Vertices[Count:" + std::to_string( verticesCount ) + "]";
 
 				if ( ImGui::TreeNode( verticesCaption.c_str() ) )
@@ -1018,7 +1018,83 @@ namespace Donya
 
 				ImGui::TreePop();
 			}
-		} // meshes loop.
+		}
+
+		const size_t motionCount = motions.size();
+		for ( size_t i = 0; i < motionCount; ++i )
+		{
+			const auto &motion = motions[i];
+			const std::string motionCaption = "Motion[" + std::to_string( i ) + "]";
+			if ( ImGui::TreeNode( motionCaption.c_str() ) )
+			{
+				ImGui::Text( "Mesh.No:%d", motion.meshNo );
+				ImGui::Text( "Mesh.SamplingRate:%5.3f", motion.samplingRate );
+
+				if ( ImGui::TreeNode( "Names" ) )
+				{
+					const size_t nameCount = motion.names.size();
+					for ( size_t n = 0; n < nameCount; ++n )
+					{
+						ImGui::Text( motion.names[n].c_str() );
+					}
+
+					ImGui::TreePop();
+				}
+
+				if ( ImGui::TreeNode( "Skeletals" ) )
+				{
+					std::string  subscriptCaption{};
+					std::string  skeletalCaption{};
+					const size_t skeletalCount = motion.motion.size();
+					for ( size_t s = 0; s < skeletalCount; ++s )
+					{
+						auto &skeletal   = motion.motion[s];
+						subscriptCaption = "[" + std::to_string( s ) + "]";
+						skeletalCaption  = ".BoneCount : " + std::to_string( skeletal.boneCount );
+						if ( ImGui::TreeNode( ( subscriptCaption + skeletalCaption ).c_str() ) )
+						{
+							std::string  boneName{};
+							for ( size_t b = 0; b < skeletal.boneCount; ++b )
+							{
+								const auto &bone = skeletal.skeletal[b];
+								subscriptCaption = "[" + std::to_string( b ) + "]";
+								boneName = ".Name:[" + bone.name + "]";
+								ImGui::Text( ( subscriptCaption + boneName ).c_str() );
+
+								constexpr const char *FLOAT4_FORMAT = "%+05.2f, %+05.2f, %+05.2f, %+05.2f";
+								ImGui::Text
+								(
+									FLOAT4_FORMAT,
+									bone.transform._11, bone.transform._12, bone.transform._13, bone.transform._14
+								);
+								ImGui::Text
+								(
+									FLOAT4_FORMAT,
+									bone.transform._21, bone.transform._22, bone.transform._23, bone.transform._24
+								);
+								ImGui::Text
+								(
+									FLOAT4_FORMAT,
+									bone.transform._31, bone.transform._32, bone.transform._33, bone.transform._34
+								);
+								ImGui::Text
+								(
+									FLOAT4_FORMAT,
+									bone.transform._41, bone.transform._42, bone.transform._43, bone.transform._44
+								);
+								ImGui::Text( "" );
+							}
+
+							ImGui::TreePop();
+						}
+					}
+
+					ImGui::TreePop();
+				}
+
+				ImGui::TreePop();
+			}
+		}
 	}
 #endif // USE_IMGUI
 }

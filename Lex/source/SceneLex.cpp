@@ -209,7 +209,8 @@ public:
 		{
 			it.mesh.Render
 			(
-				it.animator.FetchCurrentMotion( it.motions.FetchMotion( 0 ) ),
+				it.motions,
+				it.animator,
 				WVP, W,
 				cameraPos,
 				mtlColor,

@@ -23,7 +23,7 @@ namespace Donya
 		/// </summary>
 		static bool Create( const Loader &loader, SkinnedMesh *pOutput );
 	public:
-		static constexpr const int MAX_BONE_COUNT		= 32;
+		static constexpr const int MAX_BONE_COUNT		= 64;
 		static constexpr const int MAX_BONE_INFLUENCES	= 4;
 		struct Vertex
 		{
@@ -92,32 +92,35 @@ namespace Donya
 
 		struct Mesh
 		{
-			DirectX::XMFLOAT4X4 coordinateConversion;
-			DirectX::XMFLOAT4X4 globalTransform;
-			Microsoft::WRL::ComPtr<ID3D11Buffer> iIndexBuffer;
-			Microsoft::WRL::ComPtr<ID3D11Buffer> iVertexBuffer;
-			std::vector<Subset>	subsets;
+			int										meshNo;
+			DirectX::XMFLOAT4X4						coordinateConversion;
+			DirectX::XMFLOAT4X4						globalTransform;
+			Microsoft::WRL::ComPtr<ID3D11Buffer>	iIndexBuffer;
+			Microsoft::WRL::ComPtr<ID3D11Buffer>	iVertexBuffer;
+			std::vector<Subset>						subsets;
 		public:
-			Mesh() : coordinateConversion
-			(
-				{
-					1, 0, 0, 0,
-					0, 1, 0, 0,
-					0, 0, 1, 0,
-					0, 0, 0, 1
-				}
-			),
-			globalTransform
-			(
-				{
-					1, 0, 0, 0,
-					0, 1, 0, 0,
-					0, 0, 1, 0,
-					0, 0, 0, 1
-				}
-			),
-			iVertexBuffer(), iIndexBuffer(),
-			subsets()
+			Mesh() :
+				meshNo(),
+				coordinateConversion
+				(
+					{
+						1, 0, 0, 0,
+						0, 1, 0, 0,
+						0, 0, 1, 0,
+						0, 0, 0, 1
+					}
+				),
+				globalTransform
+				(
+					{
+						1, 0, 0, 0,
+						0, 1, 0, 0,
+						0, 0, 1, 0,
+						0, 0, 0, 1
+					}
+				),
+				iVertexBuffer(), iIndexBuffer(),
+				subsets()
 			{}
 			Mesh( const Mesh & ) = default;
 		};
@@ -148,7 +151,8 @@ namespace Donya
 		);
 		void Render
 		(
-			const Donya::Skeletal		&pose,
+			const Donya::MotionChunk	&motionPerMesh,
+			const Donya::Animator		&currentAnimation,
 			const DirectX::XMFLOAT4X4	&worldViewProjection,
 			const DirectX::XMFLOAT4X4	&world,
 			const DirectX::XMFLOAT4		&eyePosition,

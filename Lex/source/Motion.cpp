@@ -57,7 +57,7 @@ namespace Donya
 		if ( wasCreated ) { return false; }
 		// else
 
-		chunk = motions;
+		motionsPerMesh = motions;
 
 		wasCreated = true;
 		return true;
@@ -65,19 +65,23 @@ namespace Donya
 
 	size_t MotionChunk::GetMotionCount() const
 	{
-		return chunk.size();
+		return motionsPerMesh.size();
 	}
-
-	Motion MotionChunk::FetchMotion( unsigned int motionIndex )
+	Motion MotionChunk::FetchMotion( unsigned int motionIndex ) const
 	{
+		const Motion NIL{};
+
+		if ( motionsPerMesh.empty() ) { return NIL; }
+		// else
+
 		if ( GetMotionCount() <= motionIndex )
 		{
 			_ASSERT_EXPR( 0, L"Error : out of range at MotionChunk." );
-			return Motion{};
+			return NIL;
 		}
 		// else
 
-		return chunk[motionIndex];
+		return motionsPerMesh[motionIndex];
 	}
 
 	Animator::Animator() :
@@ -106,8 +110,15 @@ namespace Donya
 		samplingRate = rate;
 	}
 
-	Skeletal Animator::FetchCurrentMotion ( const Motion &motion, bool useWrapAround ) const
+	Skeletal Animator::FetchCurrentMotion( const Motion &motion, bool useWrapAround ) const
 	{
+		if ( motion.motion.empty() )
+		{
+			// Returns identities.
+			return Skeletal{};
+		}
+		// else
+
 		const size_t MOTION_COUNT = motion.motion.size();
 		const float rate = ( ZeroEqual( samplingRate ) ) ? motion.samplingRate : samplingRate;
 
