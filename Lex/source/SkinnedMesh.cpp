@@ -96,8 +96,7 @@ namespace Donya
 			}
 			for ( ; loopIndex < influenceCount; ++loopIndex )
 			{
-				// pVertex->boneIndices[highestBoneIndex] = storage[loopIndex].index;
-				pVertex->boneWeights[highestBoneIndex] = storage[loopIndex].weight;
+				pVertex->boneWeights[highestBoneIndex] += storage[loopIndex].weight;
 			}
 		};
 		auto AssignVertices = [&AssignBoneInfluences]( std::vector<Vertex> *pVertices, const Donya::Loader::Mesh &loadedMesh )

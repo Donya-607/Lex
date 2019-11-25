@@ -68,6 +68,9 @@ public:
 		bool		isSucceeded{};	// Is Succeeded the loading process ?
 	};
 public:
+
+	// TODO : To be serialize these member.
+
 	ICamera							iCamera;
 	DirectionalLight				directionalLight;
 	Donya::Vector4					mtlColor;
