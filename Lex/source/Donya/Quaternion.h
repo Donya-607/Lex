@@ -77,7 +77,7 @@ namespace Donya
 				( w * R.x ) + ( y * R.z ) - ( z * R.y ),
 				( w * R.y ) - ( x * R.z ) + ( z * R.x ),
 				( w * R.z ) + ( x * R.y ) - ( y * R.x ),
-				(-x * R.x ) - ( y * R.y ) - ( z * R.z )
+				( -x * R.x ) - ( y * R.y ) - ( z * R.z )
 			};
 		}
 		constexpr Quaternion Div( float scalar ) const
@@ -210,25 +210,31 @@ namespace Donya
 		}
 
 		/// <summary>
+		/// [TRUE:returnsRotatedQuaternion] Create a quaternion that looking at "lookDirection".<para></para>
+		/// [FALSE:returnsRotatedQuaternion] Create a quaternion that rotate from "orientation" to "lookDirection".
+		/// </summary>
+		Quaternion LookAt( const Donya::Vector3 &lookDirection, bool returnsRotatedQuaternion = true ) const;
+
+		/// <summary>
 		/// The fourth-elements are same to identity.
 		/// </summary>
 		constexpr DirectX::XMFLOAT4X4 RequireRotationMatrix() const
 		{
 			DirectX::XMFLOAT4X4 m{};
 
-			m._11 = 1.0f -	( 2.0f * y * y ) - ( 2.0f * z * z );
-			m._12 =			( 2.0f * x * y ) + ( 2.0f * w * z );
-			m._13 =			( 2.0f * x * z ) - ( 2.0f * w * y );
+			m._11 = 1.0f - ( 2.0f * y * y ) - ( 2.0f * z * z );
+			m._12 = ( 2.0f * x * y ) + ( 2.0f * w * z );
+			m._13 = ( 2.0f * x * z ) - ( 2.0f * w * y );
 			m._14 = 0.0f;
 
-			m._21 =			( 2.0f * x * y ) - ( 2.0f * w * z );
-			m._22 = 1.0f -	( 2.0f * x * x ) - ( 2.0f * z * z );
-			m._23 =			( 2.0f * y * z ) + ( 2.0f * w * x );
+			m._21 = ( 2.0f * x * y ) - ( 2.0f * w * z );
+			m._22 = 1.0f - ( 2.0f * x * x ) - ( 2.0f * z * z );
+			m._23 = ( 2.0f * y * z ) + ( 2.0f * w * x );
 			m._24 = 0.0f;
 
-			m._31 =			( 2.0f * x * z ) + ( 2.0f * w * y );
-			m._32 =			( 2.0f * y * z ) - ( 2.0f * w * x );
-			m._33 = 1.0f -	( 2.0f * x * x ) - ( 2.0f * y * y );
+			m._31 = ( 2.0f * x * z ) + ( 2.0f * w * y );
+			m._32 = ( 2.0f * y * z ) - ( 2.0f * w * x );
+			m._33 = 1.0f - ( 2.0f * x * x ) - ( 2.0f * y * y );
 			m._34 = 0.0f;
 
 			m._41 = 0.0f;
@@ -373,22 +379,22 @@ namespace Donya
 		}
 	};
 #pragma region Arithmetic
-	static constexpr Quaternion operator + ( const Quaternion &L, const Quaternion &R )		{ return L.Add( R );		}
-	static constexpr Quaternion operator - ( const Quaternion &L, const Quaternion &R )		{ return L.Sub( R );		}
-	static constexpr Quaternion operator * ( const Quaternion &L, float scalar        )		{ return L.Mul( scalar );	}
-	static constexpr Quaternion operator * ( const Quaternion &L, const Quaternion &R )		{ return L.Mul( R );		}
-	static constexpr Quaternion operator * ( const Quaternion &L, const Donya::Vector3 &R )	{ return L.Mul( R );		}
+	static constexpr Quaternion operator + ( const Quaternion &L, const Quaternion &R ) { return L.Add( R ); }
+	static constexpr Quaternion operator - ( const Quaternion &L, const Quaternion &R ) { return L.Sub( R ); }
+	static constexpr Quaternion operator * ( const Quaternion &L, float scalar ) { return L.Mul( scalar ); }
+	static constexpr Quaternion operator * ( const Quaternion &L, const Quaternion &R ) { return L.Mul( R ); }
+	static constexpr Quaternion operator * ( const Quaternion &L, const Donya::Vector3 &R ) { return L.Mul( R ); }
 	static constexpr Quaternion operator * ( const Donya::Vector3 &L, const Quaternion &R )
 	{
 		return Quaternion
 		{
 			( L.x * R.w ) + ( L.y * R.z ) - ( L.z * R.y ),
-			(-L.x * R.z ) + ( L.y * R.w ) + ( L.z * R.x ),
+			( -L.x * R.z ) + ( L.y * R.w ) + ( L.z * R.x ),
 			( L.x * R.y ) - ( L.y * R.x ) + ( L.z * R.w ),
-			(-L.x * R.x ) - ( L.y * R.y ) - ( L.z * R.z )
+			( -L.x * R.x ) - ( L.y * R.y ) - ( L.z * R.z )
 		};
 	}
-	static constexpr Quaternion operator / ( const Quaternion &L, float scalar        )		{ return L.Div( scalar );	}
+	static constexpr Quaternion operator / ( const Quaternion &L, float scalar ) { return L.Div( scalar ); }
 // region Arithmetic
 #pragma endregion
 

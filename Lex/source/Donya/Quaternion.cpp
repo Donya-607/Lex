@@ -7,6 +7,53 @@
 using namespace Donya;
 using namespace DirectX;
 
+Quaternion MakeLookAtRotation( const Donya::Vector3 &nFront, const Donya::Vector3 &nLookDir )
+{
+	if ( nFront == nLookDir ) { return Quaternion::Identity(); }
+	// else
+
+	float cosTheta = Donya::Vector3::Dot( nFront, nLookDir );
+	cosTheta = std::max( -1.0f, std::min( 1.0f, cosTheta ) );	// Prevent NaN.
+
+	auto IsVectorInverse = []( float dot )
+	{
+		return ( dot <= ( -1.0f + EPSILON ) ) ? true : false;
+	};
+	if ( IsVectorInverse( cosTheta ) )
+	{
+		// The "lookDirection" is inverse to front.
+		// Find horizontal-axis by cross to forward, right, and up vector.
+
+		constexpr std::array<Donya::Vector3, 3> AXES
+		{
+			Donya::Vector3::Front(),
+			Donya::Vector3::Right(),
+			Donya::Vector3::Up()
+		};
+
+		Donya::Vector3 rotAxis{};
+		for ( const auto AXIS : AXES )
+		{
+			rotAxis = Donya::Vector3::Cross( nFront, AXIS );
+			if ( !rotAxis.IsZero() ) { break; }
+		}
+
+		if ( rotAxis.IsZero() ) { return Donya::Quaternion::Identity(); }
+		// else
+
+		rotAxis.Normalize();
+		return Donya::Quaternion::Make( rotAxis, ToRadian( 180.0f ) );
+	}
+	// else
+
+	const float rotAngle = acosf( cosTheta );
+	Donya::Vector3 rotAxis = Donya::Vector3::Cross( nFront, nLookDir ).Normalized();
+
+	return ( ZeroEqual( rotAngle ) )
+		? Donya::Quaternion::Identity()
+		: Donya::Quaternion::Make( rotAxis, rotAngle );
+}
+
 namespace Donya
 {
 #pragma region Arithmetic
@@ -89,8 +136,8 @@ namespace Donya
 		Quaternion unitQ = *this;
 		unitQ.Normalize();
 
-		constexpr float RANGE	= 0.4999f; // 0.4999f or 0.5f - EPSILON
-		constexpr float HALF_PI	= PI / 2.0f;
+		constexpr float RANGE = 0.4999f; // 0.4999f or 0.5f - EPSILON
+		constexpr float HALF_PI = PI / 2.0f;
 
 		Vector3 v{};
 
@@ -117,7 +164,7 @@ namespace Donya
 		float sqZ = unitQ.z * unitQ.z;
 
 		v.y = atan2f( ( 2.0f * unitQ.y * unitQ.w ) - ( 2.0f * unitQ.x * unitQ.z ), 1.0f - ( 2.0f * sqY ) - ( 2.0f * sqZ ) );
-		v.z = asinf(  2.0f * test );
+		v.z = asinf( 2.0f * test );
 		v.x = atan2f( ( 2.0f * unitQ.x * unitQ.w ) - ( 2.0f * unitQ.y * unitQ.z ), 1.0f - ( 2.0f * sqX ) - ( 2.0f * sqZ ) );
 		return v;
 	}
@@ -126,6 +173,32 @@ namespace Donya
 	{
 		*this = Rotated( Q );
 		return *this;
+	}
+
+	Quaternion Quaternion::LookAt( const Donya::Vector3 &lookDirection, bool retRotatedQuat ) const
+	{
+		if ( lookDirection.IsZero() ) { return Identity(); }
+		// else
+
+	#if FROM_ROTATION_MATRIX
+		Vector3 front = lookDirection;							front.Normalize();
+		Vector3 right = Vector3::Cross( Vector3::Up(), front );	right.Normalize();
+		Vector3 up = Vector3::Cross( front, right );			up.Normalize();
+
+		XMFLOAT4X4 matrix{}; XMStoreFloat4x4( &matrix, XMMatrixIdentity() );
+		matrix._11 = right.x;	matrix._12 = right.y;	matrix._13 = right.z;
+		matrix._21 = up.x;		matrix._22 = up.y;		matrix._23 = up.z;
+		matrix._31 = front.x;	matrix._32 = front.y;	matrix._33 = front.z;
+
+		return Make( matrix );
+	#else
+		Quaternion rotation = MakeLookAtRotation
+		(
+			LocalFront(),
+			lookDirection.Normalized()
+		);
+		return ( retRotatedQuat ) ? Rotated( rotation ) : rotation;
+	#endif // FROM_ROTATION_MATRIX
 	}
 
 	float Quaternion::Length( const Quaternion &Q )
@@ -140,18 +213,18 @@ namespace Donya
 	Quaternion Quaternion::Make( float pitch, float yaw, float roll )
 	{
 		// The radians should be halved.
-		pitch	*= 0.5f;
-		yaw		*= 0.5f;
-		roll	*= 0.5f;
+		pitch *= 0.5f;
+		yaw *= 0.5f;
+		roll *= 0.5f;
 
-		float cP = cosf( pitch	);
-		float sP = sinf( pitch	);
+		float cP = cosf( pitch );
+		float sP = sinf( pitch );
 
-		float cY = cosf( yaw	);
-		float sY = sinf( yaw	);
+		float cY = cosf( yaw );
+		float sY = sinf( yaw );
 
-		float cR = cosf( roll	);
-		float sR = sinf( roll	);
+		float cR = cosf( roll );
+		float sR = sinf( roll );
 
 		// from https://stackoverflow.com/questions/15187309/quaternion-euler?rq=1
 		// ZYX.
@@ -239,76 +312,9 @@ namespace Donya
 		return rv;
 	}
 
-	Quaternion MakeLookAtRotation( const Donya::Vector3 &nFront, const Donya::Vector3 &nLookDir )
-	{
-		if ( nFront == nLookDir ) { return Quaternion::Identity(); }
-		// else
-		
-		float cosTheta = Donya::Vector3::Dot( nFront, nLookDir );
-		cosTheta = std::max( -1.0f, std::min( 1.0f, cosTheta ) );	// Prevent NaN.
-		
-		auto IsVectorInverse = []( float dot )
-		{
-			return ( dot <= ( -1.0f + EPSILON ) ) ? true : false;
-		};
-		if ( IsVectorInverse( cosTheta ) )
-		{
-			// The "lookDirection" is inverse to front.
-			// Find horizontal-axis by cross to forward, right, and up vector.
-
-			constexpr std::array<Donya::Vector3, 3> AXES
-			{
-				Donya::Vector3::Front(),
-				Donya::Vector3::Right(),
-				Donya::Vector3::Up()
-			};
-
-			Donya::Vector3 rotAxis{};
-			for ( const auto AXIS : AXES )
-			{
-				rotAxis = Donya::Vector3::Cross( nFront, AXIS );
-				if ( !rotAxis.IsZero() ) { break; }
-			}
-
-			if ( rotAxis.IsZero() ) { return Donya::Quaternion::Identity(); }
-			// else
-
-			rotAxis.Normalize();
-			return Donya::Quaternion::Make( rotAxis, ToRadian( 180.0f ) );
-		}
-		// else
-
-		const float rotAngle = acosf( cosTheta );
-		Donya::Vector3 rotAxis = Donya::Vector3::Cross( nFront, nLookDir ).Normalized();
-
-		return ( ZeroEqual( rotAngle ) )
-		? Donya::Quaternion::Identity()
-		: Donya::Quaternion::Make( rotAxis, rotAngle );
-	}
 	Quaternion Quaternion::LookAt( const Quaternion &orientation, const Donya::Vector3 &lookDirection, bool retRotatedQuat )
 	{
-		if ( lookDirection.IsZero() ) { return Identity(); }
-		// else
-
-	#if FROM_ROTATION_MATRIX
-		Vector3 front = lookDirection;							front.Normalize();
-		Vector3 right = Vector3::Cross( Vector3::Up(), front );	right.Normalize();
-		Vector3 up = Vector3::Cross( front, right );			up.Normalize();
-
-		XMFLOAT4X4 matrix{}; XMStoreFloat4x4( &matrix, XMMatrixIdentity() );
-		matrix._11 = right.x;	matrix._12 = right.y;	matrix._13 = right.z;
-		matrix._21 = up.x;		matrix._22 = up.y;		matrix._23 = up.z;
-		matrix._31 = front.x;	matrix._32 = front.y;	matrix._33 = front.z;
-
-		return Make( matrix );
-	#else
-		Quaternion rotation = MakeLookAtRotation
-		(
-			orientation.LocalFront(),
-			lookDirection.Normalized()
-		);
-		return ( retRotatedQuat ) ? orientation.Rotated( rotation ) : rotation;
-	#endif // FROM_ROTATION_MATRIX
+		return orientation.LookAt( lookDirection, retRotatedQuat );
 	}
 	Quaternion Quaternion::LookAt( const Donya::Vector3 &front, const Donya::Vector3 &lookDirection )
 	{
@@ -328,16 +334,16 @@ namespace Donya
 
 	Quaternion Quaternion::Slerp( const Quaternion &nBegin, const Quaternion &nEnd, float time )
 	{
-		float dot	= Dot( nBegin, nEnd );
+		float dot = Dot( nBegin, nEnd );
 		if ( dot < -1.0f || 1.0f < dot )
 		{
 			// The acos() is returns NaN if received value of outside range of [-1 ~ +1].
 			dot = std::max( -1.0f, std::min( 1.0f, dot ) );
 		}
 
-		float theta	= acosf( dot );
+		float theta = acosf( dot );
 
-		float sin	= sinf( theta );
+		float sin = sinf( theta );
 		if ( fabsf( sin ) < FLT_EPSILON )
 		{
 			// In this case, "begin" and "end" is parallel, so calculation is unnecessary.
@@ -347,11 +353,11 @@ namespace Donya
 
 		// TODO:I should be conside case when "theta" is negative.
 
-		float percentBegin		= sinf( theta * ( 1.0f - time ) );
-		float percentEnd		= sinf( theta * time );
+		float percentBegin = sinf( theta * ( 1.0f - time ) );
+		float percentEnd = sinf( theta * time );
 
-		Quaternion multedBegin	= ( nBegin	* percentBegin	) / sin;
-		Quaternion multedEnd	= ( nEnd	* percentEnd	) / sin;
+		Quaternion multedBegin = ( nBegin * percentBegin ) / sin;
+		Quaternion multedEnd = ( nEnd * percentEnd ) / sin;
 
 		return ( multedBegin + multedEnd );
 	}
@@ -360,7 +366,7 @@ namespace Donya
 	{
 		return Q.GetEulerAngles();
 	}
-	
+
 	bool operator == ( const Quaternion &L, const Quaternion &R )
 	{
 		if ( !ZeroEqual( L.x - R.x ) ) { return false; }
