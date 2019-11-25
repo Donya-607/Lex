@@ -235,17 +235,17 @@ namespace Donya
 		// List of all the animation stack. 
 		FBX::FbxArray<FBX::FbxString *> animationStackNames;
 		pMesh->GetScene()->FillAnimStackNameArray( animationStackNames );
-		const int animationCount = animationStackNames.Size();
+		const int animationStackCount = animationStackNames.Size();
 
-		auto ReleaseAnimationStackNames = [&animationStackNames, &animationCount]()->void
+		auto ReleaseAnimationStackNames = [&animationStackNames, &animationStackCount]()->void
 		{
-			for ( int i = 0; i < animationCount; i++ )
+			for ( int i = 0; i < animationStackCount; i++ )
 			{
 				delete animationStackNames[i];
 			}
 		};
 
-		if ( animationCount <= 0 )
+		if ( animationStackCount <= 0 )
 		{
 			// FBX::DeleteArray
 			ReleaseAnimationStackNames();
@@ -266,8 +266,7 @@ namespace Donya
 		samplingStep.SetTime( 0, 0, 1, 0, 0, timeMode );
 		samplingStep = scast<FBX::FbxLongLong>( scast<double>( samplingStep.Get() ) * pMotion->samplingRate );
 
-		pMotion->motion.resize( animationCount );
-		for ( int i = 0; i < animationCount; ++i )
+		for ( int i = 0; i < animationStackCount; ++i )
 		{
 			FBX::FbxString		*pAnimStackName			= animationStackNames.GetAt( i );
 			FBX::FbxAnimStack	*pCurrentAnimationStack	= pMesh->GetScene()->FindMember<FBX::FbxAnimStack>( pAnimStackName->Buffer() );
@@ -283,7 +282,10 @@ namespace Donya
 			const FBX::FbxTime endTime		= pTakeInfo->mLocalTimeSpan.GetStop();
 			for ( FBX::FbxTime currentTime	= beginTime; currentTime < endTime; currentTime += samplingStep )
 			{
-				FetchBoneMatrices( currentTime, pMesh, &pMotion->motion[i] );
+				Loader::Skeletal currentPosture{};
+				FetchBoneMatrices( currentTime, pMesh, &currentPosture );
+
+				pMotion->motion.emplace_back( currentPosture );
 			}
 		}
 		

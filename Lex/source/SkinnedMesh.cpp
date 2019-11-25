@@ -34,6 +34,7 @@ namespace Donya
 		auto AssignBoneInfluences = []( Donya::SkinnedMesh::Vertex *pVertex, const Donya::Loader::BoneInfluencesPerControlPoint &influences )
 		{
 			/*
+			0,	Clear the current bone indices and weights.
 			1,	Store all influences data to temporary storage.
 			2,	Sort with weight the storage by descending order.
 			3,	Assign the higher data of storage to vertex as many as MAX_BONE_INFLUENCES(bone array size).
@@ -41,6 +42,11 @@ namespace Donya
 			*/
 
 			const size_t influenceCount = influences.cluster.size();
+
+			// No.0
+			pVertex->boneIndices.fill( 0 );
+			pVertex->boneWeights.fill( 0 );
+			pVertex->boneWeights[0] = 1.0f;
 
 			// No.1
 			std::vector<Donya::Loader::BoneInfluence> storage{ influenceCount };
@@ -88,20 +94,11 @@ namespace Donya
 					}
 				}
 			}
-
 			for ( ; loopIndex < influenceCount; ++loopIndex )
 			{
-				pVertex->boneIndices[highestBoneIndex] = storage[loopIndex].index;
+				// pVertex->boneIndices[highestBoneIndex] = storage[loopIndex].index;
 				pVertex->boneWeights[highestBoneIndex] = storage[loopIndex].weight;
 			}
-
-			/*
-			for ( size_t i = 0; i < influenceCount; ++i )
-			{
-				pVertex->boneIndices[i] = influences.cluster[i].index;
-				pVertex->boneWeights[i] = influences.cluster[i].weight;
-			}
-			*/
 		};
 		auto AssignVertices = [&AssignBoneInfluences]( std::vector<Vertex> *pVertices, const Donya::Loader::Mesh &loadedMesh )
 		{

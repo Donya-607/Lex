@@ -20,7 +20,8 @@ float4 main( VS_OUT pin ) : SV_TARGET
 	float4	sampleColor		= diffuseMap.Sample( diffuseMapSampler, pin.texCoord );
 		
 	float3	shadedColor		= sampleColor.rgb * diffuseColor.rgb;
-			shadedColor		= saturate( shadedColor + mtlAmbient.rgb + specularColor.rgb );
+			// shadedColor		= saturate( shadedColor + mtlAmbient.rgb + specularColor.rgb );
+			shadedColor		= saturate( shadedColor + mtlAmbient.rgb );
 
 	float3	lightCol		= cbLightColor.rgb * cbLightColor.w;
 	float3	lightedColor	= shadedColor * lightCol;

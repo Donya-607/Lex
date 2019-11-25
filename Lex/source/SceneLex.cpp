@@ -79,6 +79,10 @@ public:
 	float							cameraVirtualDistance;	// The distance to virtual screen that align to Common::ScreenSize() from camera. Calc when detected a click.
 	float							cameraRotateSpeed;
 	Donya::Vector3					cameraMoveSpeed;
+	bool							reverseCameraMoveHorizontal;
+	bool							reverseCameraMoveVertical;
+	bool							reverseCameraRotateHorizontal;
+	bool							reverseCameraRotateVertical;
 
 	std::vector<MeshAndInfo>		models;
 
@@ -94,6 +98,8 @@ public:
 		iCamera(), directionalLight(), mtlColor( 1.0f, 1.0f, 1.0f, 1.0f ),
 		nowPressMouseButton(), prevMouse(), currMouse(),
 		cameraVirtualDistance( 1.0f ), cameraRotateSpeed(), cameraMoveSpeed(),
+		reverseCameraMoveHorizontal( false ), reverseCameraMoveVertical( false ),
+		reverseCameraRotateHorizontal( false ), reverseCameraRotateVertical( false ),
 		models(),
 		pLoadThread( nullptr ), pCurrentLoading( nullptr ),
 		currentLoadingFileNameUTF8(), reservedAbsFilePaths(), reservedFileNamesUTF8(),
@@ -132,6 +138,9 @@ public:
 		cameraMoveSpeed.x = MOVE_SPEED;
 		cameraMoveSpeed.y = MOVE_SPEED;
 		cameraMoveSpeed.z = FRONT_SPEED;
+
+		// My preference.
+		reverseCameraRotateHorizontal = true;
 	}
 	void Uninit()
 	{
@@ -365,6 +374,9 @@ private:
 
 				moveVelocity.x = csMouseMove.x * cameraMoveSpeed.x;
 				moveVelocity.y = csMouseMove.y * cameraMoveSpeed.y;
+
+				if ( reverseCameraMoveHorizontal ) { moveVelocity.x *= -1.0f; }
+				if ( reverseCameraMoveVertical   ) { moveVelocity.y *= -1.0f; }
 			}
 
 			moveVelocity.z = scast<float>( Donya::Mouse::WheelRot() ) * cameraMoveSpeed.z;
@@ -378,6 +390,9 @@ private:
 			yaw   = csMouseMove.x * cameraRotateSpeed;
 			pitch = csMouseMove.y * cameraRotateSpeed;
 			roll  = 0.0f; // Unused.
+
+			if ( reverseCameraRotateHorizontal ) { yaw   *= -1.0f; }
+			if ( reverseCameraRotateVertical   ) { pitch *= -1.0f; }
 		}
 
 		controller.moveVelocity		= moveVelocity;
@@ -752,10 +767,14 @@ private:
 				{
 					iCamera.ShowImGuiNode();
 
-					if ( ImGui::TreeNode( u8"ë¨Ç≥" ) )
+					if ( ImGui::TreeNode( u8"ê›íË" ) )
 					{
 						ImGui::DragFloat3( u8"à⁄ìÆë¨ìx", &cameraMoveSpeed.x, 0.2f );
 						ImGui::DragFloat ( u8"âÒì]ë¨ìx", &cameraRotateSpeed, ToRadian( 1.0f ) );
+						ImGui::Checkbox( u8"îΩì]ÅEâ°à⁄ìÆ", &reverseCameraMoveHorizontal   );
+						ImGui::Checkbox( u8"îΩì]ÅEècà⁄ìÆ", &reverseCameraMoveVertical     );
+						ImGui::Checkbox( u8"îΩì]ÅEâ°âÒì]", &reverseCameraRotateHorizontal );
+						ImGui::Checkbox( u8"îΩì]ÅEècâÒì]", &reverseCameraRotateVertical   );
 
 						ImGui::TreePop();
 					}
