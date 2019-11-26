@@ -67,13 +67,7 @@ namespace Donya
 			size_t  loopIndex = 0;
 			for ( ; loopIndex < MAX_BONE_INFLUENCES; ++loopIndex )
 			{
-				if ( influenceCount <= loopIndex )
-				{
-					// Prevent error.
-					pVertex->boneIndices[loopIndex] = 0;
-					pVertex->boneWeights[loopIndex] = 0.0f;
-					continue;
-				}
+				if ( influenceCount <= loopIndex ) { continue; }
 				// else
 
 				pVertex->boneIndices[loopIndex] = storage[loopIndex].index;

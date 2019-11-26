@@ -242,7 +242,8 @@ public:
 			};
 			static Donya::Geometric::Cube cube = InitializedCube();
 
-			cube.Render( nullptr, true, true, WVP, W, directionalLight.direction, mtlColor );
+			constexpr Donya::Vector4 COLOR{ 0.8f, 1.0f, 0.9f, 0.6f };
+			cube.Render( nullptr, true, true, WVP, W, directionalLight.direction, COLOR );
 		}
 
 	#endif // DEBUG_MODE
