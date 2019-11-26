@@ -13,6 +13,17 @@ namespace Donya
 	class Quaternion
 	{
 	public:
+		/// <summary>
+		/// Use at LookAt(). The specified direction moves so as not to change.
+		/// </summary>
+		enum class Freeze
+		{
+			None,
+			Up,
+			Right,
+			Front
+		};
+	public:
 		float x{};
 		float y{};
 		float z{};
@@ -213,7 +224,7 @@ namespace Donya
 		/// [TRUE:returnsRotatedQuaternion] Create a quaternion that looking at "lookDirection".<para></para>
 		/// [FALSE:returnsRotatedQuaternion] Create a quaternion that rotate from "orientation" to "lookDirection".
 		/// </summary>
-		Quaternion LookAt( const Donya::Vector3 &lookDirection, bool returnsRotatedQuaternion = true ) const;
+		Quaternion LookAt( const Donya::Vector3 &lookDirection, Freeze freezeDirection = Freeze::None, bool returnsRotatedQuaternion = true ) const;
 
 		/// <summary>
 		/// The fourth-elements are same to identity.
@@ -304,7 +315,7 @@ namespace Donya
 		/// [TRUE:returnsRotatedQuaternion] Create a quaternion that looking at "lookDirection".<para></para>
 		/// [FALSE:returnsRotatedQuaternion] Create a quaternion that rotate from "orientation" to "lookDirection".
 		/// </summary>
-		static Quaternion LookAt( const Quaternion &orientation, const Donya::Vector3 &lookDirection, bool returnsRotatedQuaternion = true );
+		static Quaternion LookAt( const Quaternion &orientation, const Donya::Vector3 &lookDirection, Freeze freezeDirection = Freeze::None, bool returnsRotatedQuaternion = true );
 		/// <summary>
 		/// Create a quaternion that looking at "lookDirection".
 		/// </summary>

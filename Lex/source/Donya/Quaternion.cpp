@@ -54,6 +54,28 @@ Quaternion MakeLookAtRotation( const Donya::Vector3 &nFront, const Donya::Vector
 		: Donya::Quaternion::Make( rotAxis, rotAngle );
 }
 
+Quaternion FreezeRotation( const Donya::Quaternion &rotation, Quaternion::Freeze freeze )
+{
+	Donya::Quaternion rot = rotation;
+	switch ( freeze )
+	{
+	case Donya::Quaternion::Freeze::Up:
+		rot.x = 0.0f;
+		rot.z = 0.0f;
+		break;
+	case Donya::Quaternion::Freeze::Right:
+		rot.y = 0.0f;
+		rot.z = 0.0f;
+		break;
+	case Donya::Quaternion::Freeze::Front:
+		rot.x = 0.0f;
+		rot.y = 0.0f;
+		break;
+	default: break;
+	}
+	return rot;
+}
+
 namespace Donya
 {
 #pragma region Arithmetic
@@ -175,7 +197,7 @@ namespace Donya
 		return *this;
 	}
 
-	Quaternion Quaternion::LookAt( const Donya::Vector3 &lookDirection, bool retRotatedQuat ) const
+	Quaternion Quaternion::LookAt( const Donya::Vector3 &lookDirection, Freeze freeze, bool retRotatedQuat ) const
 	{
 		if ( lookDirection.IsZero() ) { return Identity(); }
 		// else
@@ -197,6 +219,9 @@ namespace Donya
 			LocalFront(),
 			lookDirection.Normalized()
 		);
+
+		rotation = FreezeRotation( rotation, freeze );
+
 		return ( retRotatedQuat ) ? Rotated( rotation ) : rotation;
 	#endif // FROM_ROTATION_MATRIX
 	}
@@ -312,9 +337,9 @@ namespace Donya
 		return rv;
 	}
 
-	Quaternion Quaternion::LookAt( const Quaternion &orientation, const Donya::Vector3 &lookDirection, bool retRotatedQuat )
+	Quaternion Quaternion::LookAt( const Quaternion &orientation, const Donya::Vector3 &lookDirection, Freeze freeze, bool retRotatedQuat )
 	{
-		return orientation.LookAt( lookDirection, retRotatedQuat );
+		return orientation.LookAt( lookDirection, freeze, retRotatedQuat );
 	}
 	Quaternion Quaternion::LookAt( const Donya::Vector3 &front, const Donya::Vector3 &lookDirection )
 	{
