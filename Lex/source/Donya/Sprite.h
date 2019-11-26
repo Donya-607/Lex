@@ -12,6 +12,9 @@
 
 namespace Donya
 {
+	/// <summary>
+	/// The sprite's draw methods do Donya::Color::FilteringAlpha() internally.
+	/// </summary>
 	namespace Sprite
 	{
 		/// <summary>

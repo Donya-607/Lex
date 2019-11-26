@@ -1,5 +1,5 @@
-#ifndef INCLUDED_BLEND_H_
-#define INCLUDED_BLEND_H_
+#ifndef INCLUDED_DONYA_BLEND_H_
+#define INCLUDED_DONYA_BLEND_H_
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
@@ -9,6 +9,9 @@ namespace Donya
 {
 	namespace Blend
 	{
+		/// <summary>
+		/// If you use "AlphaToCoverage" mode(not have "NO_ATC" postfix), you should use Donya::Color::FilteringAlpha() at specify alpha.
+		/// </summary>
 		enum class Mode : int
 		{
 			/*
@@ -81,4 +84,4 @@ namespace Donya
 	}
 }
 
-#endif // INCLUDED_BLEND_H_
+#endif // INCLUDED_DONYA_BLEND_H_

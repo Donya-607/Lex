@@ -137,6 +137,9 @@ namespace Donya
 		/// </summary>
 		bool LoadObjFile( const std::wstring &objFilePath );
 
+		/// <summary>
+		/// In using a default shading, this render method do Donya::Color::FilteringAlpha() internally.
+		/// </summary>
 		void Render
 		(
 			ID3D11DeviceContext			*pImmediateContext = nullptr,

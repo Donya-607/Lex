@@ -180,6 +180,9 @@
     <ClInclude Include="External\ImGui\imstb_truetype.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Donya\Color.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -297,6 +300,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Motion.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Donya\Color.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

@@ -166,6 +166,7 @@
     <ClInclude Include="Source\Donya\Blend.h" />
     <ClInclude Include="Source\Donya\CBuffer.h" />
     <ClInclude Include="Source\Donya\Collision.h" />
+    <ClInclude Include="Source\Donya\Color.h" />
     <ClInclude Include="Source\Donya\Constant.h" />
     <ClInclude Include="Source\Donya\Counter.h" />
     <ClInclude Include="Source\Donya\Direct3DUtil.h" />
@@ -217,6 +218,7 @@
     <ClCompile Include="Source\Donya\AudioSystem.cpp" />
     <ClCompile Include="Source\Donya\Blend.cpp" />
     <ClCompile Include="Source\Donya\Collision.cpp" />
+    <ClCompile Include="Source\Donya\Color.cpp" />
     <ClCompile Include="Source\Donya\Donya.cpp" />
     <ClCompile Include="Source\Donya\GamepadXInput.cpp" />
     <ClCompile Include="Source\Donya\GeometricPrimitive.cpp" />

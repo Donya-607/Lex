@@ -2,6 +2,7 @@
 
 #include <array>
 
+#include "Color.h"
 #include "Constant.h"
 #include "Direct3DUtil.h"
 #include "Donya.h"
@@ -386,6 +387,7 @@ namespace Donya
 				cb.lightDirection		= defLightDir;
 				cb.lightColor			= { 1.0f, 1.0f, 1.0f, 1.0f };
 				cb.materialColor		= defMtlColor;
+				cb.materialColor.w		= Donya::Color::FilteringAlpha( cb.materialColor.w );
 				
 				pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 				pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
@@ -673,6 +675,7 @@ namespace Donya
 				cb.lightDirection		= defLightDir;
 				cb.lightColor			= { 1.0f, 1.0f, 1.0f, 1.0f };
 				cb.materialColor		= defMtlColor;
+				cb.materialColor.w		= Donya::Color::FilteringAlpha( cb.materialColor.w );
 				
 				pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 				pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
@@ -1008,6 +1011,7 @@ namespace Donya
 				cb.lightDirection		= defLightDir;
 				cb.lightColor			= { 1.0f, 1.0f, 1.0f, 1.0f };
 				cb.materialColor		= defMtlColor;
+				cb.materialColor.w		= Donya::Color::FilteringAlpha( cb.materialColor.w );
 				
 				pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 				pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );

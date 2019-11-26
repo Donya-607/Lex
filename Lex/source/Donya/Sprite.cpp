@@ -335,10 +335,10 @@ namespace Donya
 
 			std::array<Single::Vertex, 4> NDCVertices =
 			{
-				/* LT */ Single::Vertex{ XMFLOAT3{ 0, 0, 0 }, XMFLOAT4{ R, G, B, A }, DirectX::XMFLOAT2{ 0, 0 } },
-				/* RT */ Single::Vertex{ XMFLOAT3{ 0, 0, 0 }, XMFLOAT4{ R, G, B, A }, DirectX::XMFLOAT2{ 0, 0 } },
-				/* LB */ Single::Vertex{ XMFLOAT3{ 0, 0, 0 }, XMFLOAT4{ R, G, B, A }, DirectX::XMFLOAT2{ 0, 0 } },
-				/* RB */ Single::Vertex{ XMFLOAT3{ 0, 0, 0 }, XMFLOAT4{ R, G, B, A }, DirectX::XMFLOAT2{ 0, 0 } },
+				/* LT */ Single::Vertex{ XMFLOAT3{ 0, 0, 0 }, XMFLOAT4{ R, G, B, Donya::Color::FilteringAlpha( A ) }, DirectX::XMFLOAT2{ 0, 0 } },
+				/* RT */ Single::Vertex{ XMFLOAT3{ 0, 0, 0 }, XMFLOAT4{ R, G, B, Donya::Color::FilteringAlpha( A ) }, DirectX::XMFLOAT2{ 0, 0 } },
+				/* LB */ Single::Vertex{ XMFLOAT3{ 0, 0, 0 }, XMFLOAT4{ R, G, B, Donya::Color::FilteringAlpha( A ) }, DirectX::XMFLOAT2{ 0, 0 } },
+				/* RB */ Single::Vertex{ XMFLOAT3{ 0, 0, 0 }, XMFLOAT4{ R, G, B, Donya::Color::FilteringAlpha( A ) }, DirectX::XMFLOAT2{ 0, 0 } },
 			};
 
 			ConvertNDCVertices
@@ -1014,7 +1014,7 @@ namespace Donya
 			instances[reserveCount].color.x = R;
 			instances[reserveCount].color.y = G;
 			instances[reserveCount].color.z = B;
-			instances[reserveCount].color.w = alpha;
+			instances[reserveCount].color.w = Donya::Color::FilteringAlpha( alpha );
 
 			MakeMatrixNDCTransform
 			(
@@ -1025,7 +1025,7 @@ namespace Donya
 				GetDrawDepth()
 			);
 
-			const float TEX_WIDTH = GetTextureWidthF();
+			const float TEX_WIDTH  = GetTextureWidthF();
 			const float TEX_HEIGHT = GetTextureHeightF();
 			instances[reserveCount].texCoordTransform.x = texX / TEX_WIDTH;
 			instances[reserveCount].texCoordTransform.y = texY / TEX_HEIGHT;
@@ -1335,7 +1335,7 @@ namespace Donya
 			instances[reserveCount].color.x = R;
 			instances[reserveCount].color.y = G;
 			instances[reserveCount].color.z = B;
-			instances[reserveCount].color.w = alpha;
+			instances[reserveCount].color.w = Donya::Color::FilteringAlpha( alpha );
 
 			MakeMatrixNDCTransform
 			(
@@ -1759,7 +1759,7 @@ namespace Donya
 			instances[reserveCount].color.x = R;
 			instances[reserveCount].color.y = G;
 			instances[reserveCount].color.z = B;
-			instances[reserveCount].color.w = alpha;
+			instances[reserveCount].color.w = Donya::Color::FilteringAlpha( alpha );
 
 			MakeMatrixNDCTransform
 			(

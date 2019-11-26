@@ -7,6 +7,7 @@
 #include <string>
 #include <windows.h>
 
+#include "Color.h"
 #include "Constant.h"
 #include "Direct3DUtil.h"
 #include "Donya.h"
@@ -664,6 +665,7 @@ namespace Donya
 				cb.lightDirection		= defLightDir;
 				cb.lightColor			= XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f };
 				cb.materialColor		= defMtlColor;
+				cb.materialColor.w		= Donya::Color::FilteringAlpha( cb.materialColor.w );
 
 				pImmediateContext->UpdateSubresource( iDefaultCBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 				pImmediateContext->VSSetConstantBuffers( 0, 1, iDefaultCBuffer.GetAddressOf() );

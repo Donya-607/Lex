@@ -1,5 +1,5 @@
-#ifndef INCLUDED_GEOMETRIC_PRIMITIVE_H_
-#define INCLUDED_GEOMETRIC_PRIMITIVE_H_
+#ifndef INCLUDED_DONYA_GEOMETRIC_PRIMITIVE_H_
+#define INCLUDED_DONYA_GEOMETRIC_PRIMITIVE_H_
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -79,7 +79,8 @@ namespace Donya
 
 			/// <summary>
 			/// If the "pImmediateContext" is null, use default(library's) context.<para></para>
-			/// If "useDefaultShading" is true, I settings : ConstantBuffer, InputLayout, VertexShader, PixelShader.
+			/// If "useDefaultShading" is true, I settings : ConstantBuffer, InputLayout, VertexShader, PixelShader.<para></para>
+			/// In using a default shading, this render method do Donya::Color::FilteringAlpha() internally.
 			/// </summary>
 			virtual void Render
 			(
@@ -110,7 +111,8 @@ namespace Donya
 
 			/// <summary>
 			/// If the "pImmediateContext" is null, use default(library's) context.<para></para>
-			/// If "useDefaultShading" is true, I settings : ConstantBuffer, InputLayout, VertexShader, PixelShader.
+			/// If "useDefaultShading" is true, I settings : ConstantBuffer, InputLayout, VertexShader, PixelShader.<para></para>
+			/// In using a default shading, this render method do Donya::Color::FilteringAlpha() internally.
 			/// </summary>
 			virtual void Render
 			(
@@ -151,7 +153,8 @@ namespace Donya
 
 			/// <summary>
 			/// If the "pImmediateContext" is null, use default(library's) context.<para></para>
-			/// If "useDefaultShading" is true, I settings : ConstantBuffer, InputLayout, VertexShader, PixelShader.
+			/// If "useDefaultShading" is true, I settings : ConstantBuffer, InputLayout, VertexShader, PixelShader.<para></para>
+			/// In using a default shading, this render method do Donya::Color::FilteringAlpha() internally.
 			/// </summary>
 			virtual void Render
 			(
@@ -167,4 +170,4 @@ namespace Donya
 	}
 }
 
-#endif // !INCLUDED_GEOMETRIC_PRIMITIVE_H_
+#endif // !INCLUDED_DONYA_GEOMETRIC_PRIMITIVE_H_
