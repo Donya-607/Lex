@@ -119,7 +119,7 @@ protected:
 	virtual void LookAtDestFocus()
 	{
 		const Donya::Vector3 nLookDir = ( dest.focus - dest.pos ).Normalized();
-		dest.orientation = Donya::Quaternion::LookAt( dest.orientation, nLookDir );
+		dest.orientation = Donya::Quaternion::LookAt( dest.orientation, nLookDir, Donya::Quaternion::Freeze::Front );
 	}
 	virtual void AssignMemberToDestination()
 	{
