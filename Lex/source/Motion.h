@@ -5,6 +5,8 @@
 
 #include "Donya/Vector.h"
 
+// Program version : 0
+
 namespace Donya
 {
 	class Loader;
