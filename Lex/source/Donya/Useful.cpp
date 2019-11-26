@@ -6,6 +6,7 @@
 #include <float.h>
 #include <fstream>
 #include <locale>
+#include <mutex>
 #include <Shlwapi.h>	// Use PathRemoveFileSpecA(), PathAddBackslashA(), In AcquireDirectoryFromFullPath().
 #include <vector>
 #include <Windows.h>
@@ -257,17 +258,25 @@ namespace Donya
 
 #pragma endregion
 
-	std::string ToFullPath( std::string filePath )
+	static std::mutex mutexFullPathName{};
+
+	std::string  ToFullPath( std::string filePath )
 	{
+		// GetFullPathName() is thread unsafe.
+		// Because a current directory always have possibility will be changed by another thread.
+		// See https://stackoverflow.com/questions/54814130/is-there-a-thread-safe-version-of-getfullpathname
+
+		std::lock_guard<std::mutex> enterCS( mutexFullPathName );
+
 		auto bufferSize = GetFullPathNameA( filePath.c_str(), NULL, NULL, nullptr );
 		std::unique_ptr<char[]> buffer = std::make_unique<char[]>( bufferSize );
 
-		/*auto result = */GetFullPathNameA( filePath.c_str(), bufferSize, buffer.get(), nullptr );
+		/* auto result = */GetFullPathNameA( filePath.c_str(), bufferSize, buffer.get(), nullptr );
 
 		return std::string{ buffer.get() };
 	}
 
-	std::string ExtractFileDirectoryFromFullPath( std::string fullPath )
+	std::string  ExtractFileDirectoryFromFullPath( std::string fullPath )
 	{
 		size_t pathLength = fullPath.size();
 		if ( !pathLength ) { return ""; }
@@ -296,7 +305,7 @@ namespace Donya
 		);
 	}
 
-	std::string ExtractFileNameFromFullPath( std::string fullPath )
+	std::string  ExtractFileNameFromFullPath( std::string fullPath )
 	{
 		const std::string fileDirectory = ExtractFileDirectoryFromFullPath( fullPath );
 		if ( fileDirectory.empty() ) { return ""; }

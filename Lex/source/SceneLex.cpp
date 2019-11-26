@@ -1,5 +1,6 @@
 #include "SceneLex.h"
 
+#include <mutex>
 #include <queue>
 #include <thread>
 #include <vector>
