@@ -91,6 +91,17 @@ namespace Donya
 		/// </summary>
 		void SetSamplingRate( float rate );
 	public:
+		/// <summary>
+		/// Returns current motion frame calculated by registered sampling rate.
+		/// </summary>
+		int CalcCurrentFrame() const;
+		/// <summary>
+		/// Returns current motion frame calculated by registered sampling rate.<para></para>
+		/// [TRUE:useWrapAround] Returns frame will be wrap-arounded in motion count(ex.if motion count is 3, returns frame number is only 0, 1 or 2).<para></para>
+		/// [FALSE:useWrapAround] Returns frame is zero if over than motion count.
+		/// </summary>
+		int CalcCurrentFrame( const Motion &motion, bool useWrapAround = true ) const;
+
 		Skeletal FetchCurrentMotion( const Motion &motion, bool useWrapAround = true ) const;
 	};
 }

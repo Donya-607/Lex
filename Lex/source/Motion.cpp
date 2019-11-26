@@ -5,6 +5,9 @@
 
 #include "Loader.h"
 
+#undef max
+#undef min
+
 namespace Donya
 {
 	bool MotionChunk::Create( const Donya::Loader &loader, MotionChunk *pOutput )
@@ -110,25 +113,44 @@ namespace Donya
 		samplingRate = rate;
 	}
 
-	Skeletal Animator::FetchCurrentMotion( const Motion &motion, bool useWrapAround ) const
-	{
-		if ( motion.motion.empty() )
-		{
-			// Returns identities.
-			return Skeletal{};
-		}
-		// else
+	// TODO:Change these "motion frame" type to float, then interpolate a fetched skeletal.
 
-		const size_t MOTION_COUNT = motion.motion.size();
+	int CalcFrameImpl( float elapsedTime, float rate )
+	{
+		return ( ZeroEqual( rate ) ) ? 0 : scast<int>( elapsedTime / rate );
+	}
+	int Animator::CalcCurrentFrame() const
+	{
+		return CalcFrameImpl( elapsedTime, samplingRate );
+	}
+	int Animator::CalcCurrentFrame( const Motion &motion, bool useWrapAround ) const
+	{
 		const float rate = ( ZeroEqual( samplingRate ) ) ? motion.samplingRate : samplingRate;
 
-		size_t currentFrame = ( ZeroEqual( rate ) ) ? 0U : scast<size_t>( elapsedTime / rate );
+		int currentFrame = CalcFrameImpl( elapsedTime, rate );
+
+		const int MOTION_COUNT = scast<int>( motion.motion.size() );
 		if ( MOTION_COUNT <= currentFrame )
 		{
 			currentFrame = ( useWrapAround )
 			? currentFrame % MOTION_COUNT
-			: 0U;
+			: 0;
 		}
+		
+		return currentFrame;
+	}
+
+	Skeletal Animator::FetchCurrentMotion( const Motion &motion, bool useWrapAround ) const
+	{
+		if ( motion.motion.empty() )
+		{
+			// Return identities.
+			return Skeletal{};
+		}
+		// else
+
+		int currentFrame = CalcCurrentFrame( motion, useWrapAround );
+		    currentFrame = std::max( 0, currentFrame ); // Fail safe
 
 		return motion.motion[currentFrame];
 	}
