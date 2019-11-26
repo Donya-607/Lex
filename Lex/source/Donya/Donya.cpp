@@ -838,57 +838,6 @@ namespace Donya
 			return DefWindowProc( hArgWnd, msg, wParam, lParam );
 		}
 
-		// Old procedure(the main library's procedure).
-
-		//switch ( msg )
-		//{
-		//case WM_PAINT:
-		//{
-		//	PAINTSTRUCT ps;
-		//	HDC hdc;
-		//	hdc = BeginPaint( hwnd, &ps );
-		//	EndPaint( hwnd, &ps );
-		//	break;
-		//}
-		//case WM_DESTROY:
-		//	PostQuitMessage( 0 );
-		//	break;
-		//case WM_CREATE:
-		//	break;
-		//case WM_MOUSEMOVE:
-		//	Donya::Mouse::UpdateMouseCoordinate( lParam );
-		//	break;
-		//case WM_MOUSEWHEEL:
-		//	Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ true, wParam, lParam );
-		//	break;
-		//case WM_MOUSEHWHEEL:
-		//	Donya::Mouse::CalledMouseWheelMessage( /* isVertical = */ false, wParam, lParam );
-		//	break;
-		//case WM_KEYDOWN:
-		//{
-		//	if ( wParam == VK_ESCAPE )
-		//	{
-		//		PostMessage( hwnd, WM_CLOSE, 0, 0 );
-		//	}
-		//	break;
-		//}
-		//case WM_ENTERSIZEMOVE:
-		//{
-		//	// WM_EXITSIZEMOVE is sent when the user grabs the resize bars.
-		//	smg->highResoTimer.Stop();
-		//	break;
-		//}
-		//case WM_EXITSIZEMOVE:
-		//{
-		//	// WM_EXITSIZEMOVE is sent when the user releases the resize bars.
-		//	// Here we reset everything based on the new window dimensions.
-		//	smg->highResoTimer.Start();
-		//	break;
-		//}
-		//default:
-		//	return DefWindowProc( hwnd, msg, wParam, lParam );
-		//}
-
 		return 0;
 	}
 
