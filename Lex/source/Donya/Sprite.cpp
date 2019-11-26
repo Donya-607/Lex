@@ -1349,7 +1349,7 @@ namespace Donya
 			reserveCount++;
 			return true;
 		}
-		bool Rect::Reserve( float scrX, float scrY, float scrW, float scrH, Color color, float alpha, float degree, DirectX::XMFLOAT2 center )
+		bool Rect::Reserve( float scrX, float scrY, float scrW, float scrH, Donya::Color::Code color, float alpha, float degree, DirectX::XMFLOAT2 center )
 		{
 			XMFLOAT3 RGB = MakeColor( color );
 			return Reserve
@@ -1368,7 +1368,7 @@ namespace Donya
 				degree, MakeCenter( center, scrW, scrH )
 			);
 		}
-		bool Rect::Reserve( float scrX, float scrY, float scrW, float scrH, Color color, float alpha, float degree, Origin center )
+		bool Rect::Reserve( float scrX, float scrY, float scrW, float scrH, Donya::Color::Code color, float alpha, float degree, Origin center )
 		{
 			XMFLOAT3 RGB = MakeColor( color );
 			return Reserve
@@ -1387,7 +1387,7 @@ namespace Donya
 				degree, X_MIDDLE | Y_MIDDLE
 			);
 		}
-		bool Rect::Reserve( float scrX, float scrY, float scrW, float scrH, Color color, float alpha, float degree )
+		bool Rect::Reserve( float scrX, float scrY, float scrW, float scrH, Donya::Color::Code color, float alpha, float degree )
 		{
 			XMFLOAT3 RGB = MakeColor( color );
 			return Reserve
@@ -1730,7 +1730,7 @@ namespace Donya
 				MakeCenter( center, diameter )
 			);
 		}
-		bool Circle::Reserve( float scrX, float scrY, float diameter, Color color, float alpha, Origin center )
+		bool Circle::Reserve( float scrX, float scrY, float diameter, Donya::Color::Code color, float alpha, Origin center )
 		{
 			XMFLOAT3 RGB = MakeColor( color );
 			return Reserve
@@ -2515,11 +2515,11 @@ namespace Donya
 				degree, center
 			);
 		}
-		bool DrawRect( float scrX, float scrY, float scrW, float scrH, Color color, float alpha, float degree, DirectX::XMFLOAT2 center )
+		bool DrawRect( float scrX, float scrY, float scrW, float scrH, Donya::Color::Code color, float alpha, float degree, DirectX::XMFLOAT2 center )
 		{
 			if ( AssertIfNotInitialized() ) { return false; }
 			// else
-			XMFLOAT3 RGB = Sprite::MakeColor( color );
+			XMFLOAT3 RGB = Donya::Color::MakeColor( color );
 			return DrawRect
 			(
 				scrX, scrY, scrW, scrH,
@@ -2538,11 +2538,11 @@ namespace Donya
 				degree, pAgent->pRect->MakeCenter( center, scrW, scrH )
 			);
 		}
-		bool DrawRect( float scrX, float scrY, float scrW, float scrH, Color color, float alpha, float degree, Origin center )
+		bool DrawRect( float scrX, float scrY, float scrW, float scrH, Donya::Color::Code color, float alpha, float degree, Origin center )
 		{
 			if ( AssertIfNotInitialized() ) { return false; }
 			// else
-			XMFLOAT3 RGB = Sprite::MakeColor( color );
+			XMFLOAT3 RGB = Donya::Color::MakeColor( color );
 			return DrawRect
 			(
 				scrX, scrY, scrW, scrH,
@@ -2561,11 +2561,11 @@ namespace Donya
 				degree, X_MIDDLE | Y_MIDDLE
 			);
 		}
-		bool DrawRect( float scrX, float scrY, float scrW, float scrH, Color color, float alpha, float degree )
+		bool DrawRect( float scrX, float scrY, float scrW, float scrH, Donya::Color::Code color, float alpha, float degree )
 		{
 			if ( AssertIfNotInitialized() ) { return false; }
 			// else
-			XMFLOAT3 RGB = Sprite::MakeColor( color );
+			XMFLOAT3 RGB = Donya::Color::MakeColor( color );
 			return DrawRect
 			(
 				scrX, scrY, scrW, scrH,
@@ -2593,11 +2593,11 @@ namespace Donya
 				center
 			);
 		}
-		bool DrawCircle( float scrX, float scrY, float diameter, Color color, float alpha, Origin center )
+		bool DrawCircle( float scrX, float scrY, float diameter, Donya::Color::Code color, float alpha, Origin center )
 		{
 			if ( AssertIfNotInitialized() ) { return false; }
 			// else
-			XMFLOAT3 RGB = Sprite::MakeColor( color );
+			XMFLOAT3 RGB = Donya::Color::MakeColor( color );
 			return DrawCircle
 			(
 				scrX, scrY, diameter,

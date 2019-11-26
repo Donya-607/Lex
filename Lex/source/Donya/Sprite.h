@@ -7,6 +7,7 @@
 #include <vector>
 #include <wrl.h>
 
+#include "Color.h"
 #include "Vector.h" // Use Donya::Int2
 
 namespace Donya
@@ -37,45 +38,6 @@ namespace Donya
 		static Origin operator & ( const Origin &lhs, const Origin &rhs )
 		{
 			return static_cast<Origin>( static_cast<int>( lhs ) & static_cast<int>( rhs ) );
-		}
-
-		enum class Color : int
-		{
-			AQUA		= 0x00FFFF,	// #00FFFF
-			BLACK		= 0x000000,	// #000000
-			BLUE		= 0x0000FF,	// #0000FF
-			CYAN		= AQUA,		// #00FFFF
-			DARK_GRAY	= 0x575757,	// #575757
-			FUCHSIA		= 0xCC1669,	// #CC1669
-			GRAY		= 0x808080,	// #808080
-			GREEN		= 0x008000,	// #008000
-			LIME		= 0x00FF00,	// #00FF00
-			LIGHT_GRAY	= 0xD3D3D3,	// #D3D3D3
-			MAGENTA		= 0xFF00FF,	// #FF00FF
-			MAROON		= 0x800000,	// #800000
-			NAVY		= 0x1F2F54,	// #1F2F54
-			OLIVE		= 0x808000,	// #808000
-			ORANGE		= 0xF39800,	// #F39800
-			PURPLE		= 0xA758A8,	// #A758A8
-			RED			= 0xFF0000,	// #FF0000
-			SILVER		= 0xC0C0C0,	// #C0C0C0
-			TEAL		= 0x006956,	// #006956
-			WHITE		= 0xFFFFFF,	// #FFFFFF
-			YELLOW		= 0xFFFF00,	// #FFFF00
-		};
-
-		static constexpr DirectX::XMFLOAT3 MakeColor( const int &color )
-		{
-			return DirectX::XMFLOAT3
-			{
-				static_cast<float>( ( color >> 16 ) & 0xff ) / 255.0f,
-				static_cast<float>( ( color >> 8  ) & 0xff ) / 255.0f,
-				static_cast<float>( ( color >> 0  ) & 0xff ) / 255.0f,
-			};
-		}
-		static constexpr DirectX::XMFLOAT3 MakeColor( const Color &color )
-		{
-			return MakeColor( static_cast<int>( color ) );
 		}
 
 		/// <summary>
@@ -676,7 +638,7 @@ namespace Donya
 			(
 				float screenX, float screenY,	// Coordinate of sprite's center in screen space.
 				float screenW, float screenH,	// Whole Size of sprite in screen space.
-				Color color,					// Color of each vertices.
+				Donya::Color::Code color,		// Color of each vertices.
 				float alpha,					// Alpha of each vertices.
 				float degree,					// Rotation angle, Unit is degree.
 				DirectX::XMFLOAT2 center
@@ -700,7 +662,7 @@ namespace Donya
 			(
 				float  screenX, float screenY,	// Coordinate of sprite's center in screen space.
 				float  screenW, float screenH,	// Whole Size of sprite in screen space.
-				Color  color,					// Color of each vertices.
+				Donya::Color::Code color,		// Color of each vertices.
 				float  alpha,					// Alpha of each vertices.
 				float  degree,					// Rotation angle, Unit is degree.
 				Origin center
@@ -725,7 +687,7 @@ namespace Donya
 			(
 				float screenX, float screenY,	// Coordinate of sprite's center in screen space.
 				float screenW, float screenH,	// Whole Size of sprite in screen space.
-				Color color,					// Color of each vertices.
+				Donya::Color::Code color,		// Color of each vertices.
 				float alpha,					// Alpha of each vertices.
 				float degree = 0.0f				// Rotation angle ( Rotation center is sprite's center ), Unit is degree.
 			);
@@ -793,7 +755,7 @@ namespace Donya
 			(
 				float  screenX, float screenY,	// Coordinate of circle's center in screen space.
 				float  screenDiameter,			// Diameter is size of circle in screen space.
-				Color  color,					// Color of each vertices.
+				Donya::Color::Code color,		// Color of each vertices.
 				float  alpha,					// Alpha of each vertices.
 				Origin center = Origin::CENTER
 			);
@@ -1470,7 +1432,7 @@ namespace Donya
 		(
 			float screenCenterPosX, float screenCenterPosY,
 			float screenWholeWidth, float screenWholeHeight,
-			Color color,					// Color of each vertices.
+			Donya::Color::Code color,		// Color of each vertices.
 			float alpha,					// Alpha of each vertices.
 			float degree,					// Rotation angle, Unit is degree.
 			DirectX::XMFLOAT2 center
@@ -1488,7 +1450,7 @@ namespace Donya
 		(
 			float  screenCenterPosX, float screenCenterPosY,
 			float  screenWholeWidth, float screenWholeHeight,
-			Color  color,					// Color of each vertices.
+			Donya::Color::Code color,		// Color of each vertices.
 			float  alpha,					// Alpha of each vertices.
 			float  degree,					// Rotation angle, Unit is degree.
 			Origin center
@@ -1511,7 +1473,7 @@ namespace Donya
 		(
 			float screenCenterPosX, float screenCenterPosY,
 			float screenWholeWidth, float screenWholeHeight,
-			Color color,				// Color of each vertices.
+			Donya::Color::Code color,	// Color of each vertices.
 			float alpha,				// Alpha of each vertices.
 			float degree = 0.0f			// Rotation angle ( Rotation center is sprite's center ), Unit is degree.
 		);
@@ -1536,7 +1498,7 @@ namespace Donya
 		(
 			float screenCenterPosX, float screenCenterPosY,
 			float  screenDiameter,			// Diameter is size of circle in screen space.
-			Color  color,					// Color of each vertices.
+			Donya::Color::Code color,		// Color of each vertices.
 			float  alpha,					// Alpha of each vertices.
 			Origin center = Origin::CENTER
 		);

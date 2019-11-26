@@ -112,7 +112,7 @@ public:
 			pos.x, pos.y,
 			size.x * 2,
 			size.y * 2,
-			Donya::Sprite::Color::BLACK, 1.0f
+			Donya::Color::Code::BLACK, 1.0f
 		);
 	}
 };
@@ -186,7 +186,7 @@ public:
 			pos.x, pos.y,
 			size.x * 2,
 			size.y * 2,
-			scast<Donya::Sprite::Color>( color ), alpha
+			scast<Donya::Color::Code>( color ), alpha
 		);
 	}
 };
@@ -205,7 +205,7 @@ void Fader::Configuration::SetDefault( Type fadeType )
 	case Fader::Type::Gradually:
 		type = fadeType;
 		closeFrame	= DEFAULT_CLOSE_FRAME;
-		parameter	= scast<unsigned int>( Donya::Sprite::Color::BLACK );
+		parameter	= scast<unsigned int>( Donya::Color::Code::BLACK );
 		break;
 	default: break;
 	}

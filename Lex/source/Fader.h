@@ -37,13 +37,13 @@ public:
 	/// "closeFrame" : You specify time of completely close(per frame).<para></para>
 	/// "parameter" :<para></para>
 	/// Type::Scroll : Used to judge direction(you can specify by Fader::Direction).<para></para>
-	/// Type::Gradually : Used to fill color. This is linking to Donya::Sprite::Color.
+	/// Type::Gradually : Used to fill color. This is linking to Donya::Color::Code.
 	/// </summary>
 	struct Configuration
 	{
 		Type			type{};			// You specify type of fade.
 		int				closeFrame{};	// You specify time of completely close(per frame)
-		unsigned int	parameter{};	// [Type::Scroll : Used to judge direction(you can specify by Fader::Direction)] [Type::Gradually : Used to fill color. This is linking to Donya::Sprite::Color]
+		unsigned int	parameter{};	// [Type::Scroll : Used to judge direction(you can specify by Fader::Direction)] [Type::Gradually : Used to fill color. This is linking to Donya::Color::Code]
 	public:
 		void SetDefault( Type fadeType );
 		void SetDirection( Direction moveDirection );

@@ -2,6 +2,7 @@
 #define INCLUDED_BLEND_H_
 
 struct ID3D11Device;
+struct ID3D11DeviceContext;
 struct D3D11_BLEND_DESC;
 
 namespace Donya
@@ -56,17 +57,27 @@ namespace Donya
 
 		/// <summary>
 		/// Activate the library's blend state.<para></para>
-		/// If you set nullptr to "pDevice", use default(library's) device.
+		/// If you set nullptr to "pImmediateContext", use default(library's) device.
 		/// </summary>
-		void Activate( Blend::Mode blendMode, ID3D11Device *pDevice = nullptr );
+		void Activate( Mode blendMode, ID3D11DeviceContext *pImmediateContext = nullptr );
 
 		/// <summary>
 		/// Activate a user definition blend state.<para></para>
 		/// "identifier" is the identifier of used in CreateExternalBlendState().<para></para>
-		/// If you set nullptr to "pDevice", use default(library's) device.<para></para>
+		/// If you set nullptr to "pImmediateContext", use default(library's) device.<para></para>
 		/// Returns false when the 'identifier" was not found.
 		/// </summary>
-		bool ActivateExternal( int identifier, ID3D11Device *pDevice = nullptr );
+		bool ActivateExternal( int identifier, ID3D11DeviceContext *pImmediateContext = nullptr );
+
+		/// <summary>
+		/// Returns current blend mode. But if now settings user definition blend state, returns Mode::BLEND_MODE_COUNT.
+		/// </summary>
+		Mode CurrentMode();
+
+		/// <summary>
+		/// Returns true if when enabled "AlphaToCoverage".
+		/// </summary>
+		bool IsEnabledATC();
 	}
 }
 

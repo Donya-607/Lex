@@ -118,15 +118,18 @@ namespace Donya
 {
 	namespace Blend
 	{
-		static std::unordered_map<Blend::Mode, Microsoft::WRL::ComPtr<ID3D11BlendState>>
+		static std::unordered_map<Mode, Microsoft::WRL::ComPtr<ID3D11BlendState>>
 			blendStateMap{};
 		static std::unordered_map<int, Microsoft::WRL::ComPtr<ID3D11BlendState>>
 			externalBlendStateMap{};
 
+		constexpr Mode EXTERNAL_BLEND_MODE = Mode::BLEND_MODE_COUNT;
+		static Mode currentBlendMode = EXTERNAL_BLEND_MODE;
+
 		/// <summary>
 		/// Returns false when failed the creation.
 		/// </summary>
-		bool CreateBlendState( ID3D11Device *pDevice, Blend::Mode identifier, bool enableAlphaToCoverage )
+		bool CreateBlendState( ID3D11Device *pDevice, Mode identifier, bool enableAlphaToCoverage )
 		{
 			auto find =  blendStateMap.find( identifier );
 			if ( find != blendStateMap.end() ) { return true; }
@@ -264,60 +267,78 @@ namespace Donya
 		{
 			Donya::Sprite::Flush();
 		}
-
-		void Activate( Blend::Mode blendMode, ID3D11Device *pDevice )
+		/// <summary>
+		/// If you set nullptr to "pImmediateContext", use default(library's) device.
+		/// </summary>
+		void SetBlendState( const Microsoft::WRL::ComPtr<ID3D11BlendState> &blendState, ID3D11DeviceContext *pImmediateContext = nullptr )
 		{
-			if ( blendMode == Blend::Mode::BLEND_MODE_COUNT ) { return; }
-			// else
+			// Use default(library) device.
+			if ( !pImmediateContext )
+			{
+				pImmediateContext = Donya::GetImmediateContext();
+			}
 
-			// TODO : Prevent to set to same state.
+			PreProcess();
+
+			constexpr FLOAT BLEND_FACTORS[]	= { 0.0f, 0.0f, 0.0f, 0.0f }; // RGBA
+			constexpr UINT  SAMPLE_MASK		= 0xFFFFFFFF; // A:FF, R:FF, G:FF, B:FF. LDR:Low Dynamic Range
+			pImmediateContext->OMSetBlendState
+			(
+				blendState.Get(),
+				BLEND_FACTORS,
+				SAMPLE_MASK
+			);
+		}
+
+		void Activate( Mode blendMode, ID3D11DeviceContext *pImmediateContext )
+		{
+			if ( blendMode == Mode::BLEND_MODE_COUNT ) { return; }
+			// else
 
 			auto blendState =  blendStateMap.find( blendMode );
 			if ( blendState == blendStateMap.end() ) { return; }
 			// else
 
-			// Use default(library) device.
-			if ( !pDevice )
-			{
-				pDevice = Donya::GetDevice();
-			}
+			// Prevent to set to same state.
+			if ( currentBlendMode == blendMode ) { return; }
+			// else
+			currentBlendMode = blendMode;
 
-			PreProcess();
-
-			constexpr FLOAT BLEND_FACTORS[]	= { 0.0f, 0.0f, 0.0f, 0.0f }; // RGBA
-			constexpr UINT  SAMPLE_MASK		= 0xFFFFFFFF; // A:FF, R:FF, G:FF, B:FF. LDR:Low Dynamic Range
-			Donya::GetImmediateContext()->OMSetBlendState
-			(
-				blendState->second.Get(),
-				BLEND_FACTORS,
-				SAMPLE_MASK
-			);
+			SetBlendState( blendState->second, pImmediateContext );
 		}
 		
-		bool ActivateExternal( int identifier, ID3D11Device *pDevice )
+		bool ActivateExternal( int identifier, ID3D11DeviceContext *pImmediateContext )
 		{
-			// TODO : Prevent to set to same state.
-
 			auto blendState =  externalBlendStateMap.find( identifier );
 			if ( blendState == externalBlendStateMap.end() ) { return false; }
 			// else
 
-			// Use default(library) device.
-			if ( !pDevice )
+			// Allow set to same state.
+			currentBlendMode = EXTERNAL_BLEND_MODE;
+
+			SetBlendState( blendState->second, pImmediateContext );
+
+			return true;
+		}
+
+		Mode CurrentMode()
+		{
+			return currentBlendMode;
+		}
+
+		bool IsEnabledATC()
+		{
+			switch ( currentBlendMode )
 			{
-				pDevice = Donya::GetDevice();
+			case Mode::ALPHA_NO_ATC:	return false; // break;
+			case Mode::ADD_NO_ATC:		return false; // break;
+			case Mode::SUB_NO_ATC:		return false; // break;
+			case Mode::MUL_NO_ATC:		return false; // break;
+			case Mode::SCREEN_NO_ATC:	return false; // break;
+			case Mode::LIGHTEN_NO_ATC:	return false; // break;
+			case Mode::DARKEN_NO_ATC:	return false; // break;
+			default: break;
 			}
-
-			PreProcess();
-
-			constexpr FLOAT BLEND_FACTORS[]	= { 0.0f, 0.0f, 0.0f, 0.0f }; // RGBA
-			constexpr UINT  SAMPLE_MASK		= 0xFFFFFFFF; // A:FF, R:FF, G:FF, B:FF. LDR:Low Dynamic Range
-			Donya::GetImmediateContext()->OMSetBlendState
-			(
-				blendState->second.Get(),
-				BLEND_FACTORS,
-				SAMPLE_MASK
-			);
 
 			return true;
 		}
