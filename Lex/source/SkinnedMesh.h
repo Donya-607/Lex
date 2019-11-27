@@ -8,6 +8,8 @@
 #include <vector>
 #include <wrl.h>
 
+#include "Donya/CBuffer.h"
+
 #include "Motion.h" // For update CB's bone matrix. I should refactoring this.
 
 namespace Donya
@@ -19,9 +21,10 @@ namespace Donya
 	public:
 		/// <summary>
 		/// Create from Loader object.<para></para>
-		/// if create failed, or already loaded, returns false.
+		/// if create failed, or already loaded, returns false.<para></para>
+		/// If you set nullptr to "pDevice", use default(library's) device.
 		/// </summary>
-		static bool Create( const Loader &loader, SkinnedMesh *pOutput );
+		static bool Create( const Loader &loader, SkinnedMesh *pOutput, ID3D11Device *pDevice = nullptr );
 	public:
 		static constexpr const int MAX_BONE_COUNT		= 64;
 		static constexpr const int MAX_BONE_INFLUENCES	= 4;
@@ -34,27 +37,25 @@ namespace Donya
 			std::array<float,	MAX_BONE_INFLUENCES> boneWeights{ 1.0f, 0.0f, 0.0f, 0.0f };
 		};
 
-		struct ConstantBuffer
+		struct CBufferPerMesh
 		{
 			DirectX::XMFLOAT4X4	worldViewProjection;
 			DirectX::XMFLOAT4X4	world;
 			std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> boneTransforms;
+			/*
 			DirectX::XMFLOAT4	eyePosition;
 			DirectX::XMFLOAT4	lightColor;
 			DirectX::XMFLOAT4	lightDir;
-			DirectX::XMFLOAT4	materialColor;
+			*/
 		};
 
-		struct MaterialConstantBuffer
+		struct CBufferPerSubset
 		{
 			DirectX::XMFLOAT4	ambient;
 			DirectX::XMFLOAT4	bump;
 			DirectX::XMFLOAT4	diffuse;
 			DirectX::XMFLOAT4	emissive;
 			DirectX::XMFLOAT4	specular;
-		public:
-			MaterialConstantBuffer() : ambient(), bump(), diffuse(), emissive(), specular()
-			{}
 		};
 
 		struct Material
@@ -108,41 +109,54 @@ namespace Donya
 			Mesh( const Mesh & ) = default;
 		};
 	private:
-		bool							wasCreated;
-		std::vector<Mesh>				meshes;
+		bool										wasCreated;
+		std::vector<Mesh>							meshes;
+
+		mutable Donya::CBuffer<CBufferPerMesh>		cbPerMesh;
+		mutable Donya::CBuffer<CBufferPerSubset>	cbPerSubset;
+
 		template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
-		ComPtr<ID3D11Buffer>			iConstantBuffer;
-		ComPtr<ID3D11Buffer>			iMaterialCBuffer;
-		ComPtr<ID3D11InputLayout>		iInputLayout;
-		ComPtr<ID3D11VertexShader>		iVertexShader;
-		ComPtr<ID3D11PixelShader>		iPixelShader;
-		ComPtr<ID3D11RasterizerState>	iRasterizerStateWire;
-		ComPtr<ID3D11RasterizerState>	iRasterizerStateSurface;
-		ComPtr<ID3D11DepthStencilState>	iDepthStencilState;
+		mutable ComPtr<ID3D11RasterizerState>		iRasterizerStateWire;
+		mutable ComPtr<ID3D11RasterizerState>		iRasterizerStateSurface;
+		mutable ComPtr<ID3D11DepthStencilState>		iDepthStencilState;
 	public:
 		SkinnedMesh();
 		~SkinnedMesh();
 	public:
 		/// <summary>
+		/// If you set nullptr to "pDevice", use default(library's) device.<para></para>
 		/// If create failed, or already created, returns false.
 		/// </summary>
 		bool Init
 		(
 			const std::vector<std::vector<size_t>>				&allMeshesIndex,
 			const std::vector<std::vector<SkinnedMesh::Vertex>>	&allMeshesVertices,
-			const std::vector<SkinnedMesh::Mesh>				&loadedMeshes
+			const std::vector<SkinnedMesh::Mesh>				&loadedMeshes,
+			ID3D11Device *pDevice = nullptr
 		);
+
+		struct CBSetOption
+		{
+			unsigned int setSlot;
+			bool setVS;
+			bool setPS;
+		};
+		/// <summary>
+		/// Please set a input-layout, vertex-shader and pixel-shader before call this.<para></para>
+		/// The "materialColor" will affected by Donya::Color::FilteringAlpha() internally.
+		/// </summary>
 		void Render
 		(
 			const Donya::MotionChunk	&motionPerMesh,
 			const Donya::Animator		&currentAnimation,
-			const Donya::Vector4x4		&worldViewProjection,
-			const Donya::Vector4x4		&world,
-			const Donya::Vector4		&eyePosition,
-			const Donya::Vector4		&materialColor,
-			const Donya::Vector4		&lightColor,
-			const Donya::Vector4		&lightDirection,
+			const Donya::Vector4x4		&matWorldViewProjection,
+			const Donya::Vector4x4		&matWorld,
+			const CBSetOption			&cbPerMeshOption,
+			const CBSetOption			&cbPerSubsetOption,
+			unsigned int				psSetSamplerSlot,
+			unsigned int				psSetSRVSlot,
+			const Donya::Vector4		&materialColor = { 1.0f, 1.0f, 1.0f, 1.0f },
 			bool isEnableFill = true
-		);
+		) const;
 	};
 }

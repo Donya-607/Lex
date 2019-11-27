@@ -5,6 +5,7 @@
 #include <thread>
 #include <vector>
 
+#include "Donya/CBuffer.h"
 #include "Donya/Constant.h"
 #include "Donya/Donya.h"				// Use GetFPS().
 #include "Donya/GeometricPrimitive.h"	// For debug draw collision.
@@ -12,6 +13,7 @@
 #include "Donya/Mouse.h"
 #include "Donya/Quaternion.h"
 #include "Donya/Sprite.h"
+#include "Donya/Shader.h"
 #include "Donya/Useful.h"
 #include "Donya/UseImgui.h"
 #include "Donya/Vector.h"
@@ -78,6 +80,10 @@ public:
 		bool			reverseRotateHorizontal{};
 		bool			reverseRotateVertical{};
 	};
+	struct CBufferPerFrame
+	{
+
+	};
 public:
 
 	// TODO : To be serialize these member.
@@ -93,6 +99,8 @@ public:
 	CameraUsage						cameraOp;
 
 	std::vector<MeshAndInfo>		models;
+
+	Donya::CBuffer<CBufferPerFrame>	cbPerFrame;
 
 	std::unique_ptr<std::thread>	pLoadThread{};
 	std::unique_ptr<AsyncLoad>		pCurrentLoading;

@@ -38,6 +38,17 @@ namespace Donya
 			return static_cast<XMFLOAT2>( *this );
 		}
 	public:
+		/// <summary>
+		/// Multiply each element.
+		/// </summary>
+		constexpr Vector2 Product( const Vector2 &R ) const
+		{
+			return Vector2
+			{
+				x * R.x,
+				y * R.y
+			};
+		}
 		constexpr Vector2 operator - () const { return Vector2{ -x, -y }; }
 		Vector2 operator += ( float scalar )
 		{
@@ -125,6 +136,14 @@ namespace Donya
 			return ( x * R.y ) - ( y * R.x );
 		}
 	public:
+		/// <summary>
+		/// Multiply each element.
+		/// </summary>
+		static constexpr Vector2 Product( const Vector2 &L, const Vector2 &R )
+		{
+			return L.Product( R );
+		}
+
 		static float Dot( const Vector2 &L, const Vector2 &R ) { return L.Dot( R ); }
 		static float Dot( const XMFLOAT2 &L, const XMFLOAT2 &R ) { return Vector2( L ).Dot( R ); }
 		static float Cross( const Vector2 &L, const Vector2 &R ) { return L.Cross( R ); }
@@ -183,6 +202,18 @@ namespace Donya
 			return static_cast<XMFLOAT3>( *this );
 		}
 	public:
+		/// <summary>
+		/// Multiply each element.
+		/// </summary>
+		constexpr Vector3 Product( const Vector3 &R ) const
+		{
+			return Vector3
+			{
+				x * R.x,
+				y * R.y,
+				z * R.z
+			};
+		}
 		constexpr Vector3 operator - () const { return Vector3{ -x, -y, -z }; }
 		Vector3 operator += ( float scalar )
 		{
@@ -283,6 +314,14 @@ namespace Donya
 			return DirectX::XMVectorSet( x, y, z, fourthParam );
 		}
 	public:
+		/// <summary>
+		/// Multiply each element.
+		/// </summary>
+		static constexpr Vector3	Product( const Vector3 &L, const Vector3 &R )
+		{
+			return L.Product( R );
+		}
+
 		static constexpr float		Dot( const Vector3 &L, const Vector3 &R ) { return L.Dot( R ); }
 		static constexpr float		Dot( const XMFLOAT3 &L, const XMFLOAT3 &R ) { return Vector3( L ).Dot( R ); }
 		static constexpr Vector3	Cross( const Vector3 &L, const Vector3 &R ) { return L.Cross( R ); }
@@ -346,6 +385,19 @@ namespace Donya
 			return static_cast<XMFLOAT4>( *this );
 		}
 	public:
+		/// <summary>
+		/// Multiply each element.
+		/// </summary>
+		constexpr Vector4 Product( const Vector4 &R ) const
+		{
+			return Vector4
+			{
+				x * R.x,
+				y * R.y,
+				z * R.z,
+				w * R.w
+			};
+		}
 		constexpr Vector4 operator - () const { return Vector4{ -x, -y, -z, -w }; }
 		Vector4 operator += ( float scalar )
 		{
@@ -421,6 +473,14 @@ namespace Donya
 			return DirectX::XMVectorSet( x, y, z, w );
 		}
 	public:
+		/// <summary>
+		/// Multiply each element.
+		/// </summary>
+		static constexpr Vector4 Product( const Vector4 &L, const Vector4 &R )
+		{
+			return L.Product( R );
+		}
+
 		static Vector4 Zero() { return Vector4{ 0.0f, 0.0f, 0.0f, 0.0f }; }
 		static Vector4 FromXMVector( const DirectX::XMVECTOR &V );
 		static DirectX::XMVECTOR ToXMVector( const Vector4 &V ) { return V.ToXMVector(); }

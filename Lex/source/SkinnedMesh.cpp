@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "Donya/Color.h"
 #include "Donya/Direct3DUtil.h"
 #include "Donya/Donya.h"
 #include "Donya/Resource.h"
@@ -20,7 +21,7 @@ using namespace DirectX;
 
 namespace Donya
 {
-	bool SkinnedMesh::Create( const Loader &loader, SkinnedMesh *pOutput )
+	bool SkinnedMesh::Create( const Loader &loader, SkinnedMesh *pOutput, ID3D11Device *pDevice )
 	{
 		if ( !pOutput ) { return false; }
 		// else
@@ -177,33 +178,35 @@ namespace Donya
 			}
 		}
 
-		bool   createResult = pOutput->Init( argIndices, argVertices, meshes );
+		bool   createResult = pOutput->Init( argIndices, argVertices, meshes, pDevice );
 		return createResult;
 	}
 
 	SkinnedMesh::SkinnedMesh() :
 		wasCreated( false ),
 		meshes(),
-		iConstantBuffer(), iMaterialCBuffer(),
-		iInputLayout(), iVertexShader(), iPixelShader(),
+		cbPerMesh(), cbPerSubset(),
 		iRasterizerStateWire(), iRasterizerStateSurface(), iDepthStencilState()
-	{
-
-	}
+	{}
 	SkinnedMesh::~SkinnedMesh()
 	{
 		meshes.clear();
 		meshes.shrink_to_fit();
 	}
 
-	bool SkinnedMesh::Init( const std::vector<std::vector<size_t>> &allIndices, const std::vector<std::vector<Vertex>> &allVertices, const std::vector<Mesh> &loadedMeshes )
+	bool SkinnedMesh::Init( const std::vector<std::vector<size_t>> &allIndices, const std::vector<std::vector<Vertex>> &allVertices, const std::vector<Mesh> &loadedMeshes, ID3D11Device *pDevice )
 	{
 		if ( wasCreated      ) { return false; }
 		if ( !meshes.empty() ) { return false; }
 		// else
 
 		HRESULT hr = S_OK;
-		ID3D11Device *pDevice = Donya::GetDevice();
+
+		// Use default device.
+		if ( !pDevice )
+		{
+			pDevice = Donya::GetDevice();
+		}
 
 		meshes = loadedMeshes;
 		const size_t meshCount = meshes.size();
@@ -238,34 +241,30 @@ namespace Donya
 				return false;
 			}
 		}
+
 		// Create ConstantBuffers
 		{
-			hr = CreateConstantBuffer
-			(
-				pDevice,
-				sizeof( ConstantBuffer ),
-				iConstantBuffer.GetAddressOf()
-			);
-			if ( FAILED( hr ) )
+			bool succeeded = true;
+
+			succeeded = cbPerMesh.Create( pDevice );
+			if ( !succeeded )
 			{
 				_ASSERT_EXPR( 0, L"Failed : Create Constant-Buffer" );
 				return false;
 			}
 			// else
 
-			hr = CreateConstantBuffer
-			(
-				pDevice,
-				sizeof( MaterialConstantBuffer ),
-				iMaterialCBuffer.GetAddressOf()
-			);
-			if ( FAILED( hr ) )
+			succeeded = cbPerSubset.Create( pDevice );
+			if ( !succeeded )
 			{
 				_ASSERT_EXPR( 0, L"Failed : Create Constant-Buffer" );
 				return false;
 			}
 			// else
 		}
+
+		// Old Create shaders.
+		/*
 		// Create VertexShader and InputLayout
 		{
 			D3D11_INPUT_ELEMENT_DESC d3d11InputElementsDesc[] =
@@ -285,7 +284,7 @@ namespace Donya
 				iInputLayout.GetAddressOf(),
 				d3d11InputElementsDesc,
 				_countof( d3d11InputElementsDesc ),
-				/* enableCache = */ true
+				// enableCache = true
 			);
 			if ( !succeeded )
 			{
@@ -300,7 +299,7 @@ namespace Donya
 				pDevice,
 				"./Data/Shader/SkinnedMeshPS.cso", "rb",
 				iPixelShader.GetAddressOf(),
-				/* enableCache = */ false
+				// enableCache = false
 			);
 			if ( !succeeded )
 			{
@@ -308,6 +307,8 @@ namespace Donya
 				return false;
 			}
 		}
+		*/
+
 		// Create Rasterizer States
 		{
 			D3D11_RASTERIZER_DESC d3d11ResterizerDescBase{};
@@ -438,7 +439,8 @@ namespace Donya
 		return true;
 	}
 
-	void SkinnedMesh::Render( const Donya::MotionChunk &motionPerMesh, const Donya::Animator &currentAnimation, const Donya::Vector4x4 &worldViewProjection, const Donya::Vector4x4 &world, const Donya::Vector4 &eyePosition, const Donya::Vector4 &materialColor, const Donya::Vector4 &lightColor, const Donya::Vector4 &lightDirection, bool isEnableFill )
+	// void SkinnedMesh::Render( const Donya::MotionChunk &motionPerMesh, const Donya::Animator &currentAnimation, const Donya::Vector4x4 &worldViewProjection, const Donya::Vector4x4 &world, const Donya::Vector4 &eyePosition, const Donya::Vector4 &materialColor, const Donya::Vector4 &lightColor, const Donya::Vector4 &lightDirection, bool isEnableFill )
+	void SkinnedMesh::Render( const Donya::MotionChunk &motionPerMesh, const Donya::Animator &currentAnimation, const Donya::Vector4x4 &worldViewProjection, const Donya::Vector4x4 &world, const CBSetOption &cbopPerMesh, const CBSetOption &cbopPerSubset, unsigned int psSetSamplerSlot, unsigned int psSetSRVSlot, const Donya::Vector4 &materialColor, bool isEnableFill ) const
 	{
 		if ( !wasCreated )
 		{
@@ -448,6 +450,8 @@ namespace Donya
 		if ( meshes.empty() ) { return; }
 		// else
 
+		// If you use coordinate-conversion change GUI.
+		/*
 		// Apply coordinateConversion, TODO : Should refactoring this.
 		{
 			// Initialize to convert rhs to lhs.
@@ -482,6 +486,7 @@ namespace Donya
 				it.coordinateConversion = coordConversion;
 			}
 		}
+		*/
 
 		ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
 
@@ -490,7 +495,7 @@ namespace Donya
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	prevDepthStencilState;
 		{
 			pImmediateContext->RSGetState( prevRasterizerState.ReleaseAndGetAddressOf() );
-			pImmediateContext->PSGetSamplers( 0, 1, prevSamplerState.ReleaseAndGetAddressOf() );
+			pImmediateContext->PSGetSamplers( psSetSamplerSlot, 1, prevSamplerState.ReleaseAndGetAddressOf() );
 			pImmediateContext->OMGetDepthStencilState( prevDepthStencilState.ReleaseAndGetAddressOf(), 0 );
 		}
 
@@ -510,18 +515,13 @@ namespace Donya
 			CS...ComputeShader
 			*/
 
-			pImmediateContext->IASetInputLayout( iInputLayout.Get() );
 			pImmediateContext->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 			
-			pImmediateContext->VSSetShader( iVertexShader.Get(), nullptr, 0 );
-
 			ID3D11RasterizerState	*ppRasterizerState
 									= ( isEnableFill )
 									? iRasterizerStateSurface.Get()
 									: iRasterizerStateWire.Get();
 			pImmediateContext->RSSetState( ppRasterizerState );
-
-			pImmediateContext->PSSetShader( iPixelShader.Get(), nullptr, 0 );
 
 			pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xffffffff );
 		}
@@ -530,10 +530,9 @@ namespace Donya
 		{
 			// Update Constant Buffer
 			{
-				ConstantBuffer cb{};
-				cb.worldViewProjection	= ( ( mesh.globalTransform * mesh.coordinateConversion ) * worldViewProjection ).XMFloat();
-				cb.world				= ( ( mesh.globalTransform * mesh.coordinateConversion ) * world ).XMFloat();
-				
+				cbPerMesh.data.worldViewProjection		= ( ( mesh.globalTransform * mesh.coordinateConversion ) * worldViewProjection ).XMFloat();
+				cbPerMesh.data.world					= ( ( mesh.globalTransform * mesh.coordinateConversion ) * world ).XMFloat();
+
 				const Donya::Motion		useMotion		= motionPerMesh.FetchMotion( mesh.meshNo );
 				const Donya::Skeletal	currentPosture	= currentAnimation.FetchCurrentMotion( useMotion );
 				auto TransformBones = []( std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> *pBoneTransform, const Donya::Skeletal &pose )
@@ -546,17 +545,11 @@ namespace Donya
 						: pose.skeletal[i].transform.XMFloat();
 					}
 				};
-				TransformBones( &cb.boneTransforms, currentPosture );
+				TransformBones( &cbPerMesh.data.boneTransforms, currentPosture );
 
-				cb.eyePosition			= eyePosition.XMFloat();
-				cb.lightColor			= lightColor.XMFloat();
-				cb.lightDir				= lightDirection.XMFloat();
-				cb.materialColor		= materialColor.XMFloat();
-				pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
+				cbPerMesh.Activate( cbopPerMesh.setSlot, cbopPerMesh.setVS, cbopPerMesh.setVS, pImmediateContext );
 			}
-			pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
-			pImmediateContext->PSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
-
+			
 			UINT stride = sizeof( Vertex );
 			UINT offset = 0;
 			pImmediateContext->IASetVertexBuffers( 0, 1, mesh.iVertexBuffer.GetAddressOf(), &stride, &offset );
@@ -566,23 +559,25 @@ namespace Donya
 			{
 				// Update Material-Constant Buffer
 				{
-					MaterialConstantBuffer mtlCB{};
-					mtlCB.ambient	= subset.ambient.color.XMFloat();
-					mtlCB.bump		= subset.bump.color.XMFloat();
-					mtlCB.diffuse	= subset.diffuse.color.XMFloat();
-					mtlCB.emissive	= subset.emissive.color.XMFloat();
-					mtlCB.specular	= subset.specular.color.XMFloat();
+					cbPerSubset.data.ambient	= subset.ambient.color.XMFloat();
+					cbPerSubset.data.bump		= subset.bump.color.XMFloat();
+					cbPerSubset.data.diffuse	= subset.diffuse.color.XMFloat();
+					cbPerSubset.data.emissive	= subset.emissive.color.XMFloat();
+					cbPerSubset.data.specular	= subset.specular.color.XMFloat();
 
-					pImmediateContext->UpdateSubresource( iMaterialCBuffer.Get(), 0, nullptr, &mtlCB, 0, 0 );
+					cbPerSubset.data.diffuse.x *= materialColor.x;
+					cbPerSubset.data.diffuse.y *= materialColor.y;
+					cbPerSubset.data.diffuse.z *= materialColor.z;
+					cbPerSubset.data.diffuse.w *= Donya::Color::FilteringAlpha( materialColor.w );
+
+					cbPerSubset.Activate( cbopPerSubset.setSlot, cbopPerSubset.setVS, cbopPerSubset.setVS, pImmediateContext );
 				}
-				pImmediateContext->VSSetConstantBuffers( 1, 1, iMaterialCBuffer.GetAddressOf() );
-				pImmediateContext->PSSetConstantBuffers( 1, 1, iMaterialCBuffer.GetAddressOf() );
 
-				pImmediateContext->PSSetSamplers( 0, 1, subset.diffuse.iSampler.GetAddressOf() );
+				pImmediateContext->PSSetSamplers( psSetSamplerSlot, 1, subset.diffuse.iSampler.GetAddressOf() );
 
 				for ( auto &texture : subset.diffuse.textures )
 				{
-					pImmediateContext->PSSetShaderResources( 0, 1, texture.iSRV.GetAddressOf() );
+					pImmediateContext->PSSetShaderResources( psSetSRVSlot, 1, texture.iSRV.GetAddressOf() );
 					
 					pImmediateContext->DrawIndexed( subset.indexCount, subset.indexStart, 0 );
 				}
@@ -595,15 +590,15 @@ namespace Donya
 
 			pImmediateContext->IASetInputLayout( 0 );
 
-			pImmediateContext->VSSetShader( 0, 0, 0 );
-
 			pImmediateContext->RSSetState( prevRasterizerState.Get() );
 
-			pImmediateContext->PSSetShader( 0, 0, 0 );
-			pImmediateContext->PSSetShaderResources( 0, 1, &pNullSRV );
-			pImmediateContext->PSSetSamplers( 0, 1, prevSamplerState.GetAddressOf() );
+			pImmediateContext->PSSetShaderResources( psSetSRVSlot, 1, &pNullSRV );
+			pImmediateContext->PSSetSamplers( psSetSamplerSlot, 1, prevSamplerState.GetAddressOf() );
 
 			pImmediateContext->OMSetDepthStencilState( prevDepthStencilState.Get(), 1 );
+
+			cbPerMesh.Deactivate( pImmediateContext );
+			cbPerSubset.Deactivate( pImmediateContext );
 		}
 	}
 
