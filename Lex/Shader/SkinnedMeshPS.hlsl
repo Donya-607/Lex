@@ -11,30 +11,27 @@ float4 main( VS_OUT pin ) : SV_TARGET
 
 	float	diffuseFactor	= HalfLambert( pin.normal.rgb, nLightVec );
 	//		diffuseFactor	= pow( diffuseFactor, 2.0f ); // If needed.
-	float4	diffuseColor	= ( mtlDiffuse * cbMaterialColor ) * diffuseFactor;
+	float4	diffuseColor	= cbDiffuse * diffuseFactor;
 
-	float	specularFactor	= Phong( pin.normal.rgb, nLightVec, -nEyeVector.rgb, mtlSpecular.w );
+	float	specularFactor	= Phong( pin.normal.rgb, nLightVec, -nEyeVector.rgb, cbSpecular.w );
 	// float	specularFactor	= BlinnPhong( pin.normal.rgb, nLightDir, -nEyeVector.rgb, specular.w );
-	float4	specularColor	= mtlSpecular * specularFactor * cbLightColor;
+	float4	specularColor	= cbSpecular * specularFactor * cbLightColor;
 
 	float4	sampleColor		= diffuseMap.Sample( diffuseMapSampler, pin.texCoord );
 		
 	float3	shadedColor		= sampleColor.rgb * diffuseColor.rgb;
-			// shadedColor		= saturate( shadedColor + mtlAmbient.rgb + specularColor.rgb );
-			shadedColor		= saturate( shadedColor + mtlAmbient.rgb );
+			shadedColor		= saturate( shadedColor + cbAmbient.rgb + specularColor.rgb );
+			// shadedColor		= saturate( shadedColor + cbAmbient.rgb );
 
-	float3	lightCol		= cbLightColor.rgb * cbLightColor.w;
-	float3	lightedColor	= shadedColor * lightCol;
+	float3	lightColor		= cbLightColor.rgb * cbLightColor.w;
+	float3	lightedColor	= shadedColor * lightColor;
 
 	// float3	foggedColor		= AffectFog( lightedColor, eyePosition.rgb, pin.wsPos.rgb, fogNear, fogFar, fogColor.rgb );
 
 	// float3	outputColor		= foggedColor;
 	float3	outputColor		= lightedColor;
-	return	float4
-	(
-		outputColor,
-		sampleColor.a
-	);
+	
+	return	float4( outputColor, sampleColor.a ) * cbMaterialColor;
 
 	/*
 	float4 diffuseColor = diffuseMap.Sample( diffuseSampler, pin.texCoord );

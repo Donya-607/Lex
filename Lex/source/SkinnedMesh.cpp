@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "Donya/Color.h"
 #include "Donya/Direct3DUtil.h"
 #include "Donya/Donya.h"
 #include "Donya/Resource.h"
@@ -263,52 +262,6 @@ namespace Donya
 			// else
 		}
 
-		// Old Create shaders.
-		/*
-		// Create VertexShader and InputLayout
-		{
-			D3D11_INPUT_ELEMENT_DESC d3d11InputElementsDesc[] =
-			{
-				{ "POSITION"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-				{ "NORMAL"		, 0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-				{ "TEXCOORD"	, 0, DXGI_FORMAT_R32G32_FLOAT,			0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-				{ "BONES"		, 0, DXGI_FORMAT_R32G32B32A32_UINT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-				{ "WEIGHTS"		, 0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			};
-
-			bool succeeded = Resource::CreateVertexShaderFromCso
-			(
-				pDevice,
-				"./Data/Shader/SkinnedMeshVS.cso", "rb",
-				iVertexShader.GetAddressOf(),
-				iInputLayout.GetAddressOf(),
-				d3d11InputElementsDesc,
-				_countof( d3d11InputElementsDesc ),
-				// enableCache = true
-			);
-			if ( !succeeded )
-			{
-				_ASSERT_EXPR( 0, L"Failed : Create vertex-shader from cso file." );
-				return false;
-			}
-		}
-		// Create PixelShader
-		{
-			bool succeeded = Resource::CreatePixelShaderFromCso
-			(
-				pDevice,
-				"./Data/Shader/SkinnedMeshPS.cso", "rb",
-				iPixelShader.GetAddressOf(),
-				// enableCache = false
-			);
-			if ( !succeeded )
-			{
-				_ASSERT_EXPR( 0, L"Failed : Create pixel-shader from cso file." );
-				return false;
-			}
-		}
-		*/
-
 		// Create Rasterizer States
 		{
 			D3D11_RASTERIZER_DESC d3d11ResterizerDescBase{};
@@ -439,8 +392,7 @@ namespace Donya
 		return true;
 	}
 
-	// void SkinnedMesh::Render( const Donya::MotionChunk &motionPerMesh, const Donya::Animator &currentAnimation, const Donya::Vector4x4 &worldViewProjection, const Donya::Vector4x4 &world, const Donya::Vector4 &eyePosition, const Donya::Vector4 &materialColor, const Donya::Vector4 &lightColor, const Donya::Vector4 &lightDirection, bool isEnableFill )
-	void SkinnedMesh::Render( const Donya::MotionChunk &motionPerMesh, const Donya::Animator &currentAnimation, const Donya::Vector4x4 &worldViewProjection, const Donya::Vector4x4 &world, const CBSetOption &cbopPerMesh, const CBSetOption &cbopPerSubset, unsigned int psSetSamplerSlot, unsigned int psSetSRVSlot, const Donya::Vector4 &materialColor, bool isEnableFill ) const
+	void SkinnedMesh::Render( const Donya::MotionChunk &motionPerMesh, const Donya::Animator &currentAnimation, const Donya::Vector4x4 &worldViewProjection, const Donya::Vector4x4 &world, const CBSetOption &cbopPerMesh, const CBSetOption &cbopPerSubset, unsigned int psSetSamplerSlot, unsigned int psSetDiffuseMapSlot, bool isEnableFill ) const
 	{
 		if ( !wasCreated )
 		{
@@ -565,11 +517,6 @@ namespace Donya
 					cbPerSubset.data.emissive	= subset.emissive.color.XMFloat();
 					cbPerSubset.data.specular	= subset.specular.color.XMFloat();
 
-					cbPerSubset.data.diffuse.x *= materialColor.x;
-					cbPerSubset.data.diffuse.y *= materialColor.y;
-					cbPerSubset.data.diffuse.z *= materialColor.z;
-					cbPerSubset.data.diffuse.w *= Donya::Color::FilteringAlpha( materialColor.w );
-
 					cbPerSubset.Activate( cbopPerSubset.setSlot, cbopPerSubset.setVS, cbopPerSubset.setVS, pImmediateContext );
 				}
 
@@ -577,7 +524,7 @@ namespace Donya
 
 				for ( auto &texture : subset.diffuse.textures )
 				{
-					pImmediateContext->PSSetShaderResources( psSetSRVSlot, 1, texture.iSRV.GetAddressOf() );
+					pImmediateContext->PSSetShaderResources( psSetDiffuseMapSlot, 1, texture.iSRV.GetAddressOf() );
 					
 					pImmediateContext->DrawIndexed( subset.indexCount, subset.indexStart, 0 );
 				}
@@ -592,7 +539,7 @@ namespace Donya
 
 			pImmediateContext->RSSetState( prevRasterizerState.Get() );
 
-			pImmediateContext->PSSetShaderResources( psSetSRVSlot, 1, &pNullSRV );
+			pImmediateContext->PSSetShaderResources( psSetDiffuseMapSlot, 1, &pNullSRV );
 			pImmediateContext->PSSetSamplers( psSetSamplerSlot, 1, prevSamplerState.GetAddressOf() );
 
 			pImmediateContext->OMSetDepthStencilState( prevDepthStencilState.Get(), 1 );

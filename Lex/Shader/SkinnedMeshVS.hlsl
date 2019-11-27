@@ -1,14 +1,5 @@
 #include "SkinnedMesh.hlsli"
 
-struct VS_IN
-{
-	float4	pos		: POSITION;
-	float4	normal	: NORMAL;
-	float2	texCoord: TEXCOORD;
-	uint4	bones	: BONES;
-	float4	weights : WEIGHTS;
-};
-
 float4 VisualizeBoneInfluence( uint4 boneIndices, float4 weights )
 {
 	float4 influence = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -60,11 +51,8 @@ VS_OUT main( VS_IN vin )
 	VS_OUT vout		= ( VS_OUT )( 0 );
 	vout.pos		= mul( vin.pos, cbWorldViewProjection );
 	vout.wsPos		= mul( vin.pos, cbWorld );
-	vout.color.rgba = 1.0f;
 	vout.normal		= normalize( mul( vin.normal, cbWorld ) );
 	vout.texCoord	= vin.texCoord;
 	
-	// vout.eyeVector	= eyePosition - normalize( vout.pos );
-
 	return vout;
 }

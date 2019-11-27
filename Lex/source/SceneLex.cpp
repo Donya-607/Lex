@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Donya/CBuffer.h"
+#include "Donya/Color.h"
 #include "Donya/Constant.h"
 #include "Donya/Donya.h"				// Use GetFPS().
 #include "Donya/GeometricPrimitive.h"	// For debug draw collision.
@@ -82,7 +83,13 @@ public:
 	};
 	struct CBufferPerFrame
 	{
-
+		DirectX::XMFLOAT4 eyePosition;
+		DirectX::XMFLOAT4 dirLightColor;
+		DirectX::XMFLOAT4 dirLightDirection;
+	};
+	struct CBufferPerModel
+	{
+		DirectX::XMFLOAT4 materialColor;
 	};
 public:
 
@@ -90,7 +97,7 @@ public:
 
 	ICamera							iCamera;
 	DirectionalLight				directionalLight;
-	Donya::Vector4					mtlColor;
+	Donya::Vector4					materialColor;
 
 	int								nowPressMouseButton;	// [None:0][Left:VK_LBUTTON][Middle:VK_MBUTTON][Right:VK_RBUTTON]
 	Donya::Int2						prevMouse;
@@ -101,6 +108,9 @@ public:
 	std::vector<MeshAndInfo>		models;
 
 	Donya::CBuffer<CBufferPerFrame>	cbPerFrame;
+	Donya::CBuffer<CBufferPerModel>	cbPerModel;
+	Donya::VertexShader				VSSkinnedMesh;
+	Donya::PixelShader				PSSkinnedMesh;
 
 	std::unique_ptr<std::thread>	pLoadThread{};
 	std::unique_ptr<AsyncLoad>		pCurrentLoading;
@@ -111,10 +121,11 @@ public:
 	bool							drawWireFrame;
 public:
 	Impl() :
-		iCamera(), directionalLight(), mtlColor( 1.0f, 1.0f, 1.0f, 1.0f ),
+		iCamera(), directionalLight(), materialColor( 1.0f, 1.0f, 1.0f, 1.0f ),
 		nowPressMouseButton(), prevMouse(), currMouse(),
 		cameraOp(),
 		models(),
+		cbPerFrame(), cbPerModel(), VSSkinnedMesh(), PSSkinnedMesh(),
 		pLoadThread( nullptr ), pCurrentLoading( nullptr ),
 		currentLoadingFileNameUTF8(), reservedAbsFilePaths(), reservedFileNamesUTF8(),
 		drawWireFrame( false )
@@ -132,29 +143,18 @@ public:
 public:
 	void Init()
 	{
+		bool result = ShaderInit();
+		if ( !result )
+		{
+			_ASSERT_EXPR( 0, L"Failed : Create some shaders." );
+			exit( -1 );
+			return;
+		}
+		// else
+
+		CameraInit();
+
 		MouseUpdate();
-
-		iCamera.Init( ICamera::Mode::Satellite );
-		iCamera.SetZRange( 0.1f, 1000.0f );
-		iCamera.SetFOV( ToRadian( 30.0f ) );
-		iCamera.SetScreenSize( { Common::ScreenWidthF(), Common::ScreenHeightF() } );
-		iCamera.SetPosition( { 0.0f, 0.0f, -64.0f } );
-		iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
-		iCamera.SetProjectionPerspective();
-
-		CalcDistToVirtualScreen();
-
-		constexpr float MOVE_SPEED	= 1.0f;
-		constexpr float FRONT_SPEED	= 3.0f;
-		constexpr float ROT_SPEED	= ToRadian( 1.0f );
-
-		cameraOp.rotateSpeed = ROT_SPEED;
-		cameraOp.moveSpeed.x = MOVE_SPEED;
-		cameraOp.moveSpeed.y = MOVE_SPEED;
-		cameraOp.moveSpeed.z = FRONT_SPEED;
-
-		// My preference.
-		cameraOp.reverseRotateHorizontal = true;
 	}
 	void Uninit()
 	{
@@ -219,6 +219,19 @@ public:
 
 	void Draw( float elapsedTime )
 	{
+		Donya::Vector4 cameraPos{ iCamera.GetPosition(), 1.0f };
+		cbPerFrame.data.eyePosition			= cameraPos.XMFloat();
+		cbPerFrame.data.dirLightColor		= directionalLight.color;
+		cbPerFrame.data.dirLightDirection	= directionalLight.direction;
+		cbPerFrame.Activate( 0, /* setVS = */ true, /* setPS = */ true );
+
+		cbPerModel.data.materialColor		= materialColor;
+		cbPerModel.data.materialColor.w		= Donya::Color::FilteringAlpha( materialColor.w );
+		cbPerModel.Activate( 1, /* setVS = */ true, /* setPS = */ true );
+
+		VSSkinnedMesh.Activate();
+		PSSkinnedMesh.Activate();
+
 		Donya::Vector4x4 W = Donya::Vector4x4::Identity();
 		Donya::Vector4x4 V = iCamera.CalcViewMatrix();
 		// Donya::Vector4x4 V = Donya::Vector4x4::Identity();
@@ -226,7 +239,14 @@ public:
 
 		Donya::Vector4x4 WVP = W * V * P;
 
-		Donya::Vector4 cameraPos{ iCamera.GetPosition(), 1.0f };
+		Donya::SkinnedMesh::CBSetOption optionPerMesh{};
+		Donya::SkinnedMesh::CBSetOption optionPerSubset{};
+		optionPerMesh.setSlot		= 2;
+		optionPerMesh.setVS			= true;
+		optionPerMesh.setPS			= true;
+		optionPerSubset.setSlot		= 3;
+		optionPerSubset.setVS		= true;
+		optionPerSubset.setPS		= true;
 
 		for ( auto &it : models )
 		{
@@ -235,14 +255,20 @@ public:
 				it.motions,
 				it.animator,
 				WVP, W,
-				cameraPos,
-				mtlColor,
-				directionalLight.color,
-				directionalLight.direction,
+				optionPerMesh,
+				optionPerSubset,
+				/* psSetSamplerSlot    = */ 0,
+				/* psSetDiffuseMapSlot = */ 0,
 				( drawWireFrame ) ? false : true
 			);
 		}
 
+		PSSkinnedMesh.Deactivate();
+		VSSkinnedMesh.Deactivate();
+
+		cbPerFrame.Deactivate();
+
+		// Show a cube to origin with unit scale.
 	#if DEBUG_MODE
 
 		{
@@ -261,6 +287,36 @@ public:
 	#endif // DEBUG_MODE
 	}
 private:
+	bool ShaderInit()
+	{
+		bool succeeded = true;
+		bool result{};
+
+		result = cbPerFrame.Create();
+		if ( !result ) { succeeded = false; }
+		result = cbPerModel.Create();
+		if ( !result ) { succeeded = false; }
+
+		constexpr const char *VSFilePath = "./Data/Shader/SkinnedMeshVS.cso";
+		constexpr const char *PSFilePath = "./Data/Shader/SkinnedMeshPS.cso";
+		const std::vector<D3D11_INPUT_ELEMENT_DESC> inputElementDesc
+		{
+			{ "POSITION"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL"		, 0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD"	, 0, DXGI_FORMAT_R32G32_FLOAT,			0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "BONES"		, 0, DXGI_FORMAT_R32G32B32A32_UINT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "WEIGHTS"		, 0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		};
+
+		result = VSSkinnedMesh.CreateByCSO( VSFilePath, inputElementDesc );
+		if ( !result ) { succeeded = false; }
+
+		result = PSSkinnedMesh.CreateByCSO( PSFilePath );
+		if ( !result ) { succeeded = false; }
+
+		return succeeded;
+	}
+
 	void MouseUpdate()
 	{
 		POINT pMouse = Donya::Mouse::Coordinate();
@@ -345,6 +401,30 @@ private:
 		return onPlanePos;
 	}
 
+	void CameraInit()
+	{
+		iCamera.Init( ICamera::Mode::Satellite );
+		iCamera.SetZRange( 0.1f, 1000.0f );
+		iCamera.SetFOV( ToRadian( 30.0f ) );
+		iCamera.SetScreenSize( { Common::ScreenWidthF(), Common::ScreenHeightF() } );
+		iCamera.SetPosition( { 0.0f, 0.0f, -64.0f } );
+		iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
+		iCamera.SetProjectionPerspective();
+
+		CalcDistToVirtualScreen();
+
+		constexpr float MOVE_SPEED	= 1.0f;
+		constexpr float FRONT_SPEED	= 3.0f;
+		constexpr float ROT_SPEED	= ToRadian( 1.0f );
+
+		cameraOp.rotateSpeed = ROT_SPEED;
+		cameraOp.moveSpeed.x = MOVE_SPEED;
+		cameraOp.moveSpeed.y = MOVE_SPEED;
+		cameraOp.moveSpeed.z = FRONT_SPEED;
+
+		// My preference.
+		cameraOp.reverseRotateHorizontal = true;
+	}
 	void CameraUpdate()
 	{
 		ICamera::Controller controller{};
@@ -715,7 +795,7 @@ private:
 				constexpr float DIRECTION_RANGE = 8.0f;
 				ImGui::SliderFloat3( u8"方向性ライト・向き",		&directionalLight.direction.x, -DIRECTION_RANGE, DIRECTION_RANGE );
 				ImGui::ColorEdit4  ( u8"方向性ライト・カラー",	&directionalLight.color.x );
-				ImGui::ColorEdit4  ( u8"マテリアル・カラー",		&mtlColor.x );
+				ImGui::ColorEdit4  ( u8"マテリアル・カラー",		&materialColor.x );
 
 				ImGui::TreePop();
 			}

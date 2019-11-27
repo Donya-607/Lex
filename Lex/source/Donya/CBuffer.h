@@ -25,9 +25,6 @@ namespace Donya
 	public:
 		CBuffer() : data(), wasCreated( false ), usingSlot(), iBuffer() {}
 		virtual ~CBuffer() = default;
-
-		CBuffer( const CBuffer & ) = delete;
-		const CBuffer &operator = ( const CBuffer & ) = delete;
 	public:
 		/// <summary>
 		/// If the "pDevice" is null, use default(library's) device.<para></para>

@@ -142,8 +142,7 @@ namespace Donya
 			bool setPS;
 		};
 		/// <summary>
-		/// Please set a input-layout, vertex-shader and pixel-shader before call this.<para></para>
-		/// The "materialColor" will affected by Donya::Color::FilteringAlpha() internally.
+		/// Please set a input-layout, vertex-shader and pixel-shader before call this.
 		/// </summary>
 		void Render
 		(
@@ -154,8 +153,7 @@ namespace Donya
 			const CBSetOption			&cbPerMeshOption,
 			const CBSetOption			&cbPerSubsetOption,
 			unsigned int				psSetSamplerSlot,
-			unsigned int				psSetSRVSlot,
-			const Donya::Vector4		&materialColor = { 1.0f, 1.0f, 1.0f, 1.0f },
+			unsigned int				psSetDiffuseMapSlot,
 			bool isEnableFill = true
 		) const;
 	};
