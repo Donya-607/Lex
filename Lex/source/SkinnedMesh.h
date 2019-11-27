@@ -37,18 +37,18 @@ namespace Donya
 			std::array<float,	MAX_BONE_INFLUENCES> boneWeights{ 1.0f, 0.0f, 0.0f, 0.0f };
 		};
 
+		/// <summary>
+		/// This constants are use to constant-buffer internally. You must provide cbuffer of this in HLSL.
+		/// </summary>
 		struct CBufferPerMesh
 		{
 			DirectX::XMFLOAT4X4	worldViewProjection;
 			DirectX::XMFLOAT4X4	world;
 			std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> boneTransforms;
-			/*
-			DirectX::XMFLOAT4	eyePosition;
-			DirectX::XMFLOAT4	lightColor;
-			DirectX::XMFLOAT4	lightDir;
-			*/
 		};
-
+		/// <summary>
+		/// This constants are use to constant-buffer internally. You must provide cbuffer of this in HLSL.
+		/// </summary>
 		struct CBufferPerSubset
 		{
 			DirectX::XMFLOAT4	ambient;

@@ -234,7 +234,6 @@ public:
 
 		Donya::Vector4x4 W = Donya::Vector4x4::Identity();
 		Donya::Vector4x4 V = iCamera.CalcViewMatrix();
-		// Donya::Vector4x4 V = Donya::Vector4x4::Identity();
 		Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 
 		Donya::Vector4x4 WVP = W * V * P;
