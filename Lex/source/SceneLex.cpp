@@ -67,6 +67,17 @@ public:
 		bool		isFinished{};	// Is finished the loading process ?
 		bool		isSucceeded{};	// Is Succeeded the loading process ?
 	};
+	struct CameraUsage
+	{
+		float			slerpFactor{ 0.1f };				// 0.0f ~ 1.0f.
+		float			virtualDistance{ 1.0f };			// The distance to virtual screen that align to Common::ScreenSize() from camera. Calc when detected a click.
+		float			rotateSpeed{};
+		Donya::Vector3	moveSpeed{};
+		bool			reverseMoveHorizontal{};
+		bool			reverseMoveVertical{};
+		bool			reverseRotateHorizontal{};
+		bool			reverseRotateVertical{};
+	};
 public:
 
 	// TODO : To be serialize these member.
@@ -79,13 +90,7 @@ public:
 	Donya::Int2						prevMouse;
 	Donya::Int2						currMouse;
 
-	float							cameraVirtualDistance;	// The distance to virtual screen that align to Common::ScreenSize() from camera. Calc when detected a click.
-	float							cameraRotateSpeed;
-	Donya::Vector3					cameraMoveSpeed;
-	bool							reverseCameraMoveHorizontal;
-	bool							reverseCameraMoveVertical;
-	bool							reverseCameraRotateHorizontal;
-	bool							reverseCameraRotateVertical;
+	CameraUsage						cameraOp;
 
 	std::vector<MeshAndInfo>		models;
 
@@ -100,9 +105,7 @@ public:
 	Impl() :
 		iCamera(), directionalLight(), mtlColor( 1.0f, 1.0f, 1.0f, 1.0f ),
 		nowPressMouseButton(), prevMouse(), currMouse(),
-		cameraVirtualDistance( 1.0f ), cameraRotateSpeed(), cameraMoveSpeed(),
-		reverseCameraMoveHorizontal( false ), reverseCameraMoveVertical( false ),
-		reverseCameraRotateHorizontal( false ), reverseCameraRotateVertical( false ),
+		cameraOp(),
 		models(),
 		pLoadThread( nullptr ), pCurrentLoading( nullptr ),
 		currentLoadingFileNameUTF8(), reservedAbsFilePaths(), reservedFileNamesUTF8(),
@@ -137,13 +140,13 @@ public:
 		constexpr float FRONT_SPEED	= 3.0f;
 		constexpr float ROT_SPEED	= ToRadian( 1.0f );
 
-		cameraRotateSpeed = ROT_SPEED;
-		cameraMoveSpeed.x = MOVE_SPEED;
-		cameraMoveSpeed.y = MOVE_SPEED;
-		cameraMoveSpeed.z = FRONT_SPEED;
+		cameraOp.rotateSpeed = ROT_SPEED;
+		cameraOp.moveSpeed.x = MOVE_SPEED;
+		cameraOp.moveSpeed.y = MOVE_SPEED;
+		cameraOp.moveSpeed.z = FRONT_SPEED;
 
 		// My preference.
-		reverseCameraRotateHorizontal = true;
+		cameraOp.reverseRotateHorizontal = true;
 	}
 	void Uninit()
 	{
@@ -305,7 +308,7 @@ private:
 		const float FOV = iCamera.GetFOV();
 		const Donya::Vector2 cameraScreenSize = iCamera.GetScreenSize();
 	
-		cameraVirtualDistance = cameraScreenSize.y / ( 2.0f * tanf( FOV * 0.5f ) );
+		cameraOp.virtualDistance = cameraScreenSize.y / ( 2.0f * tanf( FOV * 0.5f ) );
 	}
 
 	Donya::Vector3 ScreenToWorld( const Donya::Vector2 &screenPos )
@@ -316,7 +319,7 @@ private:
 		const Donya::Vector3	cameraFocus		= iCamera.GetFocusPoint();
 		const Donya::Quaternion	cameraPosture	= iCamera.GetOrientation();
 	
-		Donya::Vector3 wsScreenPos{ screenPos.x, screenPos.y, cameraVirtualDistance };
+		Donya::Vector3 wsScreenPos{ screenPos.x, screenPos.y, cameraOp.virtualDistance };
 		wsScreenPos = cameraPosture.RotateVector( wsScreenPos );
 	
 		float rayLength{}; // This is the "a" of reference site.
@@ -376,14 +379,14 @@ private:
 			{
 				// TODO : To be changeable this moving direction(normal or inverse).
 
-				moveVelocity.x = csMouseMove.x * cameraMoveSpeed.x;
-				moveVelocity.y = csMouseMove.y * cameraMoveSpeed.y;
+				moveVelocity.x = csMouseMove.x * cameraOp.moveSpeed.x;
+				moveVelocity.y = csMouseMove.y * cameraOp.moveSpeed.y;
 
-				if ( reverseCameraMoveHorizontal ) { moveVelocity.x *= -1.0f; }
-				if ( reverseCameraMoveVertical   ) { moveVelocity.y *= -1.0f; }
+				if ( cameraOp.reverseMoveHorizontal ) { moveVelocity.x *= -1.0f; }
+				if ( cameraOp.reverseMoveVertical   ) { moveVelocity.y *= -1.0f; }
 			}
 
-			moveVelocity.z = scast<float>( Donya::Mouse::WheelRot() ) * cameraMoveSpeed.z;
+			moveVelocity.z = scast<float>( Donya::Mouse::WheelRot() ) * cameraOp.moveSpeed.z;
 		}
 
 		float roll{}, pitch{}, yaw{};
@@ -391,12 +394,12 @@ private:
 		{
 			// TODO : To be changeable this moving direction(normal or inverse).
 
-			yaw   = csMouseMove.x * cameraRotateSpeed;
-			pitch = csMouseMove.y * cameraRotateSpeed;
+			yaw   = csMouseMove.x * cameraOp.rotateSpeed;
+			pitch = csMouseMove.y * cameraOp.rotateSpeed;
 			roll  = 0.0f; // Unused.
 
-			if ( reverseCameraRotateHorizontal ) { yaw   *= -1.0f; }
-			if ( reverseCameraRotateVertical   ) { pitch *= -1.0f; }
+			if ( cameraOp.reverseRotateHorizontal ) { yaw   *= -1.0f; }
+			if ( cameraOp.reverseRotateVertical   ) { pitch *= -1.0f; }
 		}
 
 		controller.moveVelocity		= moveVelocity;
@@ -407,92 +410,6 @@ private:
 		controller.moveInLocalSpace	= true;
 
 		iCamera.Update( controller );
-		
-		/*
-		auto MakeControlStructWithMouse = []()->ICamera::Controller
-		{
-			if ( !Donya::Keyboard::Press( VK_MENU ) || Donya::IsMouseHoveringImGuiWindow() )
-			{
-				ICamera::Controller noop{};
-				noop.SetNoOperation();
-				noop.slerpPercent = 0.2f;
-				return noop;
-			}
-			// else
-
-			static Donya::Int2 prevMouse{};
-			static Donya::Int2 currMouse{};
-
-			prevMouse = currMouse;
-
-			auto nowMouse = Donya::Mouse::Coordinate();
-			currMouse.x = scast<int>( nowMouse.x );
-			currMouse.y = scast<int>( nowMouse.y );
-
-			bool isInputMouseButton = Donya::Mouse::Press( Donya::Mouse::Kind::LEFT ) || Donya::Mouse::Press( Donya::Mouse::Kind::MIDDLE ) || Donya::Mouse::Press( Donya::Mouse::Kind::RIGHT );
-			bool isDriveMouse = ( prevMouse != currMouse ) || Donya::Mouse::WheelRot() || isInputMouseButton;
-			if ( !isDriveMouse )
-			{
-				ICamera::Controller noop{};
-				noop.SetNoOperation();
-				noop.slerpPercent = 0.2f;
-				return noop;
-			}
-			// else
-
-			Donya::Vector3 diff{};
-			{
-				Donya::Vector2 vec2 = ( currMouse - prevMouse ).Float();
-
-				diff.x = vec2.x;
-				diff.y = vec2.y;
-			}
-
-			Donya::Vector3 movement{};
-			Donya::Vector3 rotation{};
-
-			if ( Donya::Mouse::Press( Donya::Mouse::Kind::LEFT ) )
-			{
-				constexpr float ROT_AMOUNT = ToRadian( 1.0f );
-				rotation.x = diff.x * ROT_AMOUNT;
-				rotation.y = diff.y * ROT_AMOUNT;
-			}
-			else
-			if ( Donya::Mouse::Press( Donya::Mouse::Kind::MIDDLE ) )
-			{
-				constexpr float MOVE_SPEED = 0.1f;
-				movement.x =  diff.x * MOVE_SPEED;
-				movement.y = -diff.y * MOVE_SPEED;
-			}
-
-			constexpr float FRONT_SPEED = 3.5f;
-			movement.z = FRONT_SPEED * scast<float>( Donya::Mouse::WheelRot() );
-
-			Donya::Quaternion rotYaw = Donya::Quaternion::Make( Donya::Vector3::Up(), rotation.x );
-
-			Donya::Vector3 right = Donya::Vector3::Right();
-			right = rotYaw.RotateVector( right );
-			Donya::Quaternion rotPitch = Donya::Quaternion::Make( right, rotation.y );
-
-			Donya::Quaternion rotQ = rotYaw * rotPitch;
-
-			static Donya::Vector3 front = Donya::Vector3::Front();
-
-			if ( !rotation.IsZero() )
-			{
-				front = rotQ.RotateVector( front );
-				front.Normalize();
-			}
-
-			ICamera::Controller ctrl{};
-			ctrl.moveVelocity		= movement;
-			ctrl.rotation			= {};
-			ctrl.slerpPercent		= 0.2f;
-			ctrl.moveInLocalSpace	= true;
-
-			return ctrl;
-		};
-		*/
 	}
 
 	void FetchDraggedFilePaths()
@@ -773,12 +690,13 @@ private:
 
 					if ( ImGui::TreeNode( u8"ê›íË" ) )
 					{
-						ImGui::DragFloat3( u8"à⁄ìÆë¨ìx", &cameraMoveSpeed.x, 0.2f );
-						ImGui::DragFloat ( u8"âÒì]ë¨ìx", &cameraRotateSpeed, ToRadian( 1.0f ) );
-						ImGui::Checkbox( u8"îΩì]ÅEâ°à⁄ìÆ", &reverseCameraMoveHorizontal   );
-						ImGui::Checkbox( u8"îΩì]ÅEècà⁄ìÆ", &reverseCameraMoveVertical     );
-						ImGui::Checkbox( u8"îΩì]ÅEâ°âÒì]", &reverseCameraRotateHorizontal );
-						ImGui::Checkbox( u8"îΩì]ÅEècâÒì]", &reverseCameraRotateVertical   );
+						ImGui::SliderFloat( u8"ï‚ä‘åWêî", &cameraOp.slerpFactor, 0.0f, 1.0f );
+						ImGui::DragFloat3( u8"à⁄ìÆë¨ìx", &cameraOp.moveSpeed.x, 0.2f );
+						ImGui::DragFloat ( u8"âÒì]ë¨ìx", &cameraOp.rotateSpeed, ToRadian( 1.0f ) );
+						ImGui::Checkbox( u8"îΩì]ÅEâ°à⁄ìÆ", &cameraOp.reverseMoveHorizontal   );
+						ImGui::Checkbox( u8"îΩì]ÅEècà⁄ìÆ", &cameraOp.reverseMoveVertical     );
+						ImGui::Checkbox( u8"îΩì]ÅEâ°âÒì]", &cameraOp.reverseRotateHorizontal );
+						ImGui::Checkbox( u8"îΩì]ÅEècâÒì]", &cameraOp.reverseRotateVertical   );
 
 						ImGui::TreePop();
 					}

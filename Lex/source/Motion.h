@@ -82,6 +82,10 @@ namespace Donya
 		/// Set zero to current frame(elapsedTime) and "samplingRate".
 		/// </summary>
 		void Init();
+
+		/// <summary>
+		/// Update a motion frame.
+		/// </summary>
 		void Update( float elapsedTime );
 	public:
 		/// <summary>

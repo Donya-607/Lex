@@ -288,6 +288,8 @@ namespace Donya
 			directory[i] = fullPath[i];
 		}
 
+		// These string operation functions are thread-safe?
+
 		PathRemoveFileSpecA( directory.get() );
 		PathAddBackslashA( directory.get() );
 

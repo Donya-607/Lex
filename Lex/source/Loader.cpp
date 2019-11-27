@@ -372,21 +372,21 @@ namespace Donya
 
 	void Loader::SaveByCereal( const std::string &filePath ) const
 	{
-		Serializer::Extension bin  = Serializer::Extension::BINARY;
+		Donya::Serializer::Extension bin  = Donya::Serializer::Extension::BINARY;
 
 		std::lock_guard<std::mutex> lock( cerealMutex );
 		
-		Serializer seria;
+		Donya::Serializer seria;
 		seria.Save( bin, filePath.c_str(),  SERIAL_ID, *this );
 	}
 	
 	bool Loader::LoadByCereal( const std::string &filePath, std::string *outputErrorString, bool outputProgress )
 	{
-		Serializer::Extension ext = Serializer::Extension::BINARY;
+		Donya::Serializer::Extension ext = Donya::Serializer::Extension::BINARY;
 
 		std::lock_guard<std::mutex> lock( cerealMutex );
 		
-		Serializer seria;
+		Donya::Serializer seria;
 		bool succeeded = seria.Load( ext, filePath.c_str(), SERIAL_ID, *this );
 
 		// I should overwrite file-directory after load, because this will overwritten by Serializer::Load().
