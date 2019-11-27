@@ -12,6 +12,8 @@
 
 #include "Motion.h" // For update CB's bone matrix. I should refactoring this.
 
+// Program version : 0
+
 namespace Donya
 {
 	class Loader;

@@ -28,6 +28,8 @@ namespace fbxsdk
 }
 #endif // USE_FBX_SDK
 
+// Program version : 3
+
 namespace Donya
 {
 	/// <summary>
@@ -35,7 +37,6 @@ namespace Donya
 	/// </summary>
 	class Loader
 	{
-		static constexpr unsigned int PROGRAM_VERSION = 2;
 	private:
 		static constexpr const char *SERIAL_ID = "Loader";
 		static std::mutex cerealMutex;
