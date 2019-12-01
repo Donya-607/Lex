@@ -8,7 +8,8 @@
 #include <fbxsdk.h>
 #endif // USE_FBX_SDK
 
-#include "Donya/Useful.h" // Use OutputDebugStr(), scast macro.
+#include "Donya/Constant.h"	// Use scast macro.
+#include "Donya/Useful.h"	// Use OutputDebugStr().
 
 #undef min
 #undef max
@@ -31,14 +32,16 @@ namespace Donya
 {
 	Loader::Loader() :
 		absFilePath(), fileName(), fileDirectory(),
-		meshes()
-	{
-
-	}
+		meshes(), motions(), collisionFaces()
+	{}
 	Loader::~Loader()
 	{
 		meshes.clear();
+		motions.clear();
+		collisionFaces.clear();
 		meshes.shrink_to_fit();
+		motions.shrink_to_fit();
+		collisionFaces.shrink_to_fit();
 	}
 
 	std::mutex Loader::cerealMutex{};
@@ -133,7 +136,7 @@ namespace Donya
 			{
 				auto	&data	= influences[ctrlPointIndices[i]].cluster;
 				float	weight	= scast<float>( ctrlPointWeights[i] );
-				data.emplace_back( clustersIndex, weight );
+				data.push_back( { clustersIndex, weight } );
 			}
 		};
 		auto FetchClusterFromSkin =
@@ -589,19 +592,22 @@ namespace Donya
 		for ( int polyIndex = 0; polyIndex < polygonCount; ++polyIndex )
 		{
 			// The material for current face.
-			int mtlIndex = 0;
+			int  mtlIndex = 0;
 			if ( mtlCount )
 			{
 				mtlIndex = pMesh->GetElementMaterial()->GetIndexArray().GetAt( polyIndex );
 			}
 
 			// Where should I save the vertex attribute index, according to the material.
-			auto &subset = mesh.subsets[mtlIndex];
-			int indexOffset = subset.indexStart + subset.indexCount;
+			auto &subset	= mesh.subsets[mtlIndex];
+			int indexOffset	= subset.indexStart + subset.indexCount;
 
 			FBX::FbxVector4	fbxNormal;
 			Donya::Vector3	normal;
 			Donya::Vector3	position;
+
+			Face colFace{};
+			colFace.materialIndex = mtlIndex;
 
 			size_t size = pMesh->GetPolygonSize( polyIndex );
 			for ( size_t v = 0; v < size; ++v )
@@ -619,12 +625,19 @@ namespace Donya
 				mesh.normals.push_back( normal );
 				mesh.positions.push_back( position );
 
+				if ( v < colFace.points.size() )
+				{
+					colFace.points[v] = position;
+				}
+
 				mesh.indices[indexOffset + v] = vertexCount;
 				vertexCount++;
 
 				mesh.influences.push_back( fetchedInfluences[ctrlPointIndex] );
 			}
 			subset.indexCount += size;
+
+			collisionFaces.emplace_back( colFace );
 		}
 
 		FBX::FbxStringList uvName;
@@ -927,7 +940,6 @@ namespace Donya
 						for ( size_t i = 0; i < end; ++i )
 						{
 							ImGui::Text( "[No:%d][X:%6.3f][Y:%6.3f]", i, ref[i].x, ref[i].y );
-					
 						}
 						ImGui::EndChild();
 

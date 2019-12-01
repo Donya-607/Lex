@@ -1,22 +1,22 @@
 #pragma once
 
+#include <array>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
 
+// The cereal's source code also will use max, min.
 #undef max
 #undef min
 
-#include <cereal/cereal.hpp>
+#include <cereal/types/array.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
 
 #include "Donya/Serializer.h"
 #include "Donya/UseImGui.h"
 #include "Donya/Vector.h"
-
-#include "SkinnedMesh.h"
 
 #define USE_FBX_SDK ( true )
 
@@ -28,7 +28,7 @@ namespace fbxsdk
 }
 #endif // USE_FBX_SDK
 
-// Program version : 3
+// Program version : 4
 
 namespace Donya
 {
@@ -106,7 +106,7 @@ namespace Donya
 		{
 			std::string			name{};
 			Donya::Vector4x4	transform{}; // From initial model space to posed model space.
-			// DirectX::XMFLOAT4X4 transformToBone{}; // From model space to bone space.
+			// Donya::Vector4x4 transformToBone{}; // From model space to bone space.
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -183,9 +183,6 @@ namespace Donya
 		{
 			int		index{};
 			float	weight{};
-		public:
-			BoneInfluence() : index(), weight() {}
-			BoneInfluence( int index, float weight ) : index( index ), weight( weight ) {}
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -206,9 +203,6 @@ namespace Donya
 		struct BoneInfluencesPerControlPoint
 		{
 			std::vector<BoneInfluence> cluster{};
-		public:
-			BoneInfluencesPerControlPoint() : cluster() {}
-			BoneInfluencesPerControlPoint( const BoneInfluencesPerControlPoint &ref ) : cluster( ref.cluster ) {}
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -261,6 +255,30 @@ namespace Donya
 			}
 		};
 
+		/// <summary>
+		/// Use for collision.
+		/// </summary>
+		struct Face
+		{
+			int materialIndex{ -1 };				// -1 is invalid.
+			std::array<Donya::Vector3, 3> points{};	// Store local-space vertices of a triangle. CW.
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				archive
+				(
+					CEREAL_NVP( materialIndex ),
+					CEREAL_NVP( points )
+				);
+				if ( 1 <= version )
+				{
+					// archive();
+				}
+			}
+		};
+
 		// region Structs
 	#pragma endregion
 	private:
@@ -269,6 +287,7 @@ namespace Donya
 		std::string			fileDirectory;	// '/' terminated.
 		std::vector<Mesh>	meshes;
 		std::vector<Motion> motions;
+		std::vector<Face>	collisionFaces;
 	public:
 		Loader();
 		~Loader();
@@ -290,6 +309,10 @@ namespace Donya
 			}
 			if ( 2 <= version )
 			{
+				archive( CEREAL_NVP( collisionFaces ) );
+			}
+			if ( 3 <= version )
+			{
 				// archive( CEREAL_NVP( x ) );
 			}
 		}
@@ -308,11 +331,12 @@ namespace Donya
 		/// </summary>
 		void SaveByCereal( const std::string &filePath ) const;
 	public:
-		std::string GetAbsoluteFilePath()		const { return absFilePath;		}
-		std::string GetOnlyFileName()			const { return fileName;		}
-		std::string GetFileDirectory()			const { return fileDirectory;	}
-		const std::vector<Mesh>   *GetMeshes()	const { return &meshes;			}
-		const std::vector<Motion> *GetMotions()	const { return &motions;		}
+		std::string GetAbsoluteFilePath()					const { return absFilePath;		}
+		std::string GetOnlyFileName()						const { return fileName;		}
+		std::string GetFileDirectory()						const { return fileDirectory;	}
+		const std::vector<Mesh>		*GetMeshes()			const { return &meshes;			}
+		const std::vector<Motion>	*GetMotions()			const { return &motions;		}
+		const std::vector<Face>		*GetCollisionFaces()	const { return &collisionFaces;	}
 	private:
 		bool LoadByCereal( const std::string &filePath, std::string *outputErrorString, bool outputDebugProgress );
 		
@@ -345,7 +369,7 @@ namespace Donya
 
 }
 
-CEREAL_CLASS_VERSION( Donya::Loader,				1 )
+CEREAL_CLASS_VERSION( Donya::Loader,				2 )
 CEREAL_CLASS_VERSION( Donya::Loader::Material,		0 )
 CEREAL_CLASS_VERSION( Donya::Loader::Subset,		0 )
 CEREAL_CLASS_VERSION( Donya::Loader::Bone,			0 )
@@ -354,3 +378,4 @@ CEREAL_CLASS_VERSION( Donya::Loader::Motion,		0 )
 CEREAL_CLASS_VERSION( Donya::Loader::BoneInfluence, 0 )
 CEREAL_CLASS_VERSION( Donya::Loader::BoneInfluencesPerControlPoint, 0 )
 CEREAL_CLASS_VERSION( Donya::Loader::Mesh,			1 )
+CEREAL_CLASS_VERSION( Donya::Loader::Face,			0 )
