@@ -105,6 +105,7 @@ public:
 
 	CameraUsage						cameraOp;
 
+	float							loadSamplingFPS;		// Use to Loader's sampling FPS.
 	std::vector<MeshAndInfo>		models;
 
 	Donya::CBuffer<CBufferPerFrame>	cbPerFrame;
@@ -124,7 +125,7 @@ public:
 		iCamera(), directionalLight(), materialColor( 1.0f, 1.0f, 1.0f, 1.0f ),
 		nowPressMouseButton(), prevMouse(), currMouse(),
 		cameraOp(),
-		models(),
+		loadSamplingFPS( 0.0f ), models(),
 		cbPerFrame(), cbPerModel(), VSSkinnedMesh(), PSSkinnedMesh(),
 		pLoadThread( nullptr ), pCurrentLoading( nullptr ),
 		currentLoadingFileNameUTF8(), reservedAbsFilePaths(), reservedFileNamesUTF8(),
@@ -551,7 +552,7 @@ private:
 		if ( reservedAbsFilePaths.empty() ) { return; }
 		// else
 
-		auto Load = []( std::string filePath, AsyncLoad *pElement )
+		auto Load = []( std::string filePath, AsyncLoad *pElement, float samplingFPS )
 		{
 			if ( !pElement ) { return; }
 			// else
@@ -573,6 +574,7 @@ private:
 			// Load model, using lock_guard by pLoadMutex.
 			{
 				Donya::Loader tmpHeavyLoad{}; // For reduce time of lock.
+				tmpHeavyLoad.SetSamplingFPS( samplingFPS );
 				bool loadSucceeded = tmpHeavyLoad.Load( filePath, nullptr );
 
 				std::lock_guard<std::mutex> lock( pElement->meshMutex );
@@ -600,7 +602,7 @@ private:
 		currentLoadingFileNameUTF8 = Donya::ExtractFileNameFromFullPath( loadFilePath );
 
 		pCurrentLoading	= std::make_unique<AsyncLoad>();
-		pLoadThread		= std::make_unique<std::thread>( Load, loadFilePath, pCurrentLoading.get() );
+		pLoadThread		= std::make_unique<std::thread>( Load, loadFilePath, pCurrentLoading.get(), loadSamplingFPS );
 	}
 	void AppendModelIfLoadFinished()
 	{
@@ -795,6 +797,10 @@ private:
 				ImGui::SliderFloat3( u8"方向性ライト・向き",		&directionalLight.direction.x, -DIRECTION_RANGE, DIRECTION_RANGE );
 				ImGui::ColorEdit4  ( u8"方向性ライト・カラー",	&directionalLight.color.x );
 				ImGui::ColorEdit4  ( u8"マテリアル・カラー",		&materialColor.x );
+				ImGui::Text( "" );
+
+				ImGui::SliderFloat( u8"ロード時：サンプルＦＰＳ", &loadSamplingFPS, 0.0f, 120.0f );
+				ImGui::Text( "" );
 
 				ImGui::TreePop();
 			}
