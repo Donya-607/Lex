@@ -824,8 +824,7 @@ private:
 							std::string saveName = GetSaveFileNameByCommonDialog();
 							if ( saveName.empty() )
 							{
-								// Error.
-								char breakpoint = 0;
+								// Cancel the save process.
 							}
 							else
 							{
