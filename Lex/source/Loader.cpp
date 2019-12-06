@@ -1,6 +1,5 @@
 #include "Loader.h"
 
-#include <array>
 #include <crtdbg.h>
 #include <Windows.h>
 
@@ -32,7 +31,8 @@ namespace Donya
 {
 	Loader::Loader() :
 		absFilePath(), fileName(), fileDirectory(),
-		meshes(), motions(), collisionFaces()
+		meshes(), motions(), collisionFaces(),
+		sampleFPS( 0.0f )
 	{}
 	Loader::~Loader()
 	{
@@ -233,7 +233,7 @@ namespace Donya
 	/// If specified mesh("pMesh") has not a motion(animation), returns false.
 	/// "samplingRate" is sampling times per second. if "samplingRate" zero, use FBX data's frame rate.
 	/// </summary>
-	bool FetchMotion( unsigned int samplingRate, const FBX::FbxMesh *pMesh, Loader::Motion *pMotion )
+	bool FetchMotion( float samplingFPS, const FBX::FbxMesh *pMesh, Loader::Motion *pMotion )
 	{
 		// List of all the animation stack. 
 		FBX::FbxArray<FBX::FbxString *> animationStackNames;
@@ -261,9 +261,9 @@ namespace Donya
 		FBX::FbxTime frameTime{};
 		frameTime.SetTime( 0, 0, 0, 1, 0, timeMode );
 
-		pMotion->samplingRate = ( samplingRate <= 0 )
-		? 1.0f / scast<float>( FBX::FbxTime::GetFrameRate( timeMode ) )
-		: 1.0f / samplingRate;
+		pMotion->samplingRate = ( samplingFPS <= 0.0f )
+		? 1.0f / scast<float>( FBX::FbxTime::GetFrameRate( timeMode ) /* Contain FPS */ )
+		: 1.0f / samplingFPS;
 
 		FBX::FbxTime samplingStep;
 		samplingStep.SetTime( 0, 0, 1, 0, 0, timeMode );
@@ -295,6 +295,15 @@ namespace Donya
 		ReleaseAnimationStackNames();
 
 		return true;
+	}
+
+#endif // USE_FBX_SDK
+
+#if USE_FBX_SDK
+
+	void Loader::SetSamplingFPS( float FPS )
+	{
+		sampleFPS = FPS;
 	}
 
 #endif // USE_FBX_SDK
@@ -511,7 +520,7 @@ namespace Donya
 
 				motions.push_back( {} );
 				Loader::Motion &currentMotion = motions.back();
-				bool hasMotion = FetchMotion( 0, pMesh, &currentMotion );
+				bool hasMotion = FetchMotion( sampleFPS, pMesh, &currentMotion );
 				if ( hasMotion )
 				{
 					currentMotion.meshNo = scast<int>( i );

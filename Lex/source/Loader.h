@@ -28,7 +28,7 @@ namespace fbxsdk
 }
 #endif // USE_FBX_SDK
 
-// Program version : 4
+// Program version : 5
 
 namespace Donya
 {
@@ -281,13 +281,15 @@ namespace Donya
 
 		// region Structs
 	#pragma endregion
-	private:
-		std::string			absFilePath;
+	private: // Loading parameters.
+		std::string			absFilePath;	// Contain full-path.
 		std::string			fileName;		// only file-name, the directory is not contain.
 		std::string			fileDirectory;	// '/' terminated.
 		std::vector<Mesh>	meshes;
 		std::vector<Motion> motions;
 		std::vector<Face>	collisionFaces;
+	private:
+		float				sampleFPS;		// Use to sampling-rate of an all motions. If set value of lower-equal than zero, use a model's sampling-rate.
 	public:
 		Loader();
 		~Loader();
@@ -316,6 +318,14 @@ namespace Donya
 				// archive( CEREAL_NVP( x ) );
 			}
 		}
+	public:
+	#if USE_FBX_SDK
+		/// <summary>
+		/// This param is use for calculate a sampling-rate at loading a model by FBX(only if FBX).<para></para>
+		/// If set value of lower-equal than zero(default is zero) to this, use a model's samling-rate.
+		/// </summary>
+		void SetSamplingFPS( float samplingFPS );
+	#endif // USE_FBX_SDK
 	public:
 		/// <summary>
 		/// We can those load file extensions:<para></para>
