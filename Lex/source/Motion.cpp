@@ -1,7 +1,8 @@
 #include "Motion.h"
 
-#include "Donya/Constant.h"	// Use scast macro.
-#include "Donya/Useful.h"	// Use ZeroEqual().
+#include "Donya/Constant.h"		// Use scast macro.
+#include "Donya/Quaternion.h"	// Use for interpolate.
+#include "Donya/Useful.h"		// Use ZeroEqual().
 
 #include "Loader.h"
 
@@ -113,34 +114,41 @@ namespace Donya
 		samplingRate = rate;
 	}
 
+	void Animator::SetInterpolateFlag( bool useInterpolate )
+	{
+		enableInterpolate = useInterpolate;
+	}
+
 	// TODO:Change these "motion frame" type to float, then interpolate a fetched skeletal.
 
-	int CalcFrameImpl( float elapsedTime, float rate )
+	float CalcFrameImpl( float elapsedTime, float rate )
 	{
-		return ( ZeroEqual( rate ) ) ? 0 : scast<int>( elapsedTime / rate );
+		return ( ZeroEqual( rate ) ) ? 0.0f : ( elapsedTime / rate );
 	}
-	int Animator::CalcCurrentFrame() const
+	float Animator::CalcCurrentFrame() const
 	{
 		return CalcFrameImpl( elapsedTime, samplingRate );
 	}
-	int Animator::CalcCurrentFrame( const Motion &motion, bool useWrapAround ) const
+	float Animator::CalcCurrentFrame( const Motion &motion, bool useWrapAround ) const
 	{
-		const float rate = ( ZeroEqual( samplingRate ) ) ? motion.samplingRate : samplingRate;
+		const float motionCountF = scast<float>( motion.motion.size() );
+		if ( ZeroEqual( motionCountF ) ) { return 0.0f; }
+		// else
 
-		int currentFrame = CalcFrameImpl( elapsedTime, rate );
+		const float rate   = ( ZeroEqual( samplingRate ) ) ? motion.samplingRate : samplingRate;
 
-		const int MOTION_COUNT = scast<int>( motion.motion.size() );
-		if ( MOTION_COUNT <= currentFrame )
+		float currentFrame =  scast<int>( CalcFrameImpl( elapsedTime, rate ) );
+		if (  motionCountF <= currentFrame )
 		{
 			currentFrame = ( useWrapAround )
-			? currentFrame % MOTION_COUNT
-			: 0;
+			? fmodf( currentFrame, motionCountF )
+			: 0.0f;
 		}
-		
+
 		return currentFrame;
 	}
 
-	Skeletal Animator::FetchCurrentMotion( const Motion &motion, bool useWrapAround ) const
+	Skeletal Animator::FetchCurrentPose( const Motion &motion, bool useWrapAround ) const
 	{
 		if ( motion.motion.empty() )
 		{
@@ -149,9 +157,96 @@ namespace Donya
 		}
 		// else
 
-		int currentFrame = CalcCurrentFrame( motion, useWrapAround );
-		    currentFrame = std::max( 0, currentFrame ); // Fail safe
+		float currentFrame = CalcCurrentFrame( motion, useWrapAround );
+		      currentFrame = std::max( 0.0f, currentFrame ); // Fail safe
 
-		return motion.motion[currentFrame];
+		if ( enableInterpolate )
+		{
+			float		integral{};
+			float		fractional		= modf( currentFrame, &integral );
+			int			currentFrame	= scast<int>( integral );
+			int			nextFrame		= std::min( scast<int>( motion.motion.size() ), currentFrame + 1 );
+
+			Skeletal	currentPose		= motion.motion[currentFrame];
+			Skeletal	nextPose		= motion.motion[nextFrame];
+
+			_ASSERT_EXPR( currentPose.boneCount == nextPose.boneCount, L"Error : The bone count did not match! " );
+
+			Donya::Vector3		scaling{};
+			Donya::Vector3		translation{};
+			Donya::Vector4x4	rotation{};
+			Donya::Quaternion	rotationSlerped{};
+			enum { Base = 0, Next };
+			Donya::Vector3		extracted[2]{};
+			Donya::Vector4x4	rotationMat[2]{};
+			Donya::Quaternion	rotationQuat[2]{};
+			enum { X = 0, Y, Z };
+			Donya::Vector3		baseScales[3]{};
+			Donya::Vector3		nextScales[3]{};
+
+			Skeletal	interpolated	= currentPose;
+			for ( size_t i = 0; i < interpolated.boneCount; ++i )
+			{
+				const	auto &next	= nextPose.skeletal[i].transform;
+						auto &base	= interpolated.skeletal[i].transform;
+
+				extracted[Base]		= Donya::Vector3{ base._41, base._42, base._43 };
+				extracted[Next]		= Donya::Vector3{ next._41, next._42, next._43 };
+				translation			= ( extracted[Base] + extracted[Next] ) * fractional;
+
+				baseScales[X]		= Donya::Vector3{ base._11, base._12, base._13 };
+				baseScales[Y]		= Donya::Vector3{ base._21, base._22, base._23 };
+				baseScales[Z]		= Donya::Vector3{ base._31, base._32, base._33 };
+				nextScales[X]		= Donya::Vector3{ next._11, next._12, next._13 };
+				nextScales[Y]		= Donya::Vector3{ next._21, next._22, next._23 };
+				nextScales[Z]		= Donya::Vector3{ next._31, next._32, next._33 };
+				extracted[Base].x	= baseScales[X].Length();
+				extracted[Base].y	= baseScales[Y].Length();
+				extracted[Base].z	= baseScales[Z].Length();
+				extracted[Next].x	= nextScales[X].Length();
+				extracted[Next].y	= nextScales[Y].Length();
+				extracted[Next].z	= nextScales[Z].Length();
+				scaling.x			= ( extracted[Base].x + extracted[Next].x ) * fractional;
+				scaling.y			= ( extracted[Base].y + extracted[Next].y ) * fractional;
+				scaling.z			= ( extracted[Base].z + extracted[Next].z ) * fractional;
+				
+				baseScales[X].Normalize();
+				baseScales[Y].Normalize();
+				baseScales[Z].Normalize();
+				nextScales[X].Normalize();
+				nextScales[Y].Normalize();
+				nextScales[Z].Normalize();
+				rotationMat[Base]	= Donya::Vector4x4::MakeRotationOrthogonalAxis
+				(
+					baseScales[X],
+					baseScales[Y],
+					baseScales[Z]
+				);
+				rotationMat[Next]	= Donya::Vector4x4::MakeRotationOrthogonalAxis
+				(
+					nextScales[X],
+					nextScales[Y],
+					nextScales[Z]
+				);
+				rotationQuat[Base]	= Donya::Quaternion::Make ( rotationMat[Base] ).Normalized();
+				rotationQuat[Next]	= Donya::Quaternion::Make ( rotationMat[Next] ).Normalized();
+				rotationSlerped		= Donya::Quaternion::Slerp( rotationQuat[Base], rotationQuat[Next], fractional );
+				rotation			= rotationSlerped.RequireRotationMatrix();
+
+				base = Donya::Vector4x4
+				{
+					rotation._11 * scaling.x,	rotation._12,				rotation._13,				0.0f,
+					rotation._21,				rotation._22 * scaling.y,	rotation._33,				0.0f,
+					rotation._31,				rotation._32,				rotation._33 * scaling.z,	0.0f,
+					translation.x,				translation.y,				translation.z,				1.0f
+				};
+			}
+			
+			return		interpolated;
+		}
+		// else
+
+		// Rounded down the decimal.
+		return motion.motion[scast<int>( currentFrame )];
 	}
 }

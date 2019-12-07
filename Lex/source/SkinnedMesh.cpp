@@ -486,7 +486,7 @@ namespace Donya
 				cbPerMesh.data.world					= ( ( mesh.globalTransform * mesh.coordinateConversion ) * world ).XMFloat();
 
 				const Donya::Motion		useMotion		= motionPerMesh.FetchMotion( mesh.meshNo );
-				const Donya::Skeletal	currentPosture	= currentAnimation.FetchCurrentMotion( useMotion );
+				const Donya::Skeletal	currentPosture	= currentAnimation.FetchCurrentPose( useMotion );
 				auto TransformBones = []( std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> *pBoneTransform, const Donya::Skeletal &pose )
 				{
 					const size_t poseBoneCount = pose.skeletal.size();
