@@ -848,10 +848,10 @@ private:
 						}
 						ImGui::Text( "" );
 
-						ImGui::Checkbox( u8"‰B‚·", &it->dontWannaDraw );
-						if ( ImGui::TreeNode( u8"ƒ‚[ƒVƒ‡ƒ“Ý’è" ) )
+						if ( ImGui::TreeNode( u8"•`‰æÝ’è" ) )
 						{
-							ImGui::Checkbox( u8"•âŠÔ‚ð—LŒø‚É‚·‚é", &it->enableMotionInterpolation );
+							ImGui::Checkbox( u8"‰B‚·", &it->dontWannaDraw );
+							ImGui::Checkbox( u8"ƒ‚[ƒVƒ‡ƒ“‚Ì•âŠÔ‚ð—LŒø‚É‚·‚é", &it->enableMotionInterpolation );
 							it->animator.SetInterpolateFlag( it->enableMotionInterpolation );
 
 							ImGui::TreePop();
