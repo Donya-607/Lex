@@ -312,6 +312,10 @@ namespace Donya
 		const std::string fileDirectory = ExtractFileDirectoryFromFullPath( fullPath );
 		if ( fileDirectory.empty() ) { return ""; }
 		// else
+		
+		// TODO:Fix an exception that occurred here.
+		// 0x7598C632 で例外がスローされました( Lex.exe 内 ) : Microsoft C++ の例外 : std::out_of_range( メモリの場所 0x025EF080 )。
+		// ハンドルされない例外が 0x7598C632 で発生しました (Lex.exe 内): Microsoft C++ の例外: std::out_of_range (メモリの場所 0x025EF080)。
 
 		return fullPath.substr( fileDirectory.size() );
 	}

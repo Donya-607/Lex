@@ -73,8 +73,8 @@ namespace Donya
 	{
 	private:
 		float	elapsedTime;
-		float	samplingRate;
-		bool	enableInterpolate;
+		float	samplingRate;		// Default is zero.
+		bool	enableInterpolate;	// Default is false.
 	public:
 		Animator();
 		~Animator();
@@ -109,7 +109,7 @@ namespace Donya
 		/// </summary>
 		float CalcCurrentFrame() const;
 		/// <summary>
-		/// Returns current motion frame calculated by registered sampling rate.<para></para>
+		/// Returns current motion frame calculated by registered sampling rate(if the zero is registered, use the motion's sampling rate).<para></para>
 		/// [TRUE:useWrapAround] Returns frame will be wrap-arounded in motion count(ex.if motion count is 3, returns frame number is only 0, 1 or 2).<para></para>
 		/// [FALSE:useWrapAround] Returns frame is zero if over than motion count.
 		/// </summary>

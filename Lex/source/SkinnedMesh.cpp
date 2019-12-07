@@ -475,7 +475,7 @@ namespace Donya
 									: iRasterizerStateWire.Get();
 			pImmediateContext->RSSetState( ppRasterizerState );
 
-			pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xffffffff );
+			pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xFFFFFFFF );
 		}
 
 		for ( auto &mesh : meshes )

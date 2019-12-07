@@ -414,7 +414,8 @@ namespace Donya
 	bool Loader::LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString, bool outputProgress )
 	{
 		fileDirectory	= ExtractFileDirectoryFromFullPath( filePath );
-		fileName		= filePath.substr( fileDirectory.size() );
+		fileName		= filePath.substr( fileDirectory.size() ); // 0x7598C632 で例外がスローされました (Lex.exe 内): Microsoft C++ の例外: std::out_of_range (メモリの場所 0x0EA4E994)。
+		// TODO : Fix this exception that occurred here.
 
 		MakeAbsoluteFilePath( filePath );
 

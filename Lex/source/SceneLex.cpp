@@ -45,6 +45,8 @@ public:
 		Donya::SkinnedMesh	mesh{};
 		Donya::MotionChunk	motions{};
 		Donya::Animator		animator{};
+		bool enableMotionInterpolation{ false };
+		bool dontWannaDraw{ false };
 	public:
 		bool CreateByLoader()
 		{
@@ -248,8 +250,12 @@ public:
 		optionPerSubset.setVS		= true;
 		optionPerSubset.setPS		= true;
 
+		bool breakpoint = 2 <= models.size();
 		for ( auto &it : models )
 		{
+			if ( it.dontWannaDraw ) { continue; }
+			// else
+
 			it.mesh.Render
 			(
 				it.motions,
@@ -824,7 +830,6 @@ private:
 							continue;
 						}
 						// else
-
 						if ( ImGui::Button( u8"•Û‘¶" ) )
 						{
 							std::string saveName = GetSaveFileNameByCommonDialog();
@@ -841,6 +846,17 @@ private:
 								it->loader.SaveByCereal( saveName );
 							}
 						}
+						ImGui::Text( "" );
+
+						ImGui::Checkbox( u8"‰B‚·", &it->dontWannaDraw );
+						if ( ImGui::TreeNode( u8"ƒ‚[ƒVƒ‡ƒ“Ý’è" ) )
+						{
+							ImGui::Checkbox( u8"•âŠÔ‚ð—LŒø‚É‚·‚é", &it->enableMotionInterpolation );
+							it->animator.SetInterpolateFlag( it->enableMotionInterpolation );
+
+							ImGui::TreePop();
+						}
+						ImGui::Text( "" );
 
 						it->loader.AdjustParameterByImGuiNode();
 						it->loader.EnumPreservingDataToImGui();

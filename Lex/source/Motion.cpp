@@ -89,7 +89,8 @@ namespace Donya
 	}
 
 	Animator::Animator() :
-		elapsedTime(), samplingRate()
+		elapsedTime(), samplingRate(),
+		enableInterpolate( false )
 	{}
 	Animator::~Animator() = default;
 
@@ -119,8 +120,6 @@ namespace Donya
 		enableInterpolate = useInterpolate;
 	}
 
-	// TODO:Change these "motion frame" type to float, then interpolate a fetched skeletal.
-
 	float CalcFrameImpl( float elapsedTime, float rate )
 	{
 		return ( ZeroEqual( rate ) ) ? 0.0f : ( elapsedTime / rate );
@@ -137,7 +136,7 @@ namespace Donya
 
 		const float rate   = ( ZeroEqual( samplingRate ) ) ? motion.samplingRate : samplingRate;
 
-		float currentFrame =  scast<int>( CalcFrameImpl( elapsedTime, rate ) );
+		float currentFrame =  CalcFrameImpl( elapsedTime, rate );
 		if (  motionCountF <= currentFrame )
 		{
 			currentFrame = ( useWrapAround )
@@ -156,6 +155,12 @@ namespace Donya
 			return Skeletal{};
 		}
 		// else
+		const int motionCount = scast<int>( motion.motion.size() );
+		if ( motionCount == 1 )
+		{
+			return motion.motion[0];
+		}
+		// else
 
 		float currentFrame = CalcCurrentFrame( motion, useWrapAround );
 		      currentFrame = std::max( 0.0f, currentFrame ); // Fail safe
@@ -164,10 +169,12 @@ namespace Donya
 		{
 			float		integral{};
 			float		fractional		= modf( currentFrame, &integral );
-			int			currentFrame	= scast<int>( integral );
-			int			nextFrame		= std::min( scast<int>( motion.motion.size() ), currentFrame + 1 );
+			int			baseFrame		= scast<int>( integral );
+			int			nextFrame		= ( motionCount <= baseFrame + 1 )
+										? ( baseFrame + 1 ) % motionCount // Wrap around.
+										: baseFrame + 1;
 
-			Skeletal	currentPose		= motion.motion[currentFrame];
+			Skeletal	currentPose		= motion.motion[baseFrame];
 			Skeletal	nextPose		= motion.motion[nextFrame];
 
 			_ASSERT_EXPR( currentPose.boneCount == nextPose.boneCount, L"Error : The bone count did not match! " );
@@ -184,16 +191,63 @@ namespace Donya
 			Donya::Vector3		baseScales[3]{};
 			Donya::Vector3		nextScales[3]{};
 
+			auto Lerp = []( const Donya::Vector3 &begin, const Donya::Vector3 &end, float percent )
+			{
+				return Donya::Vector3
+				{
+					( begin * ( 1.0f - percent ) ) + ( end * percent )
+				};
+			};
+			auto Add  = []( const Donya::Vector4x4 &lhs, const Donya::Vector4x4 &rhs )
+			{
+				return Donya::Vector4x4
+				{
+					lhs._11 + rhs._11, lhs._12 + rhs._12, lhs._13 + rhs._13, lhs._14 + rhs._14,
+					lhs._21 + rhs._21, lhs._22 + rhs._22, lhs._23 + rhs._23, lhs._24 + rhs._24,
+					lhs._31 + rhs._31, lhs._32 + rhs._32, lhs._33 + rhs._33, lhs._34 + rhs._34,
+					lhs._41 + rhs._41, lhs._42 + rhs._42, lhs._43 + rhs._43, lhs._44 + rhs._44,
+				};
+			};
+			auto Mul  = []( const Donya::Vector4x4 &lhs, float scalar )
+			{
+				return Donya::Vector4x4
+				{
+					lhs._11 * scalar, lhs._12 * scalar, lhs._13 * scalar, lhs._14 * scalar,
+					lhs._21 * scalar, lhs._22 * scalar, lhs._23 * scalar, lhs._24 * scalar,
+					lhs._31 * scalar, lhs._32 * scalar, lhs._33 * scalar, lhs._34 * scalar,
+					lhs._41 * scalar, lhs._42 * scalar, lhs._43 * scalar, lhs._44 * scalar,
+				};
+			};
+			auto Lerp4x4 = [&Add, &Mul]( const Donya::Vector4x4 &begin, const Donya::Vector4x4 &end, float percent )
+			{
+				return Donya::Vector4x4
+				{
+					Add
+					(
+						Mul( begin,	1.0f - percent ),
+						Mul( end,	percent )
+					)
+				};
+			};
+
 			Skeletal	interpolated	= currentPose;
 			for ( size_t i = 0; i < interpolated.boneCount; ++i )
 			{
 				const	auto &next	= nextPose.skeletal[i].transform;
 						auto &base	= interpolated.skeletal[i].transform;
 
+				// Currently using a lerp.
+				// TODO : Implement Slerp a matrix.
+				{
+					base = Lerp4x4( base, next, fractional );
+					continue;
+				}
+				// else
+
 				extracted[Base]		= Donya::Vector3{ base._41, base._42, base._43 };
 				extracted[Next]		= Donya::Vector3{ next._41, next._42, next._43 };
-				translation			= ( extracted[Base] + extracted[Next] ) * fractional;
-
+				translation			= Lerp( extracted[Base], extracted[Next], fractional );
+				
 				baseScales[X]		= Donya::Vector3{ base._11, base._12, base._13 };
 				baseScales[Y]		= Donya::Vector3{ base._21, base._22, base._23 };
 				baseScales[Z]		= Donya::Vector3{ base._31, base._32, base._33 };
@@ -206,9 +260,7 @@ namespace Donya
 				extracted[Next].x	= nextScales[X].Length();
 				extracted[Next].y	= nextScales[Y].Length();
 				extracted[Next].z	= nextScales[Z].Length();
-				scaling.x			= ( extracted[Base].x + extracted[Next].x ) * fractional;
-				scaling.y			= ( extracted[Base].y + extracted[Next].y ) * fractional;
-				scaling.z			= ( extracted[Base].z + extracted[Next].z ) * fractional;
+				scaling				= Lerp( extracted[Base], extracted[Next], fractional );
 				
 				baseScales[X].Normalize();
 				baseScales[Y].Normalize();
@@ -230,7 +282,7 @@ namespace Donya
 				);
 				rotationQuat[Base]	= Donya::Quaternion::Make ( rotationMat[Base] ).Normalized();
 				rotationQuat[Next]	= Donya::Quaternion::Make ( rotationMat[Next] ).Normalized();
-				rotationSlerped		= Donya::Quaternion::Slerp( rotationQuat[Base], rotationQuat[Next], fractional );
+				rotationSlerped		= Donya::Quaternion::Slerp( rotationQuat[Base], rotationQuat[Next], fractional ).Normalized();
 				rotation			= rotationSlerped.RequireRotationMatrix();
 
 				base = Donya::Vector4x4
@@ -240,6 +292,12 @@ namespace Donya
 					rotation._31,				rotation._32,				rotation._33 * scaling.z,	0.0f,
 					translation.x,				translation.y,				translation.z,				1.0f
 				};
+				/*
+				base._41 = translation.x;
+				base._42 = translation.y;
+				base._43 = translation.z;
+				base._44 = 1.0f;
+				*/
 			}
 			
 			return		interpolated;
