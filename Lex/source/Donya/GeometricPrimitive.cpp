@@ -20,7 +20,7 @@ namespace Donya
 			iVertexBuffer(), iIndexBuffer(), iConstantBuffer(),
 			iInputLayout(), iVertexShader(), iPixelShader(),
 			iRasterizerStateWire(), iRasterizerStateSurface(), iDepthStencilState(),
-			indicesCount( NULL )
+			indicesCount( NULL ), wasCreated( false )
 		{}
 
 		constexpr const char		*GeometryShaderSourceCode()
@@ -269,6 +269,9 @@ namespace Donya
 
 		void Cube::Init()
 		{
+			if ( wasCreated ) { return; }
+			// else
+
 			HRESULT hr = S_OK;
 			ID3D11Device *pDevice = Donya::GetDevice();
 
@@ -364,13 +367,23 @@ namespace Donya
 				);
 				_ASSERT_EXPR( SUCCEEDED( hr ), "Failed : Create Depth-Stencil-State." );
 			}
+
+			wasCreated = true;
 		}
 		void Cube::Uninit()
 		{
 			// NOP.
 		}
+
 		void Cube::Render( ID3D11DeviceContext *pImmediateContext, bool useDefaultShading, bool isEnableFill, const XMFLOAT4X4 &defMatWVP, const XMFLOAT4X4 &defMatW, const XMFLOAT4 &defLightDir, const XMFLOAT4 &defMtlColor ) const
 		{
+			if ( !wasCreated )
+			{
+				_ASSERT_EXPR( 0, L"Error : The cube was not created!" );
+				return;
+			}
+			// else
+
 			HRESULT hr = S_OK;
 
 			// Use default context.
@@ -558,6 +571,9 @@ namespace Donya
 
 		void Sphere::Init()
 		{
+			if ( wasCreated ) { return; }
+			// else
+
 			HRESULT hr = S_OK;
 			ID3D11Device *pDevice = Donya::GetDevice();
 
@@ -651,6 +667,8 @@ namespace Donya
 				);
 				_ASSERT_EXPR( SUCCEEDED( hr ), "Failed : Create Depth-Stencil-State." );
 			}
+
+			wasCreated = true;
 		}
 		void Sphere::Uninit()
 		{
@@ -659,6 +677,13 @@ namespace Donya
 
 		void Sphere::Render( ID3D11DeviceContext *pImmediateContext, bool useDefaultShading, bool isEnableFill, const XMFLOAT4X4 &defMatWVP, const XMFLOAT4X4 &defMatW, const XMFLOAT4 &defLightDir, const XMFLOAT4 &defMtlColor ) const
 		{
+			if ( !wasCreated )
+			{
+				_ASSERT_EXPR( 0, L"Error : The sphere was not created!" );
+				return;
+			}
+			// else
+
 			HRESULT hr = S_OK;
 			
 			// Use default context.
@@ -724,9 +749,10 @@ namespace Donya
 			"SamplerState	diffuseMapSampler	: register( s0 );\n"
 			"struct VS_IN\n"
 			"{\n"
-			"	float4 pos		: POSITION;\n"
-			"	float4 normal	: NORMAL;\n"
-			"	float2 texCoord	: TEXCOORD;\n"
+			"	float4 pos					: POSITION;\n"
+			"	float4 normal				: NORMAL;\n"
+			"	float2 texCoord				: TEXCOORD;\n"
+			"	float4 texCoordTransform	: TEXCOORD_TRANSFORM;\n"
 			"};\n"
 			"struct VS_OUT\n"
 			"{\n"
@@ -755,7 +781,7 @@ namespace Donya
 			"	vout.pos		= mul( vin.pos, worldViewProjection );\n"
 			"	vout.color		= materialColor * NL;\n"
 			"	vout.color.a	= materialColor.a;\n"
-			"	vout.texCoord	= vin.texCoord;\n"
+			"	vout.texCoord	= vin.texCoord * vin.texCoordTransform.zw + vin.texCoordTransform.xy;\n"
 			"	return vout;\n"
 			"}\n"
 			"float4 PSMain( VS_OUT pin ) : SV_TARGET\n"
@@ -798,20 +824,18 @@ namespace Donya
 			standard.MinLOD			= 0;
 			standard.MaxLOD			= D3D11_FLOAT32_MAX;
 
-			DirectX::XMFLOAT4 borderColor{ 0.0f, 0.0f, 0.0f, 0.0f };
-			memcpy
-			(
-				standard.BorderColor,
-				&borderColor,
-				sizeof( decltype( borderColor ) )
-			);
+			constexpr DirectX::XMFLOAT4 border{ 0.0f, 0.0f, 0.0f, 0.0f };
+			standard.BorderColor[0] = border.x;
+			standard.BorderColor[1] = border.y;
+			standard.BorderColor[2] = border.z;
+			standard.BorderColor[3] = border.w;
 
 			return standard;
 		}
 
 		TextureBoard::TextureBoard( std::wstring filePath ) : Base(),
 			FILE_PATH( filePath ),
-			textureDesc(), iSRV(), iSampler()
+			vertices(), textureDesc(), iSRV(), iSampler()
 		{}
 		TextureBoard::~TextureBoard() = default;
 
@@ -841,15 +865,15 @@ namespace Donya
 			constexpr std::array<XMFLOAT3, VERTEX_COUNT> NORMALS
 			{
 				// Front
-				XMFLOAT3{ 0.0f, 0.0f, -1.0f },
-				XMFLOAT3{ 0.0f, 0.0f, -1.0f },
-				XMFLOAT3{ 0.0f, 0.0f, -1.0f },
-				XMFLOAT3{ 0.0f, 0.0f, -1.0f },
+				XMFLOAT3{ 0.0f, 0.0f, 1.0f },
+				XMFLOAT3{ 0.0f, 0.0f, 1.0f },
+				XMFLOAT3{ 0.0f, 0.0f, 1.0f },
+				XMFLOAT3{ 0.0f, 0.0f, 1.0f },
 				// Back
-				XMFLOAT3{ 0.0f, 0.0f, 1.0f },
-				XMFLOAT3{ 0.0f, 0.0f, 1.0f },
-				XMFLOAT3{ 0.0f, 0.0f, 1.0f },
-				XMFLOAT3{ 0.0f, 0.0f, 1.0f }
+				XMFLOAT3{ 0.0f, 0.0f, -1.0f },
+				XMFLOAT3{ 0.0f, 0.0f, -1.0f },
+				XMFLOAT3{ 0.0f, 0.0f, -1.0f },
+				XMFLOAT3{ 0.0f, 0.0f, -1.0f }
 			};
 			constexpr std::array<XMFLOAT2, VERTEX_COUNT> TEX_COORDS // Front:LT,RT,LB,RB, Back:LB,RB,LT,RT.
 			{
@@ -878,17 +902,33 @@ namespace Donya
 
 		void TextureBoard::Init()
 		{
+			if ( wasCreated ) { return; }
+			// else
+
 			HRESULT hr = S_OK;
 			ID3D11Device *pDevice = Donya::GetDevice();
 
-			auto vertices = MakeBoard();
+			vertices = MakeBoard();
 
 			// Create VertexBuffer
 			{
-				hr = CreateVertexBuffer<TextureBoard::Vertex>
+				D3D11_BUFFER_DESC bufferDesc{};
+				bufferDesc.ByteWidth			= sizeof( TextureBoard::Vertex ) * vertices.size();
+				bufferDesc.Usage				= D3D11_USAGE_DYNAMIC;
+				bufferDesc.BindFlags			= D3D11_BIND_VERTEX_BUFFER;
+				bufferDesc.CPUAccessFlags		= D3D11_CPU_ACCESS_WRITE;
+				bufferDesc.MiscFlags			= 0;
+				bufferDesc.StructureByteStride	= 0;
+
+				D3D11_SUBRESOURCE_DATA subResource{};
+				subResource.pSysMem				= vertices.data();
+				subResource.SysMemPitch			= 0; // Not use for vertex buffers.
+				subResource.SysMemSlicePitch	= 0; // Not use for vertex buffers.
+
+				hr = pDevice->CreateBuffer
 				(
-					pDevice,
-					std::vector<TextureBoard::Vertex>( vertices.begin(), vertices.end() ),
+					&bufferDesc,
+					&subResource,
 					iVertexBuffer.GetAddressOf()
 				);
 				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer." );
@@ -908,11 +948,12 @@ namespace Donya
 			}
 			// Create VertexShader and InputLayout
 			{
-				constexpr std::array<D3D11_INPUT_ELEMENT_DESC, 3> INPUT_ELEMENT_DESCS
+				constexpr std::array<D3D11_INPUT_ELEMENT_DESC, 4> INPUT_ELEMENT_DESCS
 				{
-					D3D11_INPUT_ELEMENT_DESC{ "POSITION"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-					D3D11_INPUT_ELEMENT_DESC{ "NORMAL"		, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-					D3D11_INPUT_ELEMENT_DESC{ "TEXCOORD"	, 0, DXGI_FORMAT_R32G32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+					D3D11_INPUT_ELEMENT_DESC{ "POSITION",			0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "NORMAL",				0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "TEXCOORD",			0, DXGI_FORMAT_R32G32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "TEXCOORD_TRANSFORM",	0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
 				};
 
 				Resource::CreateVertexShaderFromSource
@@ -987,14 +1028,49 @@ namespace Donya
 					&textureDesc
 				);
 			}
+
+			wasCreated = true;
 		}
 		void TextureBoard::Uninit()
 		{
 			// NOP.
 		}
 
+		Donya::Vector4x4 TextureBoard::CalcBillboardRotation( const Donya::Vector3 &lookDirection, float zRadian, Donya::Quaternion::Freeze freezeDirection ) const
+		{
+			constexpr	Donya::Quaternion FRONT			= Donya::Quaternion::Identity(); // I regard the initial pose is front(Z plus).
+			const		Donya::Quaternion ROLL			= Donya::Quaternion::Make( Donya::Vector3::Front(), zRadian );
+
+			Donya::Quaternion lookRotation = FRONT.LookAt( lookDirection, freezeDirection, /* returnsRotatedQuaternion = */ false );
+			lookRotation.RotateBy( ROLL );
+
+			return lookRotation.RequireRotationMatrix();
+		}
+
+		Donya::Vector2 GetTextureSize( const D3D11_TEXTURE2D_DESC &textureDesc )
+		{
+			return Donya::Vector2
+			{ 
+				scast<float>( textureDesc.Width  ),
+				scast<float>( textureDesc.Height )
+			};
+		}
 		void TextureBoard::Render( ID3D11DeviceContext *pImmediateContext, bool useDefaultShading, bool isEnableFill, const XMFLOAT4X4 &defMatWVP, const XMFLOAT4X4 &defMatW, const XMFLOAT4 &defLightDir, const XMFLOAT4 &defMtlColor ) const
 		{
+			const Donya::Vector2	ltCoord{ 0.0f, 0.0f };
+			RenderPart( ltCoord, GetTextureSize( textureDesc ), pImmediateContext, useDefaultShading, isEnableFill, defMatWVP, defMatW, defLightDir, defMtlColor );
+		}
+		void TextureBoard::RenderPart( const Donya::Vector2 &texPartPosLT, const Donya::Vector2 &texPartWholeSize, ID3D11DeviceContext *pImmediateContext, bool useDefaultShading, bool isEnableFill, const XMFLOAT4X4 &defMatWVP, const XMFLOAT4X4 &defMatW, const XMFLOAT4 &defLightDir, const XMFLOAT4 &defMtlColor ) const
+		{
+			if ( !wasCreated )
+			{
+				_ASSERT_EXPR( 0, L"Error : The texture-board was not created!" );
+				return;
+			}
+			// else
+
+			constexpr unsigned int VERTEX_COUNT = 4 * 2; // Front-face and back-face.
+
 			HRESULT hr = S_OK;
 			
 			// Use default context.
@@ -1003,9 +1079,40 @@ namespace Donya
 				pImmediateContext = Donya::GetImmediateContext();
 			}
 
+			// Mapping
+			{
+				const Donya::Vector2 wholeSize = GetTextureSize( textureDesc );
+				auto CalcUpdatedVertex = [&wholeSize, &texPartPosLT, &texPartWholeSize]( TextureBoard::Vertex *pVertex )
+				{
+					pVertex->texCoordTransform.x = texPartPosLT.x		/ wholeSize.x;
+					pVertex->texCoordTransform.y = texPartPosLT.y		/ wholeSize.y;
+
+					pVertex->texCoordTransform.z = texPartWholeSize.x	/ wholeSize.x;
+					pVertex->texCoordTransform.w = texPartWholeSize.y	/ wholeSize.y;
+				};
+				for ( auto &it : vertices )
+				{
+					CalcUpdatedVertex( &it );
+				}
+				
+				D3D11_MAPPED_SUBRESOURCE mappedSubresource{};
+
+				hr = pImmediateContext->Map( iVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource );
+				if ( FAILED( hr ) )
+				{
+					_ASSERT_EXPR( 0, L"Failed : Map at TextureBoard." );
+					return;
+				}
+				// else
+
+				memcpy_s( mappedSubresource.pData, sizeof( TextureBoard::Vertex ) * VERTEX_COUNT, vertices.data(), mappedSubresource.RowPitch );
+
+				pImmediateContext->Unmap( iVertexBuffer.Get(), 0 );
+			}
+
 			if ( useDefaultShading )
 			{
-				ConstantBuffer cb;
+				ConstantBuffer cb{};
 				cb.worldViewProjection	= defMatWVP;
 				cb.world				= defMatW;
 				cb.lightDirection		= defLightDir;
@@ -1050,10 +1157,34 @@ namespace Donya
 				pImmediateContext->OMSetDepthStencilState( iDepthStencilState.Get(), 0xffffffff );
 			}
 
-			pImmediateContext->Draw( 4 * 2, 0 );
+			pImmediateContext->Draw( VERTEX_COUNT, 0 );
 		}
 
 	// region TextureBoard
+	#pragma endregion
+
+	#pragma region Creater
+
+		Cube			CreateCube()
+		{
+			Cube instance{};
+			instance.Init();
+			return instance;
+		}
+		Sphere			CreateSphere( size_t hSlice, size_t vSlice )
+		{
+			Sphere instance{ hSlice, vSlice };
+			instance.Init();
+			return instance;
+		}
+		TextureBoard	CreateTextureBoard( std::wstring textureFilePath )
+		{
+			TextureBoard instance{ textureFilePath };
+			instance.Init();
+			return instance;
+		}
+
+	// region Creater
 	#pragma endregion
 
 	}

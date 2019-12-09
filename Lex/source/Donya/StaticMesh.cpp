@@ -25,10 +25,8 @@ namespace Donya
 {
 	// TODO : User can be specify the ID3D11Device when create mesh.
 
-	std::shared_ptr<StaticMesh> StaticMesh::Create( const Loader &loader )
+	bool StaticMesh::Create( const Loader &loader, StaticMesh &outputInstance )
 	{
-		std::shared_ptr<StaticMesh> pInstance{};
-
 		const std::vector<Loader::Mesh> *pLoadedMeshes = loader.GetMeshes();
 		size_t loadedMeshCount = pLoadedMeshes->size();
 
@@ -106,10 +104,17 @@ namespace Donya
 
 		} // meshs loop
 
-		pInstance = std::make_shared<StaticMesh>();
-		pInstance->Init( verticesPerMesh, indicesPerMesh, meshes );
+		const std::vector<Loader::Face> *pLoadedFaces = loader.GetCollisionFaces();
+		const size_t faceCount = pLoadedFaces->size();
 
-		return pInstance;
+		std::vector<StaticMesh::Face> faces{ faceCount };
+		for ( size_t i = 0; i < faceCount; ++i )
+		{
+			faces[i].materialIndex	= ( *pLoadedFaces )[i].materialIndex;
+			faces[i].points			= ( *pLoadedFaces )[i].points;
+		}
+
+		return outputInstance.Init( verticesPerMesh, indicesPerMesh, meshes, faces );
 	}
 
 	constexpr const char *DefaultShaderSourceCode()
@@ -282,13 +287,15 @@ namespace Donya
 		iDefaultCBuffer(), iDefaultMaterialCBuffer(),
 		iDefaultInputLayout(), iDefaultVS(), iDefaultPS(),
 		iRasterizerStateSurface(), iRasterizerStateWire(), iDepthStencilState(),
-		meshes(),
+		meshes(), collisionFaces(),
 		wasLoaded( false )
 	{}
 	StaticMesh::~StaticMesh()
 	{
 		meshes.clear();
+		collisionFaces.clear();
 		meshes.shrink_to_fit();
+		collisionFaces.shrink_to_fit();
 	}
 
 	void StaticMesh::CreateDefaultSettings( ID3D11Device *pDevice )
@@ -448,9 +455,9 @@ namespace Donya
 		}
 	}
 
-	void StaticMesh::Init( const std::vector<std::vector<Vertex>> &verticesPerMesh, const std::vector<std::vector<size_t>> &indicesPerMesh, const std::vector<Mesh> &loadedMeshes )
+	bool StaticMesh::Init( const std::vector<std::vector<Vertex>> &verticesPerMesh, const std::vector<std::vector<size_t>> &indicesPerMesh, const std::vector<Mesh> &loadedMeshes, const std::vector<Face> &loadedFaces )
 	{
-		if ( wasLoaded ) { return; }
+		if ( wasLoaded ) { return true; }
 		// else
 
 		HRESULT hr = S_OK;
@@ -459,6 +466,8 @@ namespace Donya
 		// Copy variables, but ComPtr is not valid yet.
 		meshes = loadedMeshes;
 		const size_t MESH_COUNT = loadedMeshes.size();
+
+		collisionFaces = loadedFaces;
 
 		// Create VertexBuffer
 		for ( size_t i = 0; i < MESH_COUNT; ++i )
@@ -469,7 +478,11 @@ namespace Donya
 				verticesPerMesh[i],
 				meshes[i].iVertexBuffer.GetAddressOf()
 			);
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer." );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Create Vertex-Buffer." );
+				return false;
+			}
 		}
 		// Create IndexBuffer
 		for ( size_t i = 0; i < MESH_COUNT; ++i )
@@ -480,8 +493,14 @@ namespace Donya
 				indicesPerMesh[i],
 				meshes[i].iIndexBuffer.GetAddressOf()
 			);
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Index-Buffer." );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Create Index-Buffer." );
+				return false;
+			}
 		}
+
+		// TODO : Check the error of these method.
 
 		CreateDefaultSettings( pDevice );
 
@@ -492,6 +511,7 @@ namespace Donya
 		LoadTextures( pDevice );
 
 		wasLoaded = true;
+		return true;
 	}
 
 	bool StaticMesh::LoadObjFile( const std::wstring &objFilePath )
@@ -604,7 +624,7 @@ namespace Donya
 		return true;
 	}
 
-	void StaticMesh::Render( ID3D11DeviceContext *pImmediateContext, bool useDefaultShading, bool isEnableFill, const XMFLOAT4X4 &defMatWVP, const XMFLOAT4X4 &defMatW, const XMFLOAT4 &defLightDir, const XMFLOAT4 &defMtlColor ) const
+	void StaticMesh::Render( ID3D11DeviceContext *pImmediateContext, bool useDefaultShading, bool isEnableFill, const Donya::Vector4x4 &defMatWVP, const Donya::Vector4x4 &defMatW, const Donya::Vector4 &defLightDir, const Donya::Vector4 &defMtlColor ) const
 	{
 		if ( !wasLoaded ) { return; }
 		// else
@@ -615,6 +635,20 @@ namespace Donya
 		if ( !pImmediateContext )
 		{
 			pImmediateContext = Donya::GetImmediateContext();
+		}
+
+		// For PostProcessing.
+		Microsoft::WRL::ComPtr<ID3D11RasterizerState>	prevRasterizerState;
+		Microsoft::WRL::ComPtr<ID3D11VertexShader>		prevVS;
+		Microsoft::WRL::ComPtr<ID3D11PixelShader>		prevPS;
+		Microsoft::WRL::ComPtr<ID3D11SamplerState>		prevSamplerState;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState>	prevDepthStencilState;
+		{
+			pImmediateContext->RSGetState( prevRasterizerState.ReleaseAndGetAddressOf() );
+			pImmediateContext->VSGetShader( prevVS.GetAddressOf(), 0, 0 );
+			pImmediateContext->PSGetShader( prevPS.GetAddressOf(), 0, 0 );
+			pImmediateContext->PSGetSamplers( 0, 1, prevSamplerState.ReleaseAndGetAddressOf() );
+			pImmediateContext->OMGetDepthStencilState( prevDepthStencilState.ReleaseAndGetAddressOf(), 0 );
 		}
 
 		// Common Settings
@@ -646,25 +680,15 @@ namespace Donya
 			// Update ConstantBuffer.
 			if ( useDefaultShading )
 			{
-				auto Mul4x4 = []( const XMFLOAT4X4 &lhs, const XMFLOAT4X4 &rhs ) ->DirectX::XMFLOAT4X4
-				{
-					DirectX::XMFLOAT4X4 rv{};
-					DirectX::XMStoreFloat4x4
-					(
-						&rv,
-						DirectX::XMLoadFloat4x4( &lhs ) * DirectX::XMLoadFloat4x4( &rhs )
-					);
-					return rv;
-				};
-				const XMFLOAT4X4 &coordinateConversion	= mesh.coordinateConversion;
-				const XMFLOAT4X4 &globalTransform		= mesh.globalTransform;
+				const Donya::Vector4x4 &coordinateConversion	= mesh.coordinateConversion;
+				const Donya::Vector4x4 &globalTransform			= mesh.globalTransform;
 
 				ConstantBuffer cb;
-				cb.worldViewProjection	= Mul4x4( Mul4x4( coordinateConversion, globalTransform ), defMatWVP );
-				cb.world				= Mul4x4( Mul4x4( coordinateConversion, globalTransform ), defMatW   );
-				cb.lightDirection		= defLightDir;
+				cb.worldViewProjection	= ( ( globalTransform * coordinateConversion ) * defMatWVP ).XMFloat();
+				cb.world				= ( ( globalTransform * coordinateConversion ) * defMatW   ).XMFloat();
+				cb.lightDirection		= defLightDir.XMFloat();
 				cb.lightColor			= XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f };
-				cb.materialColor		= defMtlColor;
+				cb.materialColor		= defMtlColor.XMFloat();
 				cb.materialColor.w		= Donya::Color::FilteringAlpha( cb.materialColor.w );
 
 				pImmediateContext->UpdateSubresource( iDefaultCBuffer.Get(), 0, nullptr, &cb, 0, 0 );
@@ -692,6 +716,8 @@ namespace Donya
 					pImmediateContext->PSSetConstantBuffers( 1, 1, iDefaultMaterialCBuffer.GetAddressOf() );
 				}
 
+				// TODO : To be changeable the slot of sampler, SRV. Support multi texture.
+
 				// Note:Currently support only diffuse, and only one texture.
 				if ( it.diffuse.textures.empty() ) { continue; }
 				// else
@@ -702,5 +728,104 @@ namespace Donya
 				pImmediateContext->DrawIndexed( it.indexCount, it.indexStart, 0 );
 			}
 		}
+
+		// PostProcessing
+		{
+			ID3D11ShaderResourceView *pNullSRV = nullptr;
+
+			pImmediateContext->RSSetState( prevRasterizerState.Get() );
+
+			if ( useDefaultShading )
+			{
+				pImmediateContext->IASetInputLayout( 0 );
+				pImmediateContext->VSSetShader( prevVS.Get(), nullptr, 0 );
+				pImmediateContext->PSSetShader( prevPS.Get(), nullptr, 0 );
+
+				ID3D11Buffer *nullBuffer{};
+				pImmediateContext->VSSetConstantBuffers( 0, 1, &nullBuffer );
+				pImmediateContext->PSSetConstantBuffers( 0, 1, &nullBuffer );
+				pImmediateContext->VSSetConstantBuffers( 1, 1, &nullBuffer );
+				pImmediateContext->PSSetConstantBuffers( 1, 1, &nullBuffer );
+			}
+
+			pImmediateContext->PSSetShaderResources( 0, 1, &pNullSRV );
+			pImmediateContext->PSSetSamplers( 0, 1, prevSamplerState.GetAddressOf() );
+
+			pImmediateContext->OMSetDepthStencilState( prevDepthStencilState.Get(), 1 );
+		}
 	}
+
+	StaticMesh::RayPickResult StaticMesh::RayPick( const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool enoughOnlyPickFirst )
+	{
+		RayPickResult rpResult{};
+
+		const Donya::Vector3 rayVec  = rayEnd - rayStart;
+		const Donya::Vector3 nRayVec = rayVec.Normalized();
+
+		float nearestDistance = rayVec.Length();
+		Donya::Vector3 faceNormal{};			// Does not normalized.
+		std::array<Donya::Vector3, 3> faces{};	// [0:A][1:B][2:C]. CW.
+		std::array<Donya::Vector3, 3> edges{};	// [0:AB][1:BC][2:CA]. Edges of face.
+		for ( const auto &it : collisionFaces )
+		{
+			// Store triangle data.
+			faces		= it.points;
+			edges[0]	= faces[1] - faces[0];
+			edges[1]	= faces[2] - faces[1];
+			edges[2]	= faces[0] - faces[2];
+			faceNormal	= Donya::Vector3::Cross( edges[0], edges[1] );
+
+			// Verify the ray vector has possibility of intersection.
+			if ( 0.0f  <= Donya::Vector3::Dot( rayVec, faceNormal ) ) { continue; }
+			// else
+
+			// Distance to intersection-point from rayStart.
+			float currentDistance{};
+			{
+				Donya::Vector3 vPV = faces[0] - rayStart;
+
+				float dotPN = Donya::Vector3::Dot( vPV,		faceNormal );
+				float dotRN = Donya::Vector3::Dot( nRayVec,	faceNormal );
+
+				currentDistance = dotPN / ( dotRN + EPSILON /* Prevent zero-divide */ );
+			}
+			if ( currentDistance < 0.0f ) { continue; }
+			// else
+
+			Donya::Vector3 intersection = rayStart + ( nRayVec * currentDistance );
+
+			// Judge the intersection-point is there inside of triangle.
+			bool onOutside = false;
+			for ( int i = 0; i < 3/*Vertex of triangle count*/; ++i )
+			{
+				Donya::Vector3 vIV		= faces[i] - intersection; // Vector of intersection-point to vertex of face.
+				Donya::Vector3 crossIE	= Donya::Vector3::Cross( vIV, edges[i] );
+
+				float dotCN = Donya::Vector3::Dot( crossIE, faceNormal );
+				if (  dotCN < 0.0f )
+				{
+					onOutside = true;
+					break;
+				}
+			}
+			if ( onOutside ) { continue; }
+			// else
+
+			if ( nearestDistance <= currentDistance ) { continue; }
+			// else
+			nearestDistance = currentDistance;
+
+			rpResult.materialIndex		= it.materialIndex;
+			rpResult.distanceToIP		= currentDistance;
+			rpResult.intersectionPoint	= intersection;
+			rpResult.normal				= faceNormal.Normalized();
+			rpResult.wasHit				= true;
+
+			if ( enoughOnlyPickFirst ) { return rpResult; }
+			// else
+		}
+
+		return rpResult;
+	}
+
 }

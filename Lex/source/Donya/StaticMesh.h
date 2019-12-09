@@ -1,12 +1,15 @@
-#ifndef INCLUDED_STATIC_MESH_H_
-#define INCLUDED_STATIC_MESH_H_
+#ifndef INCLUDED_DONYA_STATIC_MESH_H_
+#define INCLUDED_DONYA_STATIC_MESH_H_
 
+#include <array>
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include <memory>
 #include <string>
 #include <vector>
 #include <wrl.h>
+
+#include "Vector.h"	// Use at Face.
 
 namespace Donya
 {
@@ -20,10 +23,10 @@ namespace Donya
 	public:
 		/// <summary>
 		/// Create from Loader object.<para></para>
-		/// If create failed, return nullptr.<para></para>
+		/// If create failed, returns false.<para></para>
 		/// If return valid instance, that is usable(The LoadObjFile() is unnecessary).
 		/// </summary>
-		static std::shared_ptr<StaticMesh> Create( const Loader &loader );
+		static bool Create( const Loader &loader, StaticMesh &outputInstance );
 	public:
 		struct Vertex
 		{
@@ -78,34 +81,26 @@ namespace Donya
 		};
 		struct Mesh
 		{
-			DirectX::XMFLOAT4X4 coordinateConversion;
-			DirectX::XMFLOAT4X4 globalTransform;
+			Donya::Vector4x4 coordinateConversion;
+			Donya::Vector4x4 globalTransform;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> iIndexBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> iVertexBuffer;
 			std::vector<Subset> subsets;
 		public:
 			Mesh() :
-				coordinateConversion
-				(
-					{
-						1, 0, 0, 0,
-						0, 1, 0, 0,
-						0, 0, 1, 0,
-						0, 0, 0, 1
-					}
-				),
-				globalTransform
-				(
-					{
-						1, 0, 0, 0,
-						0, 1, 0, 0,
-						0, 0, 1, 0,
-						0, 0, 0, 1
-					}
-				),
+				coordinateConversion(), globalTransform(),
 				iVertexBuffer(), iIndexBuffer(), subsets()
 			{}
 			Mesh( const Mesh & ) = default;
+		};
+
+		/// <summary>
+		/// Use for collision.
+		/// </summary>
+		struct Face
+		{
+			int materialIndex{ -1 };				// -1 is invalid.
+			std::array<Donya::Vector3, 3> points;	// Store local-space vertices of a triangle. CW.
 		};
 	private:
 		template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
@@ -119,6 +114,8 @@ namespace Donya
 		mutable ComPtr<ID3D11DepthStencilState>	iDepthStencilState;
 	
 		std::vector<Mesh>						meshes;
+		std::vector<Face>						collisionFaces;
+
 		bool wasLoaded;
 	public:
 		StaticMesh();
@@ -129,7 +126,7 @@ namespace Donya
 		void CreateDepthStencilState( ID3D11Device *pDevice );
 		void LoadTextures( ID3D11Device *pDevice );
 
-		void Init( const std::vector<std::vector<Vertex>> &verticesPerMesh, const std::vector<std::vector<size_t>> &indicesPerMesh, const std::vector<Mesh> &loadedMeshes );
+		bool Init( const std::vector<std::vector<Vertex>> &verticesPerMesh, const std::vector<std::vector<size_t>> &indicesPerMesh, const std::vector<Mesh> &loadedMeshes, const std::vector<Face> &loadedFaces );
 	public:
 		/// <summary>
 		/// If failed load, or already loaded, returns false.<para></para>
@@ -142,16 +139,34 @@ namespace Donya
 		/// </summary>
 		void Render
 		(
-			ID3D11DeviceContext			*pImmediateContext = nullptr,
-			bool useDefaultShading		= true,
-			bool isEnableFill			= true,
-			const DirectX::XMFLOAT4X4	&defaultMatWVP		= { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 },
-			const DirectX::XMFLOAT4X4	&defaultMatW		= { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 },
-			const DirectX::XMFLOAT4		&defaultLightDir	= { 0.0f, 1.0f, 1.0f, 0.0f },
-			const DirectX::XMFLOAT4		&defaultMtlColor	= { 1.0f, 1.0f, 1.0f, 1.0f }
+			ID3D11DeviceContext		*pImmediateContext = nullptr,
+			bool useDefaultShading	= true,
+			bool isEnableFill		= true,
+			const Donya::Vector4x4	&defaultMatWVP		= {},
+			const Donya::Vector4x4	&defaultMatW		= {},
+			const Donya::Vector4	&defaultLightDir	= { 0.0f, 1.0f, 1.0f, 0.0f },
+			const Donya::Vector4	&defaultMtlColor	= { 1.0f, 1.0f, 1.0f, 1.0f }
 		) const;
+	public:
+		/// <summary>
+		/// The members are valid when the "wasHit" is true.
+		/// </summary>
+		struct RayPickResult
+		{
+			int		materialIndex{};
+			float	distanceToIP{};				// Store distance of nearest intersection-point.
+			Donya::Vector3 intersectionPoint{};	// Store intersection-point of nearest face.
+			Donya::Vector3 normal{};			// Store normalized normal.
+			bool	wasHit{ false };			// If hit to any face, will be true.
+		};
+		/// <summary>
+		/// Calculate the nearest intersection-point between the ray of arguments and faces of myself.<para></para>
+		/// This method work in local-space of mesh, so you should transform to local-space the arguments.<para></para>
+		/// If you set true to "enoughOnlyPickFirst", returns intersection-point that found at first. a little fast.
+		/// </summary>
+		RayPickResult RayPick( const Donya::Vector3 &rayStartPosition, const Donya::Vector3 &rayEndPosition, bool enoughOnlyPickFirst = false );
 	};
 
 }
 
-#endif // !INCLUDED_STATIC_MESH_H_
+#endif // !INCLUDED_DONYA_STATIC_MESH_H_

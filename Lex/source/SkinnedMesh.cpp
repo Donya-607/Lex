@@ -297,7 +297,7 @@ namespace Donya
 			}
 			// else
 		}
-		// Create DepthsStencilState
+		// Create DepthStencilState
 		{
 			D3D11_DEPTH_STENCIL_DESC d3dDepthStencilDesc{};
 			d3dDepthStencilDesc.DepthEnable		= TRUE;
@@ -533,12 +533,11 @@ namespace Donya
 
 		// PostProcessing
 		{
-			ID3D11ShaderResourceView *pNullSRV = nullptr;
-
 			pImmediateContext->IASetInputLayout( 0 );
 
 			pImmediateContext->RSSetState( prevRasterizerState.Get() );
 
+			ID3D11ShaderResourceView *pNullSRV = nullptr;
 			pImmediateContext->PSSetShaderResources( psSetDiffuseMapSlot, 1, &pNullSRV );
 			pImmediateContext->PSSetSamplers( psSetSamplerSlot, 1, prevSamplerState.GetAddressOf() );
 
