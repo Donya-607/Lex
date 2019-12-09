@@ -820,10 +820,13 @@ private:
 				ImGui::Text( u8"ƒ‚ƒfƒ‹”:[%d]", modelCount );
 
 				std::string fileNameCaption{};
+				std::string uniquePostfix{};	// Prevent matching a caption at TreeNode().
+				int uniqueIndex = 0;
 				for ( auto &it = models.begin(); it != models.end(); )
 				{
 					fileNameCaption = "[" + it->loader.GetOnlyFileName() + "]";
-					if ( ImGui::TreeNode( fileNameCaption.c_str() ) )
+					uniquePostfix = "##" + std::to_string( uniqueIndex++ );
+					if ( ImGui::TreeNode( ( fileNameCaption + uniquePostfix ).c_str() ) )
 					{
 						if ( ImGui::Button( u8"Žæ‚èœ‚­" ) )
 						{
@@ -853,6 +856,8 @@ private:
 
 						if ( ImGui::TreeNode( u8"•`‰æÝ’è" ) )
 						{
+							ImGui::Text( "ˆêŽž“I‚ÈÝ’è‚É‚È‚è‚Ü‚·\n" );
+
 							ImGui::Checkbox( u8"‰B‚·", &it->dontWannaDraw );
 							ImGui::Text( "" );
 

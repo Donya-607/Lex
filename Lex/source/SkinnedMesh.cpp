@@ -485,7 +485,7 @@ namespace Donya
 				cbPerMesh.data.worldViewProjection		= ( ( mesh.globalTransform * mesh.coordinateConversion ) * worldViewProjection ).XMFloat();
 				cbPerMesh.data.world					= ( ( mesh.globalTransform * mesh.coordinateConversion ) * world ).XMFloat();
 
-				const Donya::Motion		useMotion		= motionPerMesh.FetchMotion( mesh.meshNo );
+				const Donya::Motion		useMotion		= motionPerMesh.FetchMotion( scast<unsigned int>( mesh.meshNo ) );
 				const Donya::Skeletal	currentPosture	= currentAnimation.FetchCurrentPose( useMotion );
 				auto TransformBones = []( std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> *pBoneTransform, const Donya::Skeletal &pose )
 				{
@@ -499,7 +499,7 @@ namespace Donya
 				};
 				TransformBones( &cbPerMesh.data.boneTransforms, currentPosture );
 
-				cbPerMesh.Activate( cbopPerMesh.setSlot, cbopPerMesh.setVS, cbopPerMesh.setVS, pImmediateContext );
+				cbPerMesh.Activate( cbopPerMesh.setSlot, cbopPerMesh.setVS, cbopPerMesh.setPS, pImmediateContext );
 			}
 			
 			UINT stride = sizeof( Vertex );
@@ -517,7 +517,7 @@ namespace Donya
 					cbPerSubset.data.emissive	= subset.emissive.color.XMFloat();
 					cbPerSubset.data.specular	= subset.specular.color.XMFloat();
 
-					cbPerSubset.Activate( cbopPerSubset.setSlot, cbopPerSubset.setVS, cbopPerSubset.setVS, pImmediateContext );
+					cbPerSubset.Activate( cbopPerSubset.setSlot, cbopPerSubset.setVS, cbopPerSubset.setPS, pImmediateContext );
 				}
 
 				pImmediateContext->PSSetSamplers( psSetSamplerSlot, 1, subset.diffuse.iSampler.GetAddressOf() );
