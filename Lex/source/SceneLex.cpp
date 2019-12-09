@@ -45,8 +45,10 @@ public:
 		Donya::SkinnedMesh	mesh{};
 		Donya::MotionChunk	motions{};
 		Donya::Animator		animator{};
-		bool enableMotionInterpolation{ false };
-		bool dontWannaDraw{ false };
+		float	currentElapsedTime{};
+		float	motionAccelPercent{ 1.0f };		// Normal is 1.0f.
+		bool	enableMotionInterpolation{ false };
+		bool	dontWannaDraw{ false };
 	public:
 		bool CreateByLoader()
 		{
@@ -677,7 +679,8 @@ private:
 	{
 		for ( auto &it : models )
 		{
-			it.animator.Update( elapsedTime );
+			it.animator.Update( elapsedTime * it.motionAccelPercent );
+			it.currentElapsedTime = it.animator.GetCurrentElapsedTime();
 		}
 	}
 
@@ -851,6 +854,11 @@ private:
 						if ( ImGui::TreeNode( u8"描画設定" ) )
 						{
 							ImGui::Checkbox( u8"隠す", &it->dontWannaDraw );
+							ImGui::Text( "" );
+
+							ImGui::DragFloat( u8"モーション再生速度（倍率）",	&it->motionAccelPercent, 0.01f, 0.0f );
+							ImGui::DragFloat( u8"モーションのフレーム",		&it->currentElapsedTime, 0.01f, 0.0f );
+							it->animator.SetCurrentElapsedTime( it->currentElapsedTime );
 							ImGui::Checkbox( u8"モーションの補間を有効にする", &it->enableMotionInterpolation );
 							it->animator.SetInterpolateFlag( it->enableMotionInterpolation );
 

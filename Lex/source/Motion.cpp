@@ -120,6 +120,15 @@ namespace Donya
 		enableInterpolate = useInterpolate;
 	}
 
+	void Animator::SetCurrentElapsedTime( float overwrite )
+	{
+		elapsedTime = overwrite;
+	}
+	float Animator::GetCurrentElapsedTime()
+	{
+		return elapsedTime;
+	}
+
 	float CalcFrameImpl( float elapsedTime, float rate )
 	{
 		return ( ZeroEqual( rate ) ) ? 0.0f : ( elapsedTime / rate );
@@ -179,6 +188,7 @@ namespace Donya
 
 			_ASSERT_EXPR( currentPose.boneCount == nextPose.boneCount, L"Error : The bone count did not match! " );
 
+			/* Use for slerp.
 			Donya::Vector3		scaling{};
 			Donya::Vector3		translation{};
 			Donya::Vector4x4	rotation{};
@@ -190,6 +200,7 @@ namespace Donya
 			enum { X = 0, Y, Z };
 			Donya::Vector3		baseScales[3]{};
 			Donya::Vector3		nextScales[3]{};
+			*/
 
 			auto Lerp = []( const Donya::Vector3 &begin, const Donya::Vector3 &end, float percent )
 			{
@@ -244,6 +255,7 @@ namespace Donya
 				}
 				// else
 
+				/* Use for slerp.
 				extracted[Base]		= Donya::Vector3{ base._41, base._42, base._43 };
 				extracted[Next]		= Donya::Vector3{ next._41, next._42, next._43 };
 				translation			= Lerp( extracted[Base], extracted[Next], fractional );
@@ -292,11 +304,6 @@ namespace Donya
 					rotation._31,				rotation._32,				rotation._33 * scaling.z,	0.0f,
 					translation.x,				translation.y,				translation.z,				1.0f
 				};
-				/*
-				base._41 = translation.x;
-				base._42 = translation.y;
-				base._43 = translation.z;
-				base._44 = 1.0f;
 				*/
 			}
 			

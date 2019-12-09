@@ -103,6 +103,15 @@ namespace Donya
 		/// [FALSE:useInterpolate] The method of calculating a pose will calculate only a pose of the current frame(the less-equal than decimal is truncated).
 		/// </summary>
 		void SetInterpolateFlag( bool useInterpolate );
+
+		/// <summary>
+		/// Overwrite an internal timer that updating at Update(). This does not represent a current frame.
+		/// </summary>
+		void SetCurrentElapsedTime( float overwrite );
+		/// <summary>
+		/// Returns an internal timer that updating at Update(). This does not represent a current frame.
+		/// </summary>
+		float GetCurrentElapsedTime();
 	public:
 		/// <summary>
 		/// Returns current motion frame calculated by registered sampling rate.
