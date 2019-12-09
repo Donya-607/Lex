@@ -311,6 +311,7 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="Shader\Techniques.hlsli" />
+    <None Include="Shader\ScreenFilter.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\SkinnedMeshVS.hlsl">

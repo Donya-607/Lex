@@ -250,6 +250,7 @@
     <ClCompile Include="Source\SkinnedMesh.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shader\ScreenFilter.hlsli" />
     <None Include="Shader\SkinnedMesh.hlsli" />
     <None Include="Shader\Techniques.hlsli" />
   </ItemGroup>
