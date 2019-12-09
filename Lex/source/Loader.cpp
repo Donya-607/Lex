@@ -835,7 +835,7 @@ namespace Donya
 		{
 			subset.reflection		= 0.0f;
 			subset.transparency		= 0.0f;
-			subset.specular.color	= Donya::Vector4{ 0.0f, 0.0f, 0.0f, 0.0f };
+			subset.specular.color	= Donya::Vector4{ 0.0f, 0.0f, 0.0f, 1.0f };
 		}
 	}
 

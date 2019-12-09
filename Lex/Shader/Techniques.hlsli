@@ -44,9 +44,9 @@ float3 NormalizedHalfLambert( float3 diffuseColor, float3 nwsNormal, float3 nwsT
 // Returns : Specular factor. 0.0f ~ 1.0f.
 float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec, float specularPower )
 {
-	float3 nwsProjection = ( dot( nwsNormal, nwsToLightVec ) * nwsNormal );
-	float3 nwsReflection = nwsToLightVec + ( nwsToLightVec - ( nwsProjection * 2.0f ) );
-	// float3 nwsReflection = normalize( reflect( -nwsToLightVec, nwsNormal ) );
+	// float3 nwsProjection = ( dot( nwsNormal, nwsToLightVec ) * nwsNormal );
+	// float3 nwsReflection = nwsToLightVec + ( nwsToLightVec - ( nwsProjection * 2.0f ) );
+	float3 nwsReflection  = normalize( reflect( -nwsToLightVec, nwsNormal ) );
 	float  specularFactor = max( 0.0f, dot( nwsToEyeVec, nwsReflection ) );
 	return pow( specularFactor, specularPower );
 }

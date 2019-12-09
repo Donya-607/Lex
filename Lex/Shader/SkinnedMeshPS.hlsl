@@ -9,8 +9,8 @@ float4 main( VS_OUT pin ) : SV_TARGET
 	float4	diffuseMapColor	= diffuseMap.Sample( diffuseMapSampler, pin.texCoord );
 	float	diffuseMapAlpha = diffuseMapColor.a;
 	
-	float3	nLightVec		= normalize( -cbLightDirection.rgb ); // "position -> light" vector.
-	float4	nEyeVector		= pin.wsPos - cbEyePosition;
+	float3	nLightVec		= normalize( -cbLightDirection.rgb );	// "position -> light" vector.
+	float4	nEyeVector		= cbEyePosition - pin.wsPos;			// "position -> eye" vector.
 	
 	float4	ambientColor	= cbAmbient; // TODO : Will be apply an ambient-map, anything else.
 
@@ -18,8 +18,8 @@ float4 main( VS_OUT pin ) : SV_TARGET
 	//		diffuseFactor	= pow( diffuseFactor, 2.0f ); // If needed.
 	float4	diffuseColor	= cbDiffuse * diffuseFactor;
 
-	float	specularFactor	= Phong( pin.normal.rgb, nLightVec, -nEyeVector.rgb, cbSpecular.w );
-	// float	specularFactor	= BlinnPhong( pin.normal.rgb, nLightDir, -nEyeVector.rgb, specular.w );
+	float	specularFactor	= Phong( pin.normal.rgb, nLightVec, nEyeVector.rgb, cbSpecular.w );
+	// float	specularFactor	= BlinnPhong( pin.normal.rgb, nLightVec, nEyeVector.rgb, cbSpecular.w );
 	float4	specularColor	= cbSpecular * specularFactor;
 
 	float3	Ka				= ambientColor.rgb;
