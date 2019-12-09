@@ -20,8 +20,7 @@ namespace Donya
 	/// <summary>
 	/// Initialize Donya's engine, if not initialized yet.<para></para>
 	/// Use Windows::Foundation::Initialize( RO_INIT_MULTITHREADED ).<para></para>
-	/// If initialize failed, returns false.<para></para>
-	/// In release mode, the isAppendFPS flag fixed to false.
+	/// If initialize failed, returns false.
 	/// </summary>
 	bool Init( int nCmdShow, int screenWidth, int screenHeight, const char *windowCaption, bool fullScreenMode, bool isAppendFPS = true, bool isEnableMultiThreaded = true );
 

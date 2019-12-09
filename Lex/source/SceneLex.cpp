@@ -179,19 +179,19 @@ public:
 
 	#endif // USE_IMGUI
 
-	#if DEBUG_MODE
-
 		if ( Donya::Keyboard::Press( VK_MENU ) )
 		{
-			if ( Donya::Keyboard::Trigger( 'C' ) )
-			{
-				bool breakPoint{};
-			}
 			if ( Donya::Keyboard::Trigger( 'R' ) )
 			{
 				iCamera.SetPosition( { 0.0f, 0.0f, -64.0f } );
 				iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
 				iCamera.SetOrientation( { 0.0f, 0.0f, 0.0f, 1.0f } );
+			}
+
+	#if DEBUG_MODE
+			if ( Donya::Keyboard::Trigger( 'C' ) )
+			{
+				bool breakPoint{};
 			}
 			if ( Donya::Keyboard::Trigger( 'T' ) )
 			{
@@ -210,9 +210,9 @@ public:
 			{
 				models.pop_back();
 			}
-		}
-
 	#endif // DEBUG_MODE
+
+		}
 
 		AppendModelIfLoadFinished();
 

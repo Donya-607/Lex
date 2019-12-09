@@ -1162,9 +1162,7 @@ namespace Donya
 		smg = std::make_unique<SystemMemberGathering>();
 		smg->screen.Set( screenWidth, screenHeight, fullScreenMode );
 		smg->windowCaptionConfig.caption		= windowCaption;
-	#if DEBUG_MODE
 		smg->windowCaptionConfig.isAppendFPS	= isAppendFPS;
-	#endif // DEBUG_MODE
 
 		InitWindow( nCmdShow );
 
