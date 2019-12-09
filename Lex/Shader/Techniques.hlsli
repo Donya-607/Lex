@@ -47,7 +47,8 @@ float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec, float s
 	float3 nwsProjection = ( dot( nwsNormal, nwsToLightVec ) * nwsNormal );
 	float3 nwsReflection = nwsToLightVec + ( nwsToLightVec - ( nwsProjection * 2.0f ) );
 	// float3 nwsReflection = normalize( reflect( -nwsToLightVec, nwsNormal ) );
-	return pow( dot( nwsToEyeVec, nwsReflection ), specularPower );
+	float  specularFactor = max( 0.0f, dot( nwsToEyeVec, nwsReflection ) );
+	return pow( specularFactor, specularPower );
 }
 // Calculate specular by half vector.
 // Argument.nwsNormal : The normal of normalized world space.

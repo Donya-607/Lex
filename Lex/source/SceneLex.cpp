@@ -76,6 +76,9 @@ public:
 	};
 	struct CameraUsage
 	{
+		float			zNear{ 0.1f };
+		float			zFar { 1000.0f };
+		float			FOV{ ToRadian( 30.0f ) };
 		float			slerpFactor{ 0.1f };				// 0.0f ~ 1.0f.
 		float			virtualDistance{ 1.0f };			// The distance to virtual screen that align to Common::ScreenSize() from camera. Calc when detected a click.
 		float			rotateSpeed{};
@@ -404,35 +407,40 @@ private:
 
 	void CameraInit()
 	{
+		constexpr float DEFAULT_NEAR	= 0.1f;
+		constexpr float DEFAULT_FAR		= 1000.0f;
+		constexpr float DEFAULT_FOV		= ToRadian( 30.0f );
+		constexpr float MOVE_SPEED		= 1.0f;
+		constexpr float FRONT_SPEED		= 3.0f;
+		constexpr float ROT_SPEED		= ToRadian( 1.0f );
+
+		cameraOp.zNear			= DEFAULT_NEAR;
+		cameraOp.zFar			= DEFAULT_FAR;
+		cameraOp.FOV			= DEFAULT_FOV;
+		cameraOp.rotateSpeed	= ROT_SPEED;
+		cameraOp.moveSpeed.x	= MOVE_SPEED;
+		cameraOp.moveSpeed.y	= MOVE_SPEED;
+		cameraOp.moveSpeed.z	= FRONT_SPEED;
+
+		// My preference.
+		cameraOp.reverseRotateHorizontal = true;
+
 		iCamera.Init( ICamera::Mode::Satellite );
-		iCamera.SetZRange( 0.1f, 1000.0f );
-		iCamera.SetFOV( ToRadian( 30.0f ) );
+		iCamera.SetZRange( cameraOp.zNear, cameraOp.zFar );
+		iCamera.SetFOV( cameraOp.FOV );
 		iCamera.SetScreenSize( { Common::ScreenWidthF(), Common::ScreenHeightF() } );
 		iCamera.SetPosition( { 0.0f, 0.0f, -64.0f } );
 		iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
 		iCamera.SetProjectionPerspective();
 
 		CalcDistToVirtualScreen();
-
-		constexpr float MOVE_SPEED	= 1.0f;
-		constexpr float FRONT_SPEED	= 3.0f;
-		constexpr float ROT_SPEED	= ToRadian( 1.0f );
-
-		cameraOp.rotateSpeed = ROT_SPEED;
-		cameraOp.moveSpeed.x = MOVE_SPEED;
-		cameraOp.moveSpeed.y = MOVE_SPEED;
-		cameraOp.moveSpeed.z = FRONT_SPEED;
-
-		// My preference.
-		cameraOp.reverseRotateHorizontal = true;
 	}
 	void CameraUpdate()
 	{
 		ICamera::Controller controller{};
 		controller.SetNoOperation();
 
-		constexpr float SLERP_FACTOR = 0.2f; // TODO : To be changeable this.
-		controller.slerpPercent = SLERP_FACTOR;
+		controller.slerpPercent = cameraOp.slerpFactor;
 
 		bool isDriveMouse		= ( currMouse != prevMouse ) || Donya::Mouse::WheelRot() || nowPressMouseButton;
 		bool isAllowDrive		= Donya::Keyboard::Press( VK_MENU ) && !Donya::IsMouseHoveringImGuiWindow();
@@ -466,8 +474,6 @@ private:
 		{
 			if ( nowPressMouseButton == VK_MBUTTON )
 			{
-				// TODO : To be changeable this moving direction(normal or inverse).
-
 				moveVelocity.x = csMouseMove.x * cameraOp.moveSpeed.x;
 				moveVelocity.y = csMouseMove.y * cameraOp.moveSpeed.y;
 
@@ -481,8 +487,6 @@ private:
 		float roll{}, pitch{}, yaw{};
 		if ( nowPressMouseButton == VK_LBUTTON )
 		{
-			// TODO : To be changeable this moving direction(normal or inverse).
-
 			yaw   = csMouseMove.x * cameraOp.rotateSpeed;
 			pitch = csMouseMove.y * cameraOp.rotateSpeed;
 			roll  = 0.0f; // Unused.
@@ -495,7 +499,6 @@ private:
 		controller.roll				= roll;
 		controller.pitch			= pitch;
 		controller.yaw				= yaw;
-		controller.slerpPercent		= SLERP_FACTOR;
 		controller.moveInLocalSpace	= true;
 
 		iCamera.Update( controller );
@@ -781,13 +784,20 @@ private:
 
 					if ( ImGui::TreeNode( u8"ê›íË" ) )
 					{
-						ImGui::SliderFloat( u8"ï‚ä‘åWêî", &cameraOp.slerpFactor, 0.0f, 1.0f );
-						ImGui::DragFloat3( u8"à⁄ìÆë¨ìx", &cameraOp.moveSpeed.x, 0.2f );
-						ImGui::DragFloat ( u8"âÒì]ë¨ìx", &cameraOp.rotateSpeed, ToRadian( 1.0f ) );
-						ImGui::Checkbox( u8"îΩì]ÅEâ°à⁄ìÆ", &cameraOp.reverseMoveHorizontal   );
-						ImGui::Checkbox( u8"îΩì]ÅEècà⁄ìÆ", &cameraOp.reverseMoveVertical     );
-						ImGui::Checkbox( u8"îΩì]ÅEâ°âÒì]", &cameraOp.reverseRotateHorizontal );
-						ImGui::Checkbox( u8"îΩì]ÅEècâÒì]", &cameraOp.reverseRotateVertical   );
+						ImGui::DragFloat  ( u8"Near",		&cameraOp.zNear, 0.01f, 0.0f );
+						ImGui::DragFloat  ( u8"Far",		&cameraOp.zFar,  1.00f, 0.0f );
+						ImGui::SliderFloat( u8"éãñÏäp",		&cameraOp.FOV, 0.0f, ToRadian( 360.0f ) );
+						iCamera.SetZRange( cameraOp.zNear, cameraOp.zFar );
+						iCamera.SetFOV( cameraOp.FOV );
+						iCamera.SetProjectionPerspective();
+
+						ImGui::SliderFloat( u8"ï‚ä‘åWêî",	&cameraOp.slerpFactor, 0.0f, 1.0f );
+						ImGui::DragFloat3 ( u8"à⁄ìÆë¨ìx",	&cameraOp.moveSpeed.x, 0.2f );
+						ImGui::DragFloat  ( u8"âÒì]ë¨ìx",	&cameraOp.rotateSpeed, ToRadian( 1.0f ) );
+						ImGui::Checkbox( u8"îΩì]ÅEâ°à⁄ìÆ",	&cameraOp.reverseMoveHorizontal   );
+						ImGui::Checkbox( u8"îΩì]ÅEècà⁄ìÆ",	&cameraOp.reverseMoveVertical     );
+						ImGui::Checkbox( u8"îΩì]ÅEâ°âÒì]",	&cameraOp.reverseRotateHorizontal );
+						ImGui::Checkbox( u8"îΩì]ÅEècâÒì]",	&cameraOp.reverseRotateVertical   );
 
 						ImGui::TreePop();
 					}
