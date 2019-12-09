@@ -490,7 +490,7 @@ namespace Donya
 				auto TransformBones = []( std::array<DirectX::XMFLOAT4X4, MAX_BONE_COUNT> *pBoneTransform, const Donya::Skeletal &pose )
 				{
 					const size_t poseBoneCount = pose.skeletal.size();
-					for ( size_t i = 0; i < MAX_BONE_COUNT; ++i )
+					for ( size_t i = 0; i < MAX_BONE_COUNT/* pBoneTransform->size() */; ++i )
 					{
 						( *pBoneTransform )[i] = ( poseBoneCount <= i )
 						? Donya::Vector4x4::Identity().XMFloat()
@@ -533,8 +533,6 @@ namespace Donya
 
 		// PostProcessing
 		{
-			pImmediateContext->IASetInputLayout( 0 );
-
 			pImmediateContext->RSSetState( prevRasterizerState.Get() );
 
 			ID3D11ShaderResourceView *pNullSRV = nullptr;
