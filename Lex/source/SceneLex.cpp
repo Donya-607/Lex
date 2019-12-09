@@ -782,6 +782,24 @@ private:
 				{
 					iCamera.ShowImGuiNode();
 
+					if ( ImGui::TreeNode( u8"操作方法" ) )
+					{
+						constexpr std::array<const char *, 5> CAPTION
+						{
+							u8"カメラ操作はすべて，ＡＬＴキーを押しながらになります。",
+							u8"マウスホイール　　　　：ズーム（ドリー）イン・アウト",
+							u8"左クリック　　　＋移動：回転移動",
+							u8"ホイール押し込み＋移動：平行移動",
+							u8"Ｒキー　　　　　　　　：位置のリセット",
+						};
+						for ( const auto &it : CAPTION )
+						{
+							ImGui::Text( it );
+						}
+
+						ImGui::TreePop();
+					}
+
 					if ( ImGui::TreeNode( u8"設定" ) )
 					{
 						ImGui::DragFloat  ( u8"Near",		&cameraOp.zNear, 0.01f, 0.0f );

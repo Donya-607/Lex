@@ -3,7 +3,7 @@
 #include "Constant.h" // Use DEBUG_MODE
 
 #ifndef FORCE_USE_IMGUI
-#define FORCE_USE_IMGUI	( false )
+#define FORCE_USE_IMGUI	( true )
 #endif // FORCE_USE_IMGUI
 
 #define USE_IMGUI		( DEBUG_MODE || FORCE_USE_IMGUI )
