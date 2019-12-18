@@ -199,6 +199,7 @@
     <ClInclude Include="Source\Common.h" />
     <ClInclude Include="Source\Fader.h" />
     <ClInclude Include="Source\Framework.h" />
+    <ClInclude Include="Source\Grid.h" />
     <ClInclude Include="Source\Icon.h" />
     <ClInclude Include="Source\Loader.h" />
     <ClInclude Include="Source\misc.h" />
@@ -245,6 +246,7 @@
     <ClCompile Include="Source\Common.cpp" />
     <ClCompile Include="Source\Fader.cpp" />
     <ClCompile Include="Source\Framework.cpp" />
+    <ClCompile Include="Source\Grid.cpp" />
     <ClCompile Include="Source\Loader.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Motion.cpp" />

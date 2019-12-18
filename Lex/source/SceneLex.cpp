@@ -21,6 +21,7 @@
 
 #include "Camera.h"
 #include "Common.h"
+#include "Grid.h"
 #include "Loader.h"
 #include "Motion.h"
 #include "SkinnedMesh.h"
@@ -115,6 +116,8 @@ public:
 	float							loadSamplingFPS;		// Use to Loader's sampling FPS.
 	std::vector<MeshAndInfo>		models;
 
+	GridLine						grid;
+
 	Donya::CBuffer<CBufferPerFrame>	cbPerFrame;
 	Donya::CBuffer<CBufferPerModel>	cbPerModel;
 	Donya::VertexShader				VSSkinnedMesh;
@@ -133,6 +136,7 @@ public:
 		nowPressMouseButton(), prevMouse(), currMouse(),
 		cameraOp(),
 		loadSamplingFPS( 0.0f ), models(),
+		grid(),
 		cbPerFrame(), cbPerModel(), VSSkinnedMesh(), PSSkinnedMesh(),
 		pLoadThread( nullptr ), pCurrentLoading( nullptr ),
 		currentLoadingFileNameUTF8(), reservedAbsFilePaths(), reservedFileNamesUTF8(),
@@ -163,10 +167,14 @@ public:
 		CameraInit();
 
 		MouseUpdate();
+
+		grid.Init();
 	}
 	void Uninit()
 	{
 		iCamera.Uninit();
+
+		grid.Uninit();
 	}
 
 	void Update( float elapsedTime )
@@ -223,6 +231,8 @@ public:
 		UpdateModels( elapsedTime );
 		
 		CameraUpdate();
+
+		grid.Update();
 	}
 
 	void Draw( float elapsedTime )
@@ -245,6 +255,8 @@ public:
 		Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 
 		Donya::Vector4x4 WVP = W * V * P;
+
+		grid.Draw( V * P );
 
 		Donya::SkinnedMesh::CBSetOption optionPerMesh{};
 		Donya::SkinnedMesh::CBSetOption optionPerSubset{};

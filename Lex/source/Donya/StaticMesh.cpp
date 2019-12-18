@@ -474,8 +474,8 @@ namespace Donya
 		{
 			hr = CreateVertexBuffer<Vertex>
 			(
-				pDevice,
-				verticesPerMesh[i],
+				pDevice, verticesPerMesh[i],
+				D3D11_USAGE_IMMUTABLE, 0,
 				meshes[i].iVertexBuffer.GetAddressOf()
 			);
 			if ( FAILED( hr ) )
@@ -595,8 +595,8 @@ namespace Donya
 		{
 			hr = CreateVertexBuffer<Vertex>
 			(
-				pDevice,
-				vertices,
+				pDevice, vertices,
+				D3D11_USAGE_IMMUTABLE, 0,
 				mesh.iVertexBuffer.GetAddressOf()
 			);
 			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer." );

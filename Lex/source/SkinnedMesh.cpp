@@ -213,10 +213,10 @@ namespace Donya
 		// Create VertexBuffers
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
-			hr = CreateVertexBuffer<Vertex>
+			hr = CreateVertexBuffer<SkinnedMesh::Vertex>
 			(
-				pDevice,
-				allVertices[i],
+				pDevice, allVertices[i],
+				D3D11_USAGE_IMMUTABLE, 0,
 				meshes[i].iVertexBuffer.GetAddressOf()
 			);
 			if ( FAILED( hr ) )

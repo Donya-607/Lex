@@ -7,6 +7,7 @@
 #include <string>
 #include <wrl.h>
 
+#include "CBuffer.h"
 #include "Color.h"
 #include "Shader.h"
 #include "Vector.h"
@@ -204,6 +205,10 @@ namespace Donya
 				DirectX::XMFLOAT4X4	rotation{};			// The rotation from front(0,0,1) vector to direction(end-start).
 				DirectX::XMFLOAT4	color{ 0.0f, 0.0f, 0.0f, 1.0f };	// RGBA.
 			};
+			struct Constants
+			{
+				DirectX::XMFLOAT4X4	matVP{};			// The View-Projection matrix.
+			};
 		private:
 			int  idDepthStencil;
 			int  idRasterizer;
@@ -214,8 +219,8 @@ namespace Donya
 
 			const   size_t MAX_INSTANCES;
 			mutable size_t reserveCount;
-			mutable std::vector<Instance> instances;
-
+			mutable std::vector<Instance>		instances;
+			mutable Donya::CBuffer<Constants>	cbuffer;
 			template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 			mutable ComPtr<ID3D11Buffer>		pVertexBuffer;
 			mutable ComPtr<ID3D11Buffer>		pInstanceBuffer;
@@ -239,7 +244,7 @@ namespace Donya
 			/// This method only reserve to a internal bundle-list.<para></para>
 			/// Returns false if a current reserving count over than internal capacity.
 			/// </summary>
-			bool Reserve( const Donya::Vector3 &wsStartPoint, const Donya::Vector3 &wsEndPoint, Donya::Color::Code color = Donya::Color::Code::BLACK, float alpha = 1.0f ) const;
+			bool Reserve( const Donya::Vector3 &wsStartPoint, const Donya::Vector3 &wsEndPoint, float alpha, Donya::Color::Code color = Donya::Color::Code::BLACK ) const;
 
 			/// <summary>
 			/// Draw current reserving instances.

@@ -1158,7 +1158,7 @@ namespace Donya
 			return
 			"struct VS_IN\n"
 			"{\n"
-			"	float4		NDCPos		: POSITION;\n"
+			"	float4		pos			: POSITION;\n"
 			"	float		scaling		: SCALING;\n"
 			"	float3		translation	: TRANSLATION;\n"
 			"	row_major\n"
@@ -1167,12 +1167,18 @@ namespace Donya
 			"};\n"
 			"struct VS_OUT\n"
 			"{\n"
-			"	float4 pos		: SV_POSITION;\n"
-			"	float4 color	: COLOR;\n"
+			"	float4		pos			: SV_POSITION;\n"
+			"	float4		color		: COLOR;\n"
+			"};\n"
+			"cbuffer CBuffer			: register( b0 )\n"
+			"{\n"
+			"	row_major\n"
+			"	float4x4	cbMatVP;\n"
+			"\n"
 			"};\n"
 			"VS_OUT VSMain( VS_IN vin )\n"
 			"{\n"
-			"	float4	transform	=  vin.NDCPos;\n"
+			"	float4	transform	=  mul( vin.pos, cbMatVP );\n"
 			"			transform	*= vin.scaling;\n"
 			"			transform	=  mul( transform, rotation );\n"
 			"			transform	+= vin.translation;\n"
@@ -1234,7 +1240,7 @@ namespace Donya
 			idDepthStencil( 0 ), idRasterizer( 0 ), wasCreated( false ),
 			lineVS(), linePS(),
 			MAX_INSTANCES( maxInstanceCount ), reserveCount( 0 ), instances(),
-			pVertexBuffer(), pInstanceBuffer()
+			cbuffer(), pVertexBuffer(), pInstanceBuffer()
 		{}
 		Line::~Line() = default;
 
@@ -1286,6 +1292,12 @@ namespace Donya
 				}
 				// else
 			}
+
+			if ( !cbuffer.Create() )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Create Constant buffer." );
+			}
+			// else
 
 			// Create Shaders.
 			{
@@ -1397,8 +1409,9 @@ namespace Donya
 			instances[reserveCount].color = color;
 			
 			reserveCount++;
+			return true;
 		}
-		bool Line::Reserve( const Donya::Vector3 &wsStart, const Donya::Vector3 &wsEnd, Donya::Color::Code color, float alpha ) const
+		bool Line::Reserve( const Donya::Vector3 &wsStart, const Donya::Vector3 &wsEnd, float alpha, Donya::Color::Code color ) const
 		{
 			const Donya::Vector3 converted = Donya::Color::MakeColor( color );
 			return Reserve( wsStart, wsEnd, Donya::Vector4{ converted, alpha } );
@@ -1420,6 +1433,31 @@ namespace Donya
 
 				pImmediateContext->Unmap( pInstanceBuffer.Get(), 0 );
 			}
+			
+			cbuffer.data.matVP = matVP.XMFloat();
+			cbuffer.Activate( 0, /* setVS = */ true, /* setPS = */ true );
+			lineVS.Activate();
+			linePS.Activate();
+			Donya::DepthStencil::Activate( idDepthStencil );
+			Donya::Rasterizer::Activate( idRasterizer );
+			
+			constexpr unsigned int BUFFER_COUNT = 2U;
+			UINT strides[BUFFER_COUNT] = { sizeof( Line::Vertex ), sizeof( Line::Instance ) };
+			UINT offsets[BUFFER_COUNT] = { 0, 0 };
+			ID3D11Buffer *pBuffers[BUFFER_COUNT] = { pVertexBuffer.Get(), pInstanceBuffer.Get() };
+			pImmediateContext->IASetVertexBuffers( 0, BUFFER_COUNT, pBuffers, strides, offsets );
+			pImmediateContext->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_LINELIST );
+
+			pImmediateContext->DrawInstanced( 2U, reserveCount, 0U, 0U );
+
+			Donya::Rasterizer::Deactivate();
+			Donya::DepthStencil::Deactivate();
+			linePS.Deactivate();
+			lineVS.Deactivate();
+			cbuffer.Deactivate();
+
+			instances.clear();
+			reserveCount = 0U;
 		}
 
 	// region Line
