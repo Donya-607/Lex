@@ -198,6 +198,7 @@
     <ClInclude Include="Source\Common.h" />
     <ClInclude Include="Source\Fader.h" />
     <ClInclude Include="Source\Framework.h" />
+    <ClInclude Include="Source\Icon.h" />
     <ClInclude Include="Source\Loader.h" />
     <ClInclude Include="Source\misc.h" />
     <ClInclude Include="Source\Motion.h" />
@@ -286,6 +287,9 @@
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Source\Donya\Donya.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Source\Icon.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

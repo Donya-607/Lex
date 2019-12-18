@@ -183,6 +183,9 @@
     <ClInclude Include="Source\Donya\Color.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Icon.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -323,5 +326,10 @@
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Source\Donya\Donya.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Source\Icon.rc">
+      <Filter>Resource</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

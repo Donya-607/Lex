@@ -255,7 +255,6 @@ public:
 		optionPerSubset.setVS		= true;
 		optionPerSubset.setPS		= true;
 
-		bool breakpoint = ( 2 <= models.size() );
 		for ( auto &it : models )
 		{
 			if ( it.dontWannaDraw ) { continue; }
@@ -281,14 +280,12 @@ public:
 		cbPerModel.Deactivate();
 
 		// Show a cube to origin with unit scale.
-	#if DEBUG_MODE
 		{
 			static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
 
 			constexpr Donya::Vector4 COLOR{ 0.8f, 1.0f, 0.9f, 0.6f };
 			cube.Render( nullptr, true, true, WVP, W, directionalLight.direction, COLOR );
 		}
-	#endif // DEBUG_MODE
 	}
 private:
 	bool ShaderInit()

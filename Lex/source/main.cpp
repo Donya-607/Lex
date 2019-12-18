@@ -10,6 +10,7 @@
 
 #include "Common.h"
 #include "Framework.h"
+#include "Icon.h"
 
 INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _In_ LPWSTR cmdLine, _In_ INT cmdShow )
 {
@@ -33,7 +34,7 @@ INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _
 	std::string title{ "Lex" };
 	Donya::Init( cmdShow, Common::ScreenWidth(), Common::ScreenHeight(), title.c_str(), /* fullScreenMode = */ false );
 
-	// Donya::SetWindowIcon( instance, IDI_ICON );
+	Donya::SetWindowIcon( instance, IDI_ICON );
 
 	Framework framework{};
 	framework.Init();

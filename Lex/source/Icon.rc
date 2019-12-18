@@ -1,0 +1,3 @@
+#include "Icon.h"
+IDI_ICON ICON DISCARDABLE "..\\Data\\Icon\\Icon.ico"
+ 
