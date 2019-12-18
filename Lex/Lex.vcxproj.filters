@@ -186,6 +186,9 @@
     <ClInclude Include="Source\Icon.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Donya\RenderingStates.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -306,6 +309,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Donya\Color.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Donya\RenderingStates.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

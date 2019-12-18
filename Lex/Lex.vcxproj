@@ -181,6 +181,7 @@
     <ClInclude Include="Source\Donya\Mouse.h" />
     <ClInclude Include="Source\Donya\Quaternion.h" />
     <ClInclude Include="Source\Donya\Random.h" />
+    <ClInclude Include="Source\Donya\RenderingStates.h" />
     <ClInclude Include="Source\Donya\Resource.h" />
     <ClInclude Include="Source\Donya\ScreenShake.h" />
     <ClInclude Include="Source\Donya\Serializer.h" />
@@ -228,6 +229,7 @@
     <ClCompile Include="Source\Donya\Mouse.cpp" />
     <ClCompile Include="Source\Donya\Quaternion.cpp" />
     <ClCompile Include="Source\Donya\Random.cpp" />
+    <ClCompile Include="Source\Donya\RenderingStates.cpp" />
     <ClCompile Include="Source\Donya\Resource.cpp" />
     <ClCompile Include="Source\Donya\ScreenShake.cpp" />
     <ClCompile Include="Source\Donya\Shader.cpp" />

@@ -35,6 +35,14 @@ namespace Donya
 		/// Returns true if succeeded to create or already created.
 		/// </summary>
 		bool CreateByCSO( const std::string &filePath, const std::vector<D3D11_INPUT_ELEMENT_DESC> &inputElementDescs, bool isEnableCache = true, ID3D11Device *pDevice = nullptr );
+		/// <summary>
+		/// Create vertex-shader and input-layout by embeded source-code.<para></para>
+		/// The "IdentifyName" is a unique name(like "FooShaderVS").<para></para>
+		/// The "EntryPoint" is a name of entry-point(like "VSMain").<para></para>
+		/// If the "pDevice" is null, use default(library's) device.<para></para>
+		/// Returns true if succeeded to create or already created.
+		/// </summary>
+		bool CreateByEmbededSourceCode( const std::string &shaderIdentifyName, const std::string &shaderSourceCode, const std::string shaderVSEntryPoint, const std::vector<D3D11_INPUT_ELEMENT_DESC> &inputElementDescs, bool isEnableCache = true, ID3D11Device *pDevice = nullptr );
 	public:
 		/// <summary>
 		/// If the "pImmediateContext" is null, use default(libray's) immediate-context.
@@ -71,6 +79,14 @@ namespace Donya
 		/// Returns true if succeeded to create or already created.
 		/// </summary>
 		bool CreateByCSO( const std::string &filePath, bool isEnableCache = true, ID3D11Device *pDevice = nullptr );
+		/// <summary>
+		/// Create pixel-shader by embeded source-code.<para></para>
+		/// The "IdentifyName" is a unique name(like "FooShaderPS").<para></para>
+		/// The "EntryPoint" is a name of entry-point(like "PSMain").<para></para>
+		/// If the "pDevice" is null, use default(library's) device.<para></para>
+		/// Returns true if succeeded to create or already created.
+		/// </summary>
+		bool CreateByEmbededSourceCode( const std::string &shaderIdentifyName, const std::string &shaderSourceCode, const std::string shaderVSEntryPoint, bool isEnableCache = true, ID3D11Device *pDevice = nullptr );
 	public:
 		/// <summary>
 		/// If the "pImmediateContext" is null, use default(libray's) immediate-context.
