@@ -191,9 +191,7 @@ public:
 		{
 			if ( Donya::Keyboard::Trigger( 'R' ) )
 			{
-				iCamera.SetPosition( { 0.0f, 0.0f, -64.0f } );
-				iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
-				iCamera.SetOrientation( { 0.0f, 0.0f, 0.0f, 1.0f } );
+				SetDefaultCameraPosition();
 			}
 
 	#if DEBUG_MODE
@@ -209,7 +207,7 @@ public:
 			// bool isAccept = meshes.empty();
 			bool isAccept = true;
 			if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( 'F' ) && isAccept )
-			{
+			{	// For hands-free access.
 				constexpr const char *BLUE_FALCON = "D:\\D-Download\\ASSET_Models\\Free\\Distribution_FBX\\BLue Falcon\\Blue Falcon.FBX";
 				ReserveLoadFileIfLoadable( BLUE_FALCON );
 			}
@@ -437,8 +435,7 @@ private:
 		iCamera.SetZRange( cameraOp.zNear, cameraOp.zFar );
 		iCamera.SetFOV( cameraOp.FOV );
 		iCamera.SetScreenSize( { Common::ScreenWidthF(), Common::ScreenHeightF() } );
-		iCamera.SetPosition( { 0.0f, 0.0f, -64.0f } );
-		iCamera.SetFocusPoint( { 0.0f, 0.0f, 0.0f } );
+		SetDefaultCameraPosition();
 		iCamera.SetProjectionPerspective();
 
 		CalcDistToVirtualScreen();
@@ -510,6 +507,32 @@ private:
 		controller.moveInLocalSpace	= true;
 
 		iCamera.Update( controller );
+	}
+	void SetDefaultCameraPosition()
+	{
+		constexpr Donya::Vector3 DEFAULT_POS = { 32.0f, 32.0f, -32.0f };
+		constexpr Donya::Vector3 LOOK_POINT  = {  0.0f,  0.0f,   0.0f };
+		iCamera.SetPosition   ( DEFAULT_POS	);
+		iCamera.SetFocusPoint ( LOOK_POINT	);
+
+		// The orientation is set by two step, this prevent a roll-rotation(Z-axis) in local space of camera.
+		
+		Donya::Quaternion lookAt  = Donya::Quaternion::LookAt
+		(
+			Donya::Quaternion::Identity(),
+			( LOOK_POINT - DEFAULT_POS ).Normalized(),
+			Donya::Quaternion::Freeze::Up
+		);
+		lookAt.RotateBy
+		(
+			Donya::Quaternion::Make
+			(
+				lookAt.LocalRight(),
+				atanf( DEFAULT_POS.y / ( -DEFAULT_POS.z + EPSILON ) )
+			)
+		);
+
+		iCamera.SetOrientation( lookAt		);
 	}
 
 	void FetchDraggedFilePaths()
