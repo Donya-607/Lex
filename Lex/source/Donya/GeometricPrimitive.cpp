@@ -1178,13 +1178,14 @@ namespace Donya
 			"};\n"
 			"VS_OUT VSMain( VS_IN vin )\n"
 			"{\n"
-			"	float4	transform	=  mul( vin.pos, cbMatVP );\n"
-			"			transform	*= vin.scaling;\n"
-			"			transform	=  mul( transform, rotation );\n"
-			"			transform	+= vin.translation;\n"
+			"	float4	transform		=  vin.pos;\n"
+			"			transform.xyz	*= vin.scaling;\n" // I don't want scaling the 'w' element. Because the 'w' element will divide each element, so the position can not scaling.
+			"			transform		=  mul( transform, vin.rotation );\n"
+			"			transform.xyz	+= vin.translation;\n"
+			"			transform		=  mul( transform, cbMatVP );\n"
 			"	VS_OUT vout = ( VS_OUT )( 0 );\n"
-			"	vout.pos			=  transform;\n"
-			"	vout.color			=  vin.color;\n"
+			"	vout.pos				=  transform;\n"
+			"	vout.color				=  vin.color;\n"
 			"	return vout;\n"
 			"}\n"
 			"float4 PSMain( VS_OUT pin ) : SV_TARGET\n"
@@ -1263,7 +1264,7 @@ namespace Donya
 				hr = Donya::CreateVertexBuffer<Line::Vertex>
 				(
 					pDevice, origin,
-					D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE,
+					D3D11_USAGE_IMMUTABLE, 0,
 					pVertexBuffer.GetAddressOf()
 				);
 				if ( FAILED( hr ) )
@@ -1306,10 +1307,10 @@ namespace Donya
 					D3D11_INPUT_ELEMENT_DESC{ "POSITION",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
 					D3D11_INPUT_ELEMENT_DESC{ "SCALING",		0, DXGI_FORMAT_R32_FLOAT,			1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
 					D3D11_INPUT_ELEMENT_DESC{ "TRANSLATION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
-					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		0, DXGI_FORMAT_R32G32B32_FLOAT,		1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
-					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		1, DXGI_FORMAT_R32G32B32_FLOAT,		1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
-					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		2, DXGI_FORMAT_R32G32B32_FLOAT,		1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
-					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		3, DXGI_FORMAT_R32G32B32_FLOAT,		1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
+					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		0, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
+					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		1, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
+					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		2, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
+					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		3, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
 					D3D11_INPUT_ELEMENT_DESC{ "COLOR",			0, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
 				};
 				bool succeeded = lineVS.CreateByEmbededSourceCode
@@ -1397,16 +1398,14 @@ namespace Donya
 
 		bool Line::Reserve( const Donya::Vector3 &wsStart, const Donya::Vector3 &wsEnd, const Donya::Vector4 &color ) const
 		{
-			if ( MAX_INSTANCES < reserveCount ) { return false; }
+			if ( MAX_INSTANCES <= reserveCount ) { return false; }
 			// else
 
-			instances[reserveCount].scaling			= ( wsEnd - wsStart ).Length();
-			instances[reserveCount].translation		= ( wsStart - wsEnd ); // Relative position.
-			
-			Donya::Quaternion rotation = Donya::Quaternion::LookAt( Donya::Quaternion::Identity(), ( wsEnd - wsStart ).Normalized() );
-			instances[reserveCount].rotation = rotation.RequireRotationMatrix();
-
-			instances[reserveCount].color = color;
+			instances[reserveCount].scaling		= ( wsEnd - wsStart ).Length();
+			instances[reserveCount].translation	= wsStart;
+			Donya::Quaternion rotation = Donya::Quaternion::LookAt( Donya::Vector3::Front(), ( wsEnd - wsStart ).Normalized() );
+			instances[reserveCount].rotation	= rotation.RequireRotationMatrix();
+			instances[reserveCount].color		= color;
 			
 			reserveCount++;
 			return true;
@@ -1419,6 +1418,9 @@ namespace Donya
 
 		void Line::Flush( const Donya::Vector4x4 &matVP ) const
 		{
+			if ( !reserveCount ) { return; }
+			// else
+
 			HRESULT hr = S_OK;
 			ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
 
@@ -1429,7 +1431,8 @@ namespace Donya
 				hr = pImmediateContext->Map( pInstanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource );
 				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Map()" );
 
-				memcpy_s( mappedSubresource.pData, sizeof( Line::Instance ) * reserveCount, instances.data(), mappedSubresource.RowPitch );
+				// memcpy_s( mappedSubresource.pData, sizeof( Line::Instance ) * reserveCount, instances.data(), mappedSubresource.RowPitch );
+				memcpy( mappedSubresource.pData, instances.data(), mappedSubresource.RowPitch );
 
 				pImmediateContext->Unmap( pInstanceBuffer.Get(), 0 );
 			}
@@ -1442,13 +1445,19 @@ namespace Donya
 			Donya::Rasterizer::Activate( idRasterizer );
 			
 			constexpr unsigned int BUFFER_COUNT = 2U;
-			UINT strides[BUFFER_COUNT] = { sizeof( Line::Vertex ), sizeof( Line::Instance ) };
-			UINT offsets[BUFFER_COUNT] = { 0, 0 };
-			ID3D11Buffer *pBuffers[BUFFER_COUNT] = { pVertexBuffer.Get(), pInstanceBuffer.Get() };
+			UINT strides[BUFFER_COUNT]{ sizeof( Line::Vertex ), sizeof( Line::Instance ) };
+			UINT offsets[BUFFER_COUNT]{ 0, 0 };
+			ID3D11Buffer *pBuffers[BUFFER_COUNT]{ pVertexBuffer.Get(), pInstanceBuffer.Get() };
 			pImmediateContext->IASetVertexBuffers( 0, BUFFER_COUNT, pBuffers, strides, offsets );
 			pImmediateContext->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_LINELIST );
 
 			pImmediateContext->DrawInstanced( 2U, reserveCount, 0U, 0U );
+
+			UINT disStrides[BUFFER_COUNT]{ 0, 0 };
+			UINT disOffsets[BUFFER_COUNT]{ 0, 0 };
+			ID3D11Buffer *pDisBuffers[BUFFER_COUNT]{ nullptr, nullptr };
+			pImmediateContext->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_UNDEFINED ); // Reset
+			pImmediateContext->IASetVertexBuffers( 0, BUFFER_COUNT, pDisBuffers, disStrides, disOffsets );
 
 			Donya::Rasterizer::Deactivate();
 			Donya::DepthStencil::Deactivate();
@@ -1456,8 +1465,9 @@ namespace Donya
 			lineVS.Deactivate();
 			cbuffer.Deactivate();
 
-			instances.clear();
 			reserveCount = 0U;
+			instances.clear();
+			instances.resize( MAX_INSTANCES );
 		}
 
 	// region Line

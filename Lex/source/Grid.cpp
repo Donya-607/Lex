@@ -5,7 +5,7 @@
 GridLine::GridLine() :
 	drawCount( 1 ), drawInterval( 1.0f ),
 	start( 0.0f, 0.0f, -0.5f ), end( 0.0f, 0.0f, 0.5f ),
-	line()
+	line( /* masInstanceCount = */ 256U )
 {}
 GridLine::~GridLine() = default;
 
@@ -33,6 +33,10 @@ void GridLine::Update()
 
 			ImGui::DragFloat3( u8"始点", &start.x );
 			ImGui::DragFloat3( u8"終点", &end.x );
+
+			Donya::Vector3 vector = end - start;
+			ImGui::Text( u8"ベクトル：[%5.2f][%5.2f][%5.2f]", vector.x, vector.y, vector.z );
+			ImGui::Text( u8"ベクトル長：[%5.2f]", vector.Length() );
 
 			ImGui::TreePop();
 		}
