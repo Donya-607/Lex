@@ -237,7 +237,14 @@ public:
 
 	void Draw( float elapsedTime )
 	{
-		Donya::Vector4 cameraPos{ iCamera.GetPosition(), 1.0f };
+		const Donya::Vector4x4 W   = Donya::Vector4x4::Identity();
+		const Donya::Vector4x4 V   = iCamera.CalcViewMatrix();
+		const Donya::Vector4x4 P   = iCamera.GetProjectionMatrix();
+		const Donya::Vector4x4 WVP = W * V * P;
+		const Donya::Vector4   cameraPos{ iCamera.GetPosition(), 1.0f };
+
+		grid.Draw( V * P );
+		
 		cbPerFrame.data.eyePosition			= cameraPos.XMFloat();
 		cbPerFrame.data.dirLightColor		= directionalLight.color;
 		cbPerFrame.data.dirLightDirection	= directionalLight.direction;
@@ -249,14 +256,6 @@ public:
 
 		VSSkinnedMesh.Activate();
 		PSSkinnedMesh.Activate();
-
-		Donya::Vector4x4 W = Donya::Vector4x4::Identity();
-		Donya::Vector4x4 V = iCamera.CalcViewMatrix();
-		Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
-
-		Donya::Vector4x4 WVP = W * V * P;
-
-		grid.Draw( V * P );
 
 		Donya::SkinnedMesh::CBSetOption optionPerMesh{};
 		Donya::SkinnedMesh::CBSetOption optionPerSubset{};

@@ -18,6 +18,8 @@ namespace Donya
 {
 	namespace Geometric
 	{
+		// TODO : User can specify some a slot.
+
 		Base::Base() :
 			iVertexBuffer(), iIndexBuffer(), iConstantBuffer(),
 			iInputLayout(), iVertexShader(), iPixelShader(),
@@ -1074,7 +1076,6 @@ namespace Donya
 				{
 					pVertex->texCoordTransform.x = texPartPosLT.x		/ wholeSize.x;
 					pVertex->texCoordTransform.y = texPartPosLT.y		/ wholeSize.y;
-
 					pVertex->texCoordTransform.z = texPartWholeSize.x	/ wholeSize.x;
 					pVertex->texCoordTransform.w = texPartWholeSize.y	/ wholeSize.y;
 				};
@@ -1088,7 +1089,7 @@ namespace Donya
 				hr = pImmediateContext->Map( iVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource );
 				if ( FAILED( hr ) )
 				{
-					_ASSERT_EXPR( 0, L"Failed : Map at TextureBoard." );
+					_ASSERT_EXPR( 0, L"Failed : Mapping at TextureBoard." );
 					return;
 				}
 				// else
@@ -1159,6 +1160,8 @@ namespace Donya
 			"struct VS_IN\n"
 			"{\n"
 			"	float4		pos			: POSITION;\n"
+			"	row_major\n"
+			"	float4x4	matVP		: VP_TRANSFORM;\n"
 			"	float		scaling		: SCALING;\n"
 			"	float3		translation	: TRANSLATION;\n"
 			"	row_major\n"
@@ -1170,19 +1173,13 @@ namespace Donya
 			"	float4		pos			: SV_POSITION;\n"
 			"	float4		color		: COLOR;\n"
 			"};\n"
-			"cbuffer CBuffer			: register( b0 )\n"
-			"{\n"
-			"	row_major\n"
-			"	float4x4	cbMatVP;\n"
-			"\n"
-			"};\n"
 			"VS_OUT VSMain( VS_IN vin )\n"
 			"{\n"
 			"	float4	transform		=  vin.pos;\n"
 			"			transform.xyz	*= vin.scaling;\n" // I don't want scaling the 'w' element. Because the 'w' element will divide each element, so the position can not scaling.
 			"			transform		=  mul( transform, vin.rotation );\n"
 			"			transform.xyz	+= vin.translation;\n"
-			"			transform		=  mul( transform, cbMatVP );\n"
+			"			transform		=  mul( transform, vin.matVP );\n"
 			"	VS_OUT vout = ( VS_OUT )( 0 );\n"
 			"	vout.pos				=  transform;\n"
 			"	vout.color				=  vin.color;\n"
@@ -1241,7 +1238,7 @@ namespace Donya
 			idDepthStencil( 0 ), idRasterizer( 0 ), wasCreated( false ),
 			lineVS(), linePS(),
 			MAX_INSTANCES( maxInstanceCount ), reserveCount( 0 ), instances(),
-			cbuffer(), pVertexBuffer(), pInstanceBuffer()
+			pVertexBuffer(), pInstanceBuffer()
 		{}
 		Line::~Line() = default;
 
@@ -1258,13 +1255,13 @@ namespace Donya
 				// To front.
 				constexpr std::array<Vertex, 2> origin
 				{
-					Vertex{ { 0.0f, 0.0f, 0.0f } },
-					Vertex{ { 0.0f, 0.0f, 1.0f } }
+					Vertex{ Donya::Vector3::Zero().XMFloat(),  Donya::Vector4x4::Identity().XMFloat() },
+					Vertex{ Donya::Vector3::Front().XMFloat(), Donya::Vector4x4::Identity().XMFloat() }
 				};
 				hr = Donya::CreateVertexBuffer<Line::Vertex>
 				(
 					pDevice, origin,
-					D3D11_USAGE_IMMUTABLE, 0,
+					D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE,
 					pVertexBuffer.GetAddressOf()
 				);
 				if ( FAILED( hr ) )
@@ -1277,9 +1274,10 @@ namespace Donya
 
 			// Create Instance buffer.
 			{
-				reserveCount = 0U;
+				reserveCount = 0;
 				instances.clear();
 				instances.resize( MAX_INSTANCES );
+				
 				hr = Donya::CreateVertexBuffer<Line::Instance>
 				(
 					pDevice, instances,
@@ -1294,17 +1292,15 @@ namespace Donya
 				// else
 			}
 
-			if ( !cbuffer.Create() )
-			{
-				_ASSERT_EXPR( 0, L"Failed : Create Constant buffer." );
-			}
-			// else
-
 			// Create Shaders.
 			{
-				constexpr std::array<D3D11_INPUT_ELEMENT_DESC, 8> inputElements
+				constexpr std::array<D3D11_INPUT_ELEMENT_DESC, 12> inputElements
 				{
 					D3D11_INPUT_ELEMENT_DESC{ "POSITION",		0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "VP_TRANSFORM",	0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "VP_TRANSFORM",	1, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "VP_TRANSFORM",	2, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
+					D3D11_INPUT_ELEMENT_DESC{ "VP_TRANSFORM",	3, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA,	0 },
 					D3D11_INPUT_ELEMENT_DESC{ "SCALING",		0, DXGI_FORMAT_R32_FLOAT,			1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
 					D3D11_INPUT_ELEMENT_DESC{ "TRANSLATION",	0, DXGI_FORMAT_R32G32B32_FLOAT,		1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
 					D3D11_INPUT_ELEMENT_DESC{ "ROTATION",		0, DXGI_FORMAT_R32G32B32A32_FLOAT,	1, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_INSTANCE_DATA,	1 },
@@ -1320,7 +1316,7 @@ namespace Donya
 				);
 				if ( !succeeded )
 				{
-					_ASSERT_EXPR( 0, L"Failed : Create vertex-shadr of Line." );
+					_ASSERT_EXPR( 0, L"Failed : Create vertex-shader of Line." );
 					return false;
 				}
 				// else
@@ -1331,7 +1327,7 @@ namespace Donya
 				);
 				if ( !succeeded )
 				{
-					_ASSERT_EXPR( 0, L"Failed : Create vertex-shadr of Line." );
+					_ASSERT_EXPR( 0, L"Failed : Create pixel-shader of Line." );
 					return false;
 				}
 				// else
@@ -1426,19 +1422,46 @@ namespace Donya
 
 			// Mapping.
 			{
-				D3D11_MAPPED_SUBRESOURCE mappedSubresource{};
+				// Vertex. Only change the 'matVP' by argument.
+				{
+					D3D11_MAPPED_SUBRESOURCE msrVertex{};
+					hr = pImmediateContext->Map( pVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &msrVertex );
+					if ( FAILED( hr ) )
+					{
+						_ASSERT_EXPR( 0, L"Failed : Mapping at Line." );
+						return;
+					}
+					// else
 
-				hr = pImmediateContext->Map( pInstanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource );
-				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Map()" );
+					const std::array<Vertex, 2> currentVertices
+					{
+						Vertex{ Donya::Vector3::Zero().XMFloat(),  matVP.XMFloat() },
+						Vertex{ Donya::Vector3::Front().XMFloat(), matVP.XMFloat() }
+					};
+					memcpy_s( msrVertex.pData, sizeof( Line::Vertex ) * currentVertices.size(), currentVertices.data(), msrVertex.RowPitch );
 
-				// memcpy_s( mappedSubresource.pData, sizeof( Line::Instance ) * reserveCount, instances.data(), mappedSubresource.RowPitch );
-				memcpy( mappedSubresource.pData, instances.data(), mappedSubresource.RowPitch );
+					pImmediateContext->Unmap( pVertexBuffer.Get(), 0 );
+				}
 
-				pImmediateContext->Unmap( pInstanceBuffer.Get(), 0 );
+				// Instances. Apply the reserved data.
+				{
+					D3D11_MAPPED_SUBRESOURCE msrInstance{};
+
+					hr = pImmediateContext->Map( pInstanceBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &msrInstance );
+					if ( FAILED( hr ) )
+					{
+						_ASSERT_EXPR( 0, L"Failed : Mapping at Line." );
+						return;
+					}
+					// else
+
+					// Should change to this -> memcpy_s( msrInstance.pData, sizeof( Line::Instance ) * reserveCount, instances.data(), msrInstance.RowPitch );
+					memcpy( msrInstance.pData, instances.data(), msrInstance.RowPitch );
+
+					pImmediateContext->Unmap( pInstanceBuffer.Get(), 0 );
+				}
 			}
-			
-			cbuffer.data.matVP = matVP.XMFloat();
-			cbuffer.Activate( 0, /* setVS = */ true, /* setPS = */ true );
+
 			lineVS.Activate();
 			linePS.Activate();
 			Donya::DepthStencil::Activate( idDepthStencil );
@@ -1451,7 +1474,7 @@ namespace Donya
 			pImmediateContext->IASetVertexBuffers( 0, BUFFER_COUNT, pBuffers, strides, offsets );
 			pImmediateContext->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_LINELIST );
 
-			pImmediateContext->DrawInstanced( 2U, reserveCount, 0U, 0U );
+			pImmediateContext->DrawInstanced( 2U, reserveCount, 0, 0 );
 
 			UINT disStrides[BUFFER_COUNT]{ 0, 0 };
 			UINT disOffsets[BUFFER_COUNT]{ 0, 0 };
@@ -1463,7 +1486,6 @@ namespace Donya
 			Donya::DepthStencil::Deactivate();
 			linePS.Deactivate();
 			lineVS.Deactivate();
-			cbuffer.Deactivate();
 
 			reserveCount = 0U;
 			instances.clear();

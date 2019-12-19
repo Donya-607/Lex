@@ -7,7 +7,6 @@
 #include <string>
 #include <wrl.h>
 
-#include "CBuffer.h"
 #include "Color.h"
 #include "Shader.h"
 #include "Vector.h"
@@ -196,7 +195,14 @@ namespace Donya
 		public:
 			struct Vertex
 			{
-				DirectX::XMFLOAT3	pos{};		// Default is place to one(1,1,1).
+				// The "matVP" is not need here,
+				// but I don't want use a constant-buffer,
+				// because the shader is made from embeded source-code,
+				// so the slot of constant-buffer can not change by external.
+				// So I decide to place here.
+
+				DirectX::XMFLOAT3	pos{};				// Default is place to one(1,1,1).
+				DirectX::XMFLOAT4X4	matVP{};			// The View-Projection matrix.
 			};
 			struct Instance
 			{
@@ -204,10 +210,6 @@ namespace Donya
 				DirectX::XMFLOAT3	translation{};
 				DirectX::XMFLOAT4X4	rotation{};			// The rotation from front(0,0,1) vector to direction(end-start).
 				DirectX::XMFLOAT4	color{ 0.0f, 0.0f, 0.0f, 1.0f };	// RGBA.
-			};
-			struct Constants
-			{
-				DirectX::XMFLOAT4X4	matVP{};			// The View-Projection matrix.
 			};
 		private:
 			int  idDepthStencil;
@@ -220,7 +222,6 @@ namespace Donya
 			const   size_t MAX_INSTANCES;
 			mutable size_t reserveCount;
 			mutable std::vector<Instance>		instances;
-			mutable Donya::CBuffer<Constants>	cbuffer;
 			template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 			mutable ComPtr<ID3D11Buffer>		pVertexBuffer;
 			mutable ComPtr<ID3D11Buffer>		pInstanceBuffer;

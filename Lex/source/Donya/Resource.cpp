@@ -237,7 +237,7 @@ namespace Donya
 				);
 				if ( FAILED( hr ) )
 				{
-					_ASSERT_EXPR( SUCCEEDED( hr ), reinterpret_cast<LPCSTR>( errorBlob->GetBufferPointer() ) );
+					_ASSERT_EXPR( 0, reinterpret_cast<LPCSTR>( errorBlob->GetBufferPointer() ) );
 					return false;
 				}
 				// else
