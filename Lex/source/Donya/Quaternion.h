@@ -96,6 +96,15 @@ namespace Donya
 			// I should explicit.
 			return { Mul( 1.0f / scalar ) };
 		}
+
+		/// <summary>
+		/// The negation is applied to all four components. The myself(Q) and return-value(-Q) are equivalent.
+		/// </summary>
+		constexpr Quaternion operator - () const
+		{
+			return Quaternion{ -x, -y, -z, -w };
+		}
+
 		Quaternion &operator += ( const Quaternion &R );
 		Quaternion &operator -= ( const Quaternion &R );
 		Quaternion &operator *= ( float scalar );
@@ -335,9 +344,9 @@ namespace Donya
 		static Quaternion Inverse( const Quaternion & );
 
 		/// <summary>
-		/// The time is 0.0f ~ 1.0f.
+		/// The "percent" is 0.0f ~ 1.0f.
 		/// </summary>
-		static Quaternion Slerp( const Quaternion &beginNormalized, const Quaternion &endNormalized, float time );
+		static Quaternion Slerp( const Quaternion &startNormalized, const Quaternion &lastNormalized, float percent );
 
 		/// <summary>
 		/// 
@@ -393,6 +402,7 @@ namespace Donya
 	static constexpr Quaternion operator + ( const Quaternion &L, const Quaternion &R ) { return L.Add( R ); }
 	static constexpr Quaternion operator - ( const Quaternion &L, const Quaternion &R ) { return L.Sub( R ); }
 	static constexpr Quaternion operator * ( const Quaternion &L, float scalar ) { return L.Mul( scalar ); }
+	static constexpr Quaternion operator * ( float scalar, const Quaternion &R ) { return R.Mul( scalar ); }
 	static constexpr Quaternion operator * ( const Quaternion &L, const Quaternion &R ) { return L.Mul( R ); }
 	static constexpr Quaternion operator * ( const Quaternion &L, const Donya::Vector3 &R ) { return L.Mul( R ); }
 	static constexpr Quaternion operator * ( const Donya::Vector3 &L, const Quaternion &R )

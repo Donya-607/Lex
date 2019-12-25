@@ -50,49 +50,49 @@ namespace Donya
 			};
 		}
 		constexpr Vector2 operator - () const { return Vector2{ -x, -y }; }
-		Vector2 operator += ( float scalar )
+		constexpr Vector2 operator += ( float scalar )
 		{
 			x += scalar;
 			y += scalar;
 			return *this;
 		}
-		Vector2 operator += ( const Vector2 &R )
+		constexpr Vector2 operator += ( const Vector2 &R )
 		{
 			x += R.x;
 			y += R.y;
 			return *this;
 		}
-		Vector2 operator += ( const XMFLOAT2 &R )
+		constexpr Vector2 operator += ( const XMFLOAT2 &R )
 		{
 			x += R.x;
 			y += R.y;
 			return *this;
 		}
-		Vector2 operator -= ( float scalar )
+		constexpr Vector2 operator -= ( float scalar )
 		{
 			x -= scalar;
 			y -= scalar;
 			return *this;
 		}
-		Vector2 operator -= ( const Vector2 &R )
+		constexpr Vector2 operator -= ( const Vector2 &R )
 		{
 			x -= R.x;
 			y -= R.y;
 			return *this;
 		}
-		Vector2 operator -= ( const XMFLOAT2 &R )
+		constexpr Vector2 operator -= ( const XMFLOAT2 &R )
 		{
 			x -= R.x;
 			y -= R.y;
 			return *this;
 		}
-		Vector2 operator *= ( float scalar )
+		constexpr Vector2 operator *= ( float scalar )
 		{
 			x *= scalar;
 			y *= scalar;
 			return *this;
 		}
-		Vector2 operator /= ( float scalar )
+		constexpr Vector2 operator /= ( float scalar )
 		{
 			x /= scalar;
 			y /= scalar;
@@ -143,31 +143,42 @@ namespace Donya
 		{
 			return L.Product( R );
 		}
-
-		static float Dot( const Vector2 &L, const Vector2 &R ) { return L.Dot( R ); }
-		static float Dot( const XMFLOAT2 &L, const XMFLOAT2 &R ) { return Vector2( L ).Dot( R ); }
-		static float Cross( const Vector2 &L, const Vector2 &R ) { return L.Cross( R ); }
-		static float Cross( const XMFLOAT2 &L, const XMFLOAT2 &R ) { return Vector2( L ).Cross( R ); }
-		static Vector2 Right() { return Vector2{ 1.0f, 0.0f }; }
-		static Vector2 Up() { return Vector2{ 0.0f, 1.0f }; }
-		static Vector2 Zero() { return Vector2{ 0.0f, 0.0f }; }
+		
+		static constexpr float Dot	( const Vector2  &L, const Vector2  &R ) { return L.Dot( R ); }
+		static constexpr float Dot	( const XMFLOAT2 &L, const XMFLOAT2 &R ) { return Vector2( L ).Dot( R ); }
+		static constexpr float Cross( const Vector2  &L, const Vector2  &R ) { return L.Cross( R ); }
+		static constexpr float Cross( const XMFLOAT2 &L, const XMFLOAT2 &R ) { return Vector2( L ).Cross( R ); }
+		static constexpr Vector2 Right()	{ return Vector2{ 1.0f, 0.0f }; }
+		static constexpr Vector2 Up()		{ return Vector2{ 0.0f, 1.0f }; }
+		static constexpr Vector2 Zero()		{ return Vector2{ 0.0f, 0.0f }; }
 	};
 
-	static Vector2	operator + ( const Vector2 &L, float scalar ) { return ( Vector2( L ) += scalar ); }
-	static Vector2	operator - ( const Vector2 &L, float scalar ) { return ( Vector2( L ) -= scalar ); }
-	static Vector2	operator + ( const Vector2 &L, const Vector2 &R ) { return ( Vector2( L ) += R ); }
-	static Vector2	operator - ( const Vector2 &L, const Vector2 &R ) { return ( Vector2( L ) -= R ); }
-	static Vector2	operator * ( const Vector2 &L, float scalar ) { return ( Vector2( L ) *= scalar ); }
-	static Vector2	operator * ( float scalar, const Vector2 &R ) { return ( Vector2( R ) *= scalar ); }
-	static Vector2	operator / ( const Vector2 &L, float scalar ) { return ( Vector2( L ) /= scalar ); }
+	static constexpr Vector2	operator + ( const Vector2 &L, float scalar ) { return ( Vector2( L ) += scalar ); }
+	static constexpr Vector2	operator - ( const Vector2 &L, float scalar ) { return ( Vector2( L ) -= scalar ); }
+	static constexpr Vector2	operator + ( const Vector2 &L, const Vector2 &R ) { return ( Vector2( L ) += R ); }
+	static constexpr Vector2	operator - ( const Vector2 &L, const Vector2 &R ) { return ( Vector2( L ) -= R ); }
+	static constexpr Vector2	operator * ( const Vector2 &L, float scalar ) { return ( Vector2( L ) *= scalar ); }
+	static constexpr Vector2	operator * ( float scalar, const Vector2 &R ) { return ( Vector2( R ) *= scalar ); }
+	static constexpr Vector2	operator / ( const Vector2 &L, float scalar ) { return ( Vector2( L ) /= scalar ); }
 
 	bool			operator == ( const Vector2 &L, const Vector2 &R );
 	static bool		operator != ( const Vector2 &L, const Vector2 &R ) { return !( L == R ); }
 
-	static constexpr float	Dot( const Vector2 &L, const Vector2 &R ) { return L.Dot( R ); }
-	static constexpr float	Dot( const DirectX::XMFLOAT2 &L, const DirectX::XMFLOAT2 &R ) { return Vector2( L ).Dot( R ); }
-	static constexpr float	Cross( const Vector2 &L, const Vector2 &R ) { return L.Cross( R ); }
-	static constexpr float	Cross( const DirectX::XMFLOAT2 &L, const DirectX::XMFLOAT2 &R ) { return Vector2( L ).Cross( R ); }
+	/// <summary>
+	/// The "percent" is 0.0f ~ 1.0f.
+	/// </summary>
+	static constexpr Vector2	Lerp( const Vector2 &start, const Vector2 &last, float percent )
+	{
+		return Vector2
+		{
+			( start * ( 1.0f - percent ) ) + ( last * percent )
+		};
+	}
+	
+	static constexpr float		Dot( const Vector2 &L, const Vector2 &R ) { return L.Dot( R ); }
+	static constexpr float		Dot( const DirectX::XMFLOAT2 &L, const DirectX::XMFLOAT2 &R ) { return Vector2( L ).Dot( R ); }
+	static constexpr float		Cross( const Vector2 &L, const Vector2 &R ) { return L.Cross( R ); }
+	static constexpr float		Cross( const DirectX::XMFLOAT2 &L, const DirectX::XMFLOAT2 &R ) { return Vector2( L ).Cross( R ); }
 
 #pragma endregion
 
@@ -215,56 +226,56 @@ namespace Donya
 			};
 		}
 		constexpr Vector3 operator - () const { return Vector3{ -x, -y, -z }; }
-		Vector3 operator += ( float scalar )
+		constexpr Vector3 operator += ( float scalar )
 		{
 			x += scalar;
 			y += scalar;
 			z += scalar;
 			return *this;
 		}
-		Vector3 operator += ( const Vector3 &R )
+		constexpr Vector3 operator += ( const Vector3 &R )
 		{
 			x += R.x;
 			y += R.y;
 			z += R.z;
 			return *this;
 		}
-		Vector3 operator += ( const XMFLOAT3 &R )
+		constexpr Vector3 operator += ( const XMFLOAT3 &R )
 		{
 			x += R.x;
 			y += R.y;
 			z += R.z;
 			return *this;
 		}
-		Vector3 operator -= ( float scalar )
+		constexpr Vector3 operator -= ( float scalar )
 		{
 			x -= scalar;
 			y -= scalar;
 			z -= scalar;
 			return *this;
 		}
-		Vector3 operator -= ( const Vector3 &R )
+		constexpr Vector3 operator -= ( const Vector3 &R )
 		{
 			x -= R.x;
 			y -= R.y;
 			z -= R.z;
 			return *this;
 		}
-		Vector3 operator -= ( const XMFLOAT3 &R )
+		constexpr Vector3 operator -= ( const XMFLOAT3 &R )
 		{
 			x -= R.x;
 			y -= R.y;
 			z -= R.z;
 			return *this;
 		}
-		Vector3 operator *= ( float scalar )
+		constexpr Vector3 operator *= ( float scalar )
 		{
 			x *= scalar;
 			y *= scalar;
 			z *= scalar;
 			return *this;
 		}
-		Vector3 operator /= ( float scalar )
+		constexpr Vector3 operator /= ( float scalar )
 		{
 			x /= scalar;
 			y /= scalar;
@@ -321,7 +332,7 @@ namespace Donya
 		{
 			return L.Product( R );
 		}
-
+		
 		static constexpr float		Dot( const Vector3 &L, const Vector3 &R ) { return L.Dot( R ); }
 		static constexpr float		Dot( const XMFLOAT3 &L, const XMFLOAT3 &R ) { return Vector3( L ).Dot( R ); }
 		static constexpr Vector3	Cross( const Vector3 &L, const Vector3 &R ) { return L.Cross( R ); }
@@ -336,16 +347,27 @@ namespace Donya
 		}
 	};
 
-	static Vector3	operator + ( const Vector3 &L, float scalar ) { return ( Vector3( L ) += scalar ); }
-	static Vector3	operator - ( const Vector3 &L, float scalar ) { return ( Vector3( L ) -= scalar ); }
-	static Vector3	operator + ( const Vector3 &L, const Vector3 &R ) { return ( Vector3( L ) += R ); }
-	static Vector3	operator - ( const Vector3 &L, const Vector3 &R ) { return ( Vector3( L ) -= R ); }
-	static Vector3	operator * ( const Vector3 &L, float scalar ) { return ( Vector3( L ) *= scalar ); }
-	static Vector3	operator * ( float scalar, const Vector3 &R ) { return ( Vector3( R ) *= scalar ); }
-	static Vector3	operator / ( const Vector3 &L, float scalar ) { return ( Vector3( L ) /= scalar ); }
+	static constexpr Vector3	operator + ( const Vector3 &L, float scalar ) { return ( Vector3( L ) += scalar ); }
+	static constexpr Vector3	operator - ( const Vector3 &L, float scalar ) { return ( Vector3( L ) -= scalar ); }
+	static constexpr Vector3	operator + ( const Vector3 &L, const Vector3 &R ) { return ( Vector3( L ) += R ); }
+	static constexpr Vector3	operator - ( const Vector3 &L, const Vector3 &R ) { return ( Vector3( L ) -= R ); }
+	static constexpr Vector3	operator * ( const Vector3 &L, float scalar ) { return ( Vector3( L ) *= scalar ); }
+	static constexpr Vector3	operator * ( float scalar, const Vector3 &R ) { return ( Vector3( R ) *= scalar ); }
+	static constexpr Vector3	operator / ( const Vector3 &L, float scalar ) { return ( Vector3( L ) /= scalar ); }
 
 	bool			operator == ( const Vector3 &L, const Vector3 &R );
 	static bool		operator != ( const Vector3 &L, const Vector3 &R ) { return !( L == R ); }
+
+	/// <summary>
+	/// The "percent" is 0.0f ~ 1.0f.
+	/// </summary>
+	static constexpr Vector3	Lerp( const Vector3 &start, const Vector3 &last, float percent )
+	{
+		return Vector3
+		{
+			( start * ( 1.0f - percent ) ) + ( last * percent )
+		};
+	}
 
 	static constexpr float		Dot( const Vector3 &L, const Vector3 &R ) { return L.Dot( R ); }
 	static constexpr float		Dot( const DirectX::XMFLOAT3 &L, const DirectX::XMFLOAT3 &R ) { return Vector3( L ).Dot( R ); }
@@ -399,7 +421,7 @@ namespace Donya
 			};
 		}
 		constexpr Vector4 operator - () const { return Vector4{ -x, -y, -z, -w }; }
-		Vector4 operator += ( float scalar )
+		constexpr Vector4 operator += ( float scalar )
 		{
 			x += scalar;
 			y += scalar;
@@ -407,7 +429,7 @@ namespace Donya
 			w += scalar;
 			return *this;
 		}
-		Vector4 operator += ( const Vector4 &R )
+		constexpr Vector4 operator += ( const Vector4 &R )
 		{
 			x += R.x;
 			y += R.y;
@@ -415,7 +437,7 @@ namespace Donya
 			w += R.w;
 			return *this;
 		}
-		Vector4 operator += ( const XMFLOAT4 &R )
+		constexpr Vector4 operator += ( const XMFLOAT4 &R )
 		{
 			x += R.x;
 			y += R.y;
@@ -423,7 +445,7 @@ namespace Donya
 			w += R.w;
 			return *this;
 		}
-		Vector4 operator -= ( float scalar )
+		constexpr Vector4 operator -= ( float scalar )
 		{
 			x -= scalar;
 			y -= scalar;
@@ -431,7 +453,7 @@ namespace Donya
 			w -= scalar;
 			return *this;
 		}
-		Vector4 operator -= ( const Vector4 &R )
+		constexpr Vector4 operator -= ( const Vector4 &R )
 		{
 			x -= R.x;
 			y -= R.y;
@@ -439,7 +461,7 @@ namespace Donya
 			w -= R.w;
 			return *this;
 		}
-		Vector4 operator -= ( const XMFLOAT4 &R )
+		constexpr Vector4 operator -= ( const XMFLOAT4 &R )
 		{
 			x -= R.x;
 			y -= R.y;
@@ -447,7 +469,7 @@ namespace Donya
 			w -= R.w;
 			return *this;
 		}
-		Vector4 operator *= ( float scalar )
+		constexpr Vector4 operator *= ( float scalar )
 		{
 			x *= scalar;
 			y *= scalar;
@@ -455,7 +477,7 @@ namespace Donya
 			w *= scalar;
 			return *this;
 		}
-		Vector4 operator /= ( float scalar )
+		constexpr Vector4 operator /= ( float scalar )
 		{
 			x /= scalar;
 			y /= scalar;
@@ -480,22 +502,33 @@ namespace Donya
 		{
 			return L.Product( R );
 		}
-
-		static Vector4 Zero() { return Vector4{ 0.0f, 0.0f, 0.0f, 0.0f }; }
+		
+		static constexpr Vector4 Zero() { return Vector4{ 0.0f, 0.0f, 0.0f, 0.0f }; }
 		static Vector4 FromXMVector( const DirectX::XMVECTOR &V );
 		static DirectX::XMVECTOR ToXMVector( const Vector4 &V ) { return V.ToXMVector(); }
 	};
 
-	static Vector4	operator + ( const Vector4 &L, float scalar ) { return ( Vector4( L ) += scalar ); }
-	static Vector4	operator - ( const Vector4 &L, float scalar ) { return ( Vector4( L ) -= scalar ); }
-	static Vector4	operator + ( const Vector4 &L, const Vector4 &R ) { return ( Vector4( L ) += R ); }
-	static Vector4	operator - ( const Vector4 &L, const Vector4 &R ) { return ( Vector4( L ) -= R ); }
-	static Vector4	operator * ( const Vector4 &L, float scalar ) { return ( Vector4( L ) *= scalar ); }
-	static Vector4	operator * ( float scalar, const Vector4 &R ) { return ( Vector4( R ) *= scalar ); }
-	static Vector4	operator / ( const Vector4 &L, float scalar ) { return ( Vector4( L ) /= scalar ); }
+	static constexpr Vector4	operator + ( const Vector4 &L, float scalar ) { return ( Vector4( L ) += scalar ); }
+	static constexpr Vector4	operator - ( const Vector4 &L, float scalar ) { return ( Vector4( L ) -= scalar ); }
+	static constexpr Vector4	operator + ( const Vector4 &L, const Vector4 &R ) { return ( Vector4( L ) += R ); }
+	static constexpr Vector4	operator - ( const Vector4 &L, const Vector4 &R ) { return ( Vector4( L ) -= R ); }
+	static constexpr Vector4	operator * ( const Vector4 &L, float scalar ) { return ( Vector4( L ) *= scalar ); }
+	static constexpr Vector4	operator * ( float scalar, const Vector4 &R ) { return ( Vector4( R ) *= scalar ); }
+	static constexpr Vector4	operator / ( const Vector4 &L, float scalar ) { return ( Vector4( L ) /= scalar ); }
 
 	bool			operator == ( const Vector4 &L, const Vector4 &R );
 	static bool		operator != ( const Vector4 &L, const Vector4 &R ) { return !( L == R ); }
+
+	/// <summary>
+	/// The "percent" is 0.0f ~ 1.0f.
+	/// </summary>
+	static constexpr Vector4 Lerp( const Vector4 &start, const Vector4 &last, float percent )
+	{
+		return Vector4
+		{
+			( start * ( 1.0f - percent ) ) + ( last * percent )
+		};
+	}
 
 #pragma endregion
 
@@ -593,7 +626,51 @@ namespace Donya
 		Vector4   Mul( const Vector4 &vector ) const;
 		Vector4   Mul( const Vector3 &vector, float fourthParam ) const;
 
+		constexpr Vector4x4 &operator += ( float scalar )
+		{
+			_11 += scalar; _12 += scalar; _13 += scalar; _14 += scalar;
+			_21 += scalar; _22 += scalar; _23 += scalar; _24 += scalar;
+			_31 += scalar; _32 += scalar; _33 += scalar; _34 += scalar;
+			_41 += scalar; _42 += scalar; _43 += scalar; _44 += scalar;
+			return *this;
+		}
+		constexpr Vector4x4 &operator += ( const Vector4x4 &R )
+		{
+			_11 += R._11;	_12 += R._12;	_13 += R._13;	_14 += R._14;
+			_21 += R._21;	_22 += R._22;	_23 += R._23;	_24 += R._24;
+			_31 += R._31;	_32 += R._32;	_33 += R._33;	_34 += R._34;
+			_41 += R._41;	_42 += R._42;	_43 += R._43;	_44 += R._44;
+			return *this;
+		}
+		constexpr Vector4x4 &operator -= ( float scalar )
+		{
+			_11 -= scalar; _12 -= scalar; _13 -= scalar; _14 -= scalar;
+			_21 -= scalar; _22 -= scalar; _23 -= scalar; _24 -= scalar;
+			_31 -= scalar; _32 -= scalar; _33 -= scalar; _34 -= scalar;
+			_41 -= scalar; _42 -= scalar; _43 -= scalar; _44 -= scalar;
+			return *this;
+		}
+		constexpr Vector4x4 &operator -= ( const Vector4x4 &R )
+		{
+			_11 -= R._11;	_12 -= R._12;	_13 -= R._13;	_14 -= R._14;
+			_21 -= R._21;	_22 -= R._22;	_23 -= R._23;	_24 -= R._24;
+			_31 -= R._31;	_32 -= R._32;	_33 -= R._33;	_34 -= R._34;
+			_41 -= R._41;	_42 -= R._42;	_43 -= R._43;	_44 -= R._44;
+			return *this;
+		}
+		constexpr Vector4x4 &operator *= ( float scalar )
+		{
+			_11 *= scalar; _12 *= scalar; _13 *= scalar; _14 *= scalar;
+			_21 *= scalar; _22 *= scalar; _23 *= scalar; _24 *= scalar;
+			_31 *= scalar; _32 *= scalar; _33 *= scalar; _34 *= scalar;
+			_41 *= scalar; _42 *= scalar; _43 *= scalar; _44 *= scalar;
+			return *this;
+		}
 		Vector4x4 &operator *= ( const Vector4x4 &R );
+		constexpr Vector4x4 &operator /= ( float scalar )
+		{
+			return *this *= ( 1.0f - scalar );
+		}
 	#pragma endregion
 	public:
 		Vector4x4 Inverse()   const;
@@ -661,8 +738,27 @@ namespace Donya
 	static Vector4		operator * ( const Vector4x4 &matrix, const Vector4 &vector ) { return matrix.Mul( vector ); }
 	static Vector4		operator * ( const Vector4 &vector, const Vector4x4 &matrix ) { return matrix.Mul( vector ); }
 
+	static constexpr Vector4x4	operator + ( const Vector4x4 &L, float scalar ) { return ( Vector4x4( L ) += scalar ); }
+	static constexpr Vector4x4	operator + ( const Vector4x4 &L, const Vector4x4 &R ) { return ( Vector4x4( L ) += R ); }
+	static constexpr Vector4x4	operator - ( const Vector4x4 &L, float scalar ) { return ( Vector4x4( L ) -= scalar ); }
+	static constexpr Vector4x4	operator - ( const Vector4x4 &L, const Vector4x4 &R ) { return ( Vector4x4( L ) -= R ); }
+	static constexpr Vector4x4	operator * ( const Vector4x4 &L, float scalar ) { return ( Vector4x4( L ) *= scalar ); }
+	static constexpr Vector4x4	operator * ( float scalar, const Vector4x4 &R ) { return ( Vector4x4( R ) *= scalar ); }
+	static constexpr Vector4x4	operator / ( const Vector4x4 &L, float scalar ) { return ( Vector4x4( L ) /= scalar ); }
+
 	bool				operator == ( const Vector4x4 &L, const Vector4x4 &R );
 	static bool			operator != ( const Vector4x4 &L, const Vector4x4 &R ) { return !( L == R ); }
+
+	/// <summary>
+	/// The "percent" is 0.0f ~ 1.0f.
+	/// </summary>
+	static constexpr Vector4x4 Lerp( const Vector4x4 &start, const Vector4x4 &last, float percent )
+	{
+		return Vector4x4
+		{
+			( start * ( 1.0f - percent ) ) + ( last * percent )
+		};
+	}
 
 #pragma endregion
 

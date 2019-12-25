@@ -357,8 +357,41 @@ namespace Donya
 		return Q.Inverse();
 	}
 
-	Quaternion Quaternion::Slerp( const Quaternion &nBegin, const Quaternion &nEnd, float time )
+	Quaternion Quaternion::Slerp( const Quaternion &startNormalized, const Quaternion &lastNormalized, float percent )
 	{
+	#if 1 // Wikipedia's way. see https://en.wikipedia.org/wiki/Slerp
+		Quaternion nStart = startNormalized;
+		Quaternion nLast  = lastNormalized;	// The "lastNormalized" have the probability of change. So store to local variable.
+
+		float dot = Dot( nStart, nLast ); // Cosine of the angle betweeen the two vectors.
+		if (  dot < 0.0f )
+		{
+			dot   = -dot;
+			nLast = -nLast;
+		}
+
+		constexpr float DOT_THRESHOLD = 0.9995f;
+		if ( DOT_THRESHOLD < dot )
+		{
+			// The inputs are too close for comfort.
+
+			Quaternion result = nStart + ( percent * ( nLast - nStart ) );
+			return result.Normalized();
+		}
+		// else
+
+		// Since the "dot" is guaranteed to in range [0.0f ~ DOT_THRESHOLD], so acosf() is safe.
+
+		const float thetaZero	= acosf( dot );					// Angle between the two vectors.
+		const float theta		= thetaZero * percent;			// Angle between the nStart and a result.
+		const float sinZero		= sinf( thetaZero ) + EPSILON;	// This will be denominator, so I want prevent zero-divide.
+		const float sin			= sinf( theta );
+
+		float percentStart = cosf( theta ) - ( dot * sin / sinZero ); // == sinf( thetaZero - theta ) / sinf( thetaZero )
+		float percentLast  = sin / sinZero;
+
+		return ( nStart * percentStart ) + ( nLast * percentLast );
+	#else // Myself's way.
 		float dot = Dot( nBegin, nEnd );
 		if ( dot < -1.0f || 1.0f < dot )
 		{
@@ -378,13 +411,14 @@ namespace Donya
 
 		// TODO:I should be conside case when "theta" is negative.
 
-		float percentBegin = sinf( theta * ( 1.0f - time ) );
-		float percentEnd = sinf( theta * time );
+		float percentBegin = sinf( theta * ( 1.0f - percent ) );
+		float percentEnd   = sinf( theta * percent );
 
 		Quaternion multedBegin = ( nBegin * percentBegin ) / sin;
-		Quaternion multedEnd = ( nEnd * percentEnd ) / sin;
+		Quaternion multedEnd   = ( nEnd   * percentEnd   ) / sin;
 
 		return ( multedBegin + multedEnd );
+	#endif // 1
 	}
 
 	Vector3 Quaternion::GetEulerAngles( const Quaternion &Q )

@@ -202,45 +202,6 @@ namespace Donya
 			Donya::Vector3		nextScales[3]{};
 			*/
 
-			auto Lerp = []( const Donya::Vector3 &begin, const Donya::Vector3 &end, float percent )
-			{
-				return Donya::Vector3
-				{
-					( begin * ( 1.0f - percent ) ) + ( end * percent )
-				};
-			};
-			auto Add  = []( const Donya::Vector4x4 &lhs, const Donya::Vector4x4 &rhs )
-			{
-				return Donya::Vector4x4
-				{
-					lhs._11 + rhs._11, lhs._12 + rhs._12, lhs._13 + rhs._13, lhs._14 + rhs._14,
-					lhs._21 + rhs._21, lhs._22 + rhs._22, lhs._23 + rhs._23, lhs._24 + rhs._24,
-					lhs._31 + rhs._31, lhs._32 + rhs._32, lhs._33 + rhs._33, lhs._34 + rhs._34,
-					lhs._41 + rhs._41, lhs._42 + rhs._42, lhs._43 + rhs._43, lhs._44 + rhs._44,
-				};
-			};
-			auto Mul  = []( const Donya::Vector4x4 &lhs, float scalar )
-			{
-				return Donya::Vector4x4
-				{
-					lhs._11 * scalar, lhs._12 * scalar, lhs._13 * scalar, lhs._14 * scalar,
-					lhs._21 * scalar, lhs._22 * scalar, lhs._23 * scalar, lhs._24 * scalar,
-					lhs._31 * scalar, lhs._32 * scalar, lhs._33 * scalar, lhs._34 * scalar,
-					lhs._41 * scalar, lhs._42 * scalar, lhs._43 * scalar, lhs._44 * scalar,
-				};
-			};
-			auto Lerp4x4 = [&Add, &Mul]( const Donya::Vector4x4 &begin, const Donya::Vector4x4 &end, float percent )
-			{
-				return Donya::Vector4x4
-				{
-					Add
-					(
-						Mul( begin,	1.0f - percent ),
-						Mul( end,	percent )
-					)
-				};
-			};
-
 			Skeletal	interpolated	= currentPose;
 			for ( size_t i = 0; i < interpolated.boneCount; ++i )
 			{
@@ -250,7 +211,7 @@ namespace Donya
 				// Currently using a lerp.
 				// TODO : Implement Slerp a matrix.
 				{
-					base = Lerp4x4( base, next, fractional );
+					base = Lerp( base, next, fractional );
 					continue;
 				}
 				// else
