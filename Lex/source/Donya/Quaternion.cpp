@@ -363,7 +363,7 @@ namespace Donya
 		Quaternion nStart = startNormalized;
 		Quaternion nLast  = lastNormalized;	// The "lastNormalized" have the probability of change. So store to local variable.
 
-		float dot = Dot( nStart, nLast ); // Cosine of the angle betweeen the two vectors.
+		float dot = Dot( nStart, nLast );	// Cosine of the angle betweeen the two vectors.
 		if (  dot < 0.0f )
 		{
 			dot   = -dot;
