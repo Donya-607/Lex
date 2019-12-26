@@ -126,6 +126,9 @@ namespace Donya
 		void CreateDepthStencilState( ID3D11Device *pDevice );
 		void LoadTextures( ID3D11Device *pDevice );
 
+		/// <summary>
+		/// Return false if the initialize failed, or already initialized.
+		/// </summary>
 		bool Init( const std::vector<std::vector<Vertex>> &verticesPerMesh, const std::vector<std::vector<size_t>> &indicesPerMesh, const std::vector<Mesh> &loadedMeshes, const std::vector<Face> &loadedFaces );
 	public:
 		/// <summary>
@@ -166,7 +169,6 @@ namespace Donya
 		/// </summary>
 		RayPickResult RayPick( const Donya::Vector3 &rayStartPosition, const Donya::Vector3 &rayEndPosition, bool enoughOnlyPickFirst = false );
 	};
-
 }
 
 #endif // !INCLUDED_DONYA_STATIC_MESH_H_

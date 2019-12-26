@@ -133,15 +133,13 @@ namespace Donya
 			pDevice = Donya::GetDevice();
 		}
 
-		bool result =
-		Donya::Resource::CreatePixelShaderFromCso
+		bool result = Donya::Resource::CreatePixelShaderFromCso
 		(
 			pDevice,
 			filePath.c_str(), "rb",
 			iPixelShader.GetAddressOf(),
 			isEnableCache
-		);
-
+		); 
 		if ( !result ) { return false; }
 		// else
 
@@ -179,7 +177,7 @@ namespace Donya
 	{
 		if ( !wasCreated )
 		{
-			_ASSERT_EXPR( 0, L"Error : The vertex-shader was not created !" );
+			_ASSERT_EXPR( 0, L"Error : The pixel-shader was not created !" );
 			return;
 		}
 		// else

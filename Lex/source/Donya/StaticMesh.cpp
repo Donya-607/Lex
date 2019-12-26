@@ -293,8 +293,8 @@ namespace Donya
 	StaticMesh::~StaticMesh()
 	{
 		meshes.clear();
-		collisionFaces.clear();
 		meshes.shrink_to_fit();
+		collisionFaces.clear();
 		collisionFaces.shrink_to_fit();
 	}
 
@@ -457,7 +457,7 @@ namespace Donya
 
 	bool StaticMesh::Init( const std::vector<std::vector<Vertex>> &verticesPerMesh, const std::vector<std::vector<size_t>> &indicesPerMesh, const std::vector<Mesh> &loadedMeshes, const std::vector<Face> &loadedFaces )
 	{
-		if ( wasLoaded ) { return true; }
+		if ( wasLoaded ) { return false; }
 		// else
 
 		HRESULT hr = S_OK;
@@ -599,7 +599,11 @@ namespace Donya
 				D3D11_USAGE_IMMUTABLE, 0,
 				mesh.iVertexBuffer.GetAddressOf()
 			);
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Vertex-Buffer." );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Create Vertex-Buffer." );
+				return false;
+			}
 		}
 		// Create IndexBuffer
 		{
@@ -609,7 +613,11 @@ namespace Donya
 				indices,
 				mesh.iIndexBuffer.GetAddressOf()
 			);
-			_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create Index-Buffer." );
+			if ( FAILED( hr ) )
+			{
+				_ASSERT_EXPR( 0, L"Failed : Create Index-Buffer." );
+				return false;
+			}
 		}
 
 		CreateDefaultSettings( pDevice );
@@ -680,12 +688,11 @@ namespace Donya
 			// Update ConstantBuffer.
 			if ( useDefaultShading )
 			{
-				const Donya::Vector4x4 &coordinateConversion	= mesh.coordinateConversion;
-				const Donya::Vector4x4 &globalTransform			= mesh.globalTransform;
+				const Donya::Vector4x4 globalAdjusted = mesh.globalTransform * mesh.coordinateConversion;
 
-				ConstantBuffer cb;
-				cb.worldViewProjection	= ( ( globalTransform * coordinateConversion ) * defMatWVP ).XMFloat();
-				cb.world				= ( ( globalTransform * coordinateConversion ) * defMatW   ).XMFloat();
+				ConstantBuffer cb{};
+				cb.worldViewProjection	= ( globalAdjusted * defMatWVP ).XMFloat();
+				cb.world				= ( globalAdjusted * defMatW   ).XMFloat();
 				cb.lightDirection		= defLightDir.XMFloat();
 				cb.lightColor			= XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f };
 				cb.materialColor		= defMtlColor.XMFloat();

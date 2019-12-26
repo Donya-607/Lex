@@ -119,7 +119,7 @@ namespace Donya
 
 		#pragma endregion
 
-	#pragma region Sampler
+		#pragma region Sampler
 
 		void CreateSamplerState
 		(
@@ -134,7 +134,7 @@ namespace Donya
 		/// </summary>
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> &RequireInvalidSamplerStateComPtr();
 
-	#pragma endregion
+		#pragma endregion
 
 		#pragma region OBJ
 
@@ -221,5 +221,4 @@ namespace Donya
 		/// </summary>
 		void ReleaseAllCachedResources();
 	}
-
 }

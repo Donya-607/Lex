@@ -564,7 +564,7 @@ namespace Donya
 					D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE,
 					d3dInstanceBuffer.GetAddressOf()
 				);
-				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create vertex-buffer()" );
+				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create instance-buffer()" );
 			}
 			// Create VertexShader and InputLayout
 			{
@@ -1154,41 +1154,25 @@ namespace Donya
 
 			// Create VertexBuffer
 			{
-				D3D11_BUFFER_DESC d3dBufferDesc{};
-				d3dBufferDesc.ByteWidth				= sizeof( Rect::Vertex ) * vertices.size();
-				d3dBufferDesc.Usage					= D3D11_USAGE_IMMUTABLE;
-				d3dBufferDesc.BindFlags				= D3D11_BIND_VERTEX_BUFFER;
-				d3dBufferDesc.CPUAccessFlags		= 0;
-				d3dBufferDesc.MiscFlags				= 0;
-				d3dBufferDesc.StructureByteStride	= 0;
-
-				D3D11_SUBRESOURCE_DATA d3dSubResourceData{};
-				d3dSubResourceData.pSysMem			= vertices.data();
-				d3dSubResourceData.SysMemPitch		= 0;	// Not use for vertex buffers.
-				d3dSubResourceData.SysMemSlicePitch	= 0;	// Not use for vertex buffers.
-
-				hr = pDevice->CreateBuffer( &d3dBufferDesc, &d3dSubResourceData, d3dVertexBuffer.GetAddressOf() );
-				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer()" );
+				hr = ::Donya::CreateVertexBuffer<Rect::Vertex>
+				(
+					pDevice, vertices,
+					D3D11_USAGE_IMMUTABLE, 0,
+					d3dVertexBuffer.GetAddressOf()
+				);
+				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create vertex-buffer()" );
 			}
 			// Create Instances and InstanceBuffer
 			{
 				instances.resize( MAX_INSTANCES );
 
-				D3D11_BUFFER_DESC d3dBufferDesc{};
-				d3dBufferDesc.ByteWidth					= sizeof( Rect::Instance ) * MAX_INSTANCES;
-				d3dBufferDesc.Usage						= D3D11_USAGE_DYNAMIC;
-				d3dBufferDesc.BindFlags					= D3D11_BIND_VERTEX_BUFFER;
-				d3dBufferDesc.CPUAccessFlags			= D3D11_CPU_ACCESS_WRITE;
-				d3dBufferDesc.MiscFlags					= 0;
-				d3dBufferDesc.StructureByteStride		= 0;
-
-				D3D11_SUBRESOURCE_DATA d3dSubResourceData{};
-				d3dSubResourceData.pSysMem				= instances.data();
-				d3dSubResourceData.SysMemPitch			= 0;	// Not use for vertex buffers.
-				d3dSubResourceData.SysMemSlicePitch		= 0;	// Not use for vertex buffers.
-
-				hr = pDevice->CreateBuffer( &d3dBufferDesc, &d3dSubResourceData, d3dInstanceBuffer.GetAddressOf() );
-				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer()" );
+				hr = ::Donya::CreateVertexBuffer<Rect::Instance>
+				(
+					pDevice, instances,
+					D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE,
+					d3dInstanceBuffer.GetAddressOf()
+				);
+				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create instance-buffer()" );
 			}
 			// Create VertexShader and InputLayout
 			{
@@ -1582,7 +1566,7 @@ namespace Donya
 					D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE,
 					d3dInstanceBuffer.GetAddressOf()
 				);
-				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : CreateBuffer()" );
+				_ASSERT_EXPR( SUCCEEDED( hr ), L"Failed : Create instance-buffer()" );
 			}
 			// Create VertexShader and InputLayout
 			{
