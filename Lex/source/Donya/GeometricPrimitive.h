@@ -7,10 +7,10 @@
 #include <string>
 #include <wrl.h>
 
-#include "Color.h"
-#include "Shader.h"
-#include "Vector.h"
+#include "Color.h"		// Use for Line.
+#include "Shader.h"		// Use for Line.
 #include "Quaternion.h"	// Use for Billboard's freeze axis.
+#include "Vector.h"
 
 namespace Donya
 {
@@ -97,6 +97,8 @@ namespace Donya
 		public:
 			Sphere( size_t horizontalSliceCount = 12U, size_t verticalSliceCount = 6U );
 			~Sphere();
+
+			Sphere( const Sphere & );
 		public:
 			void Init() override;
 			void Uninit() override;
@@ -143,6 +145,8 @@ namespace Donya
 		public:
 			TextureBoard( std::wstring filePath );
 			~TextureBoard();
+
+			TextureBoard( const TextureBoard & );
 		public:
 			void Init() override;
 			void Uninit() override;
@@ -228,6 +232,8 @@ namespace Donya
 		public:
 			Line( size_t maxInstanceCount = 32U );
 			~Line();
+
+			Line( const Line & );
 		public:
 			/// <summary>
 			/// A current reserving instances will be discard.<para></para>
