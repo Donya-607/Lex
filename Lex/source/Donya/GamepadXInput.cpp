@@ -381,17 +381,9 @@ namespace Donya
 			{
 				pImpl->stickL.thumb = 0.0f;
 			}
-			else
-			{
-				pImpl->stickL.thumb.Normalize();
-			}
 			if ( IsInDeadZone( pImpl->stickR.thumb, /* isLeftStick = */ false ) )
 			{
 				pImpl->stickR.thumb = 0.0f;
-			}
-			else
-			{
-				pImpl->stickR.thumb.Normalize();
 			}
 
 			pImpl->stickL.UpdateButton();
