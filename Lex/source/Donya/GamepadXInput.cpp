@@ -45,9 +45,9 @@ namespace Donya
 
 				prevButton = button;
 
-				IncrementOrZero( &button[scast<int>( StickDirection::UP )],    signY == +1 );
-				IncrementOrZero( &button[scast<int>( StickDirection::DOWN )],  signY == -1 );
-				IncrementOrZero( &button[scast<int>( StickDirection::LEFT )],  signX == -1 );
+				IncrementOrZero( &button[scast<int>( StickDirection::UP    )], signY == +1 );
+				IncrementOrZero( &button[scast<int>( StickDirection::DOWN  )], signY == -1 );
+				IncrementOrZero( &button[scast<int>( StickDirection::LEFT  )], signX == -1 );
 				IncrementOrZero( &button[scast<int>( StickDirection::RIGHT )], signX == +1 );
 			}
 		};
@@ -356,36 +356,43 @@ namespace Donya
 
 		// Stick.
 		{
-			auto IsOverDeadZone = []( bool isRight, int param )->bool
+			// see https://docs.microsoft.com/ja-jp/windows/win32/api/xinput/ns-xinput-xinput_gamepad
+
+			constexpr float THUMB_MAX	= 32768.0f;
+			constexpr float DEAD_ZONE_L	= scast<float>( XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE  ) / THUMB_MAX;
+			constexpr float DEAD_ZONE_R	= scast<float>( XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE ) / THUMB_MAX;
+
+			auto NormalizeThumb	= [&THUMB_MAX]( int thumbParam )->float
 			{
-				int deadZone =	( isRight )
-								? XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE
-								: XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
-
-				return ( deadZone < abs( param ) ) ? true : false;
+				return scast<float>( thumbParam ) / THUMB_MAX;
 			};
-			auto NormalizeThumb = []( int thumbParam )->float
+			auto IsInDeadZone	= [&DEAD_ZONE_L, &DEAD_ZONE_R]( const Donya::Vector2 &thumb, bool isLeftStick )->bool
 			{
-				// see https://docs.microsoft.com/ja-jp/windows/win32/api/xinput/ns-xinput-xinput_gamepad
-
-				constexpr float EDGE_POS = 32768.0f;
-				return scast<float>( thumbParam ) / EDGE_POS;
+				const float deadZone = ( isLeftStick ) ? DEAD_ZONE_L : DEAD_ZONE_R;
+				return ( thumb.LengthSq() < deadZone * deadZone ) ? true : false;
 			};
 
-			// Left.
-			pImpl->stickL.thumb.x =	( IsOverDeadZone( /* isRight = */ false, pad.sThumbLX ) )
-									? NormalizeThumb( pad.sThumbLX )
-									: 0;
-			pImpl->stickL.thumb.y =	( IsOverDeadZone( /* isRight = */ false, pad.sThumbLY ) )
-									? NormalizeThumb( pad.sThumbLY )
-									: 0;
-			// Right.
-			pImpl->stickR.thumb.x =	( IsOverDeadZone( /* isRight = */ true,  pad.sThumbRX ) )
-									? NormalizeThumb( pad.sThumbRX )
-									: 0;
-			pImpl->stickR.thumb.y =	( IsOverDeadZone( /* isRight = */ true,  pad.sThumbRY ) )
-									? NormalizeThumb( pad.sThumbRY )
-									: 0;
+			pImpl->stickL.thumb.x = NormalizeThumb( pad.sThumbLX );
+			pImpl->stickL.thumb.y = NormalizeThumb( pad.sThumbLY );
+			pImpl->stickR.thumb.x = NormalizeThumb( pad.sThumbRX );
+			pImpl->stickR.thumb.y = NormalizeThumb( pad.sThumbRY );
+
+			if ( IsInDeadZone( pImpl->stickL.thumb, /* isLeftStick = */ true ) )
+			{
+				pImpl->stickL.thumb = 0.0f;
+			}
+			else
+			{
+				pImpl->stickL.thumb.Normalize();
+			}
+			if ( IsInDeadZone( pImpl->stickR.thumb, /* isLeftStick = */ false ) )
+			{
+				pImpl->stickR.thumb = 0.0f;
+			}
+			else
+			{
+				pImpl->stickR.thumb.Normalize();
+			}
 
 			pImpl->stickL.UpdateButton();
 			pImpl->stickR.UpdateButton();
