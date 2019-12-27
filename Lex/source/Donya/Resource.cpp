@@ -607,7 +607,9 @@ namespace Donya
 			spriteCache.clear();
 		}
 
-	#pragma region Sampler
+		#pragma endregion
+
+		#pragma region Sampler
 
 		static std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D11SamplerState>> samplerCache{};
 
@@ -655,7 +657,10 @@ namespace Donya
 			return pInvalidSampler;
 		}
 
-	#pragma endregion
+		void ReleaseAllSamplerStateCaches()
+		{
+			samplerCache.clear();
+		}
 
 		#pragma endregion
 
@@ -1222,16 +1227,13 @@ namespace Donya
 		}
 
 		#pragma endregion
-	
-		#pragma region ID3DObject
-
-		#pragma endregion
-
+		
 		void ReleaseAllCachedResources()
 		{
 			ReleaseAllVertexShaderCaches();
 			ReleaseAllPixelShaderCaches();
 			ReleaseAllTexture2DCaches();
+			ReleaseAllSamplerStateCaches();
 			ReleaseAllObjFileCaches();
 		}
 	}

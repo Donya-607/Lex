@@ -667,16 +667,13 @@ namespace Donya
 			{
 				pImmediateContext->IASetInputLayout( iDefaultInputLayout.Get() );
 				pImmediateContext->VSSetShader( iDefaultVS.Get(), nullptr, 0 );
-			}
 
-			ID3D11RasterizerState	*ppRasterizerState
-									= ( isEnableFill )
-									? iRasterizerStateSurface.Get()
-									: iRasterizerStateWire.Get();
-			pImmediateContext->RSSetState( ppRasterizerState );
-
-			if ( useDefaultShading )
-			{
+				ID3D11RasterizerState	*ppRasterizerState
+										= ( isEnableFill )
+										? iRasterizerStateSurface.Get()
+										: iRasterizerStateWire.Get();
+				pImmediateContext->RSSetState( ppRasterizerState );
+			
 				pImmediateContext->PSSetShader( iDefaultPS.Get(), nullptr, 0 );
 			}
 
@@ -738,12 +735,10 @@ namespace Donya
 
 		// PostProcessing
 		{
-			ID3D11ShaderResourceView *pNullSRV = nullptr;
-
-			pImmediateContext->RSSetState( prevRasterizerState.Get() );
-
 			if ( useDefaultShading )
 			{
+				pImmediateContext->RSSetState( prevRasterizerState.Get() );
+
 				pImmediateContext->IASetInputLayout( 0 );
 				pImmediateContext->VSSetShader( prevVS.Get(), nullptr, 0 );
 				pImmediateContext->PSSetShader( prevPS.Get(), nullptr, 0 );
@@ -755,6 +750,7 @@ namespace Donya
 				pImmediateContext->PSSetConstantBuffers( 1, 1, &nullBuffer );
 			}
 
+			ID3D11ShaderResourceView *pNullSRV = nullptr;
 			pImmediateContext->PSSetShaderResources( 0, 1, &pNullSRV );
 			pImmediateContext->PSSetSamplers( 0, 1, prevSamplerState.GetAddressOf() );
 

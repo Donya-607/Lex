@@ -134,6 +134,8 @@ namespace Donya
 		/// </summary>
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> &RequireInvalidSamplerStateComPtr();
 
+		void ReleaseAllSamplerStateCaches();
+
 		#pragma endregion
 
 		#pragma region OBJ
@@ -208,15 +210,12 @@ namespace Donya
 
 		#pragma endregion
 
-		#pragma region ID3DObject
-
-		#pragma endregion
-
 		/// <summary>
 		/// I doing:<para></para>
 		/// ReleaseAllVertexShaderCaches,<para></para>
 		/// ReleaseAllPixelShaderCaches,<para></para>
 		/// ReleaseAllTexture2DCaches<para></para>
+		/// ReleaseAllSamplerStateCaches<para></para>
 		/// ReleaseAllObjFileCaches.
 		/// </summary>
 		void ReleaseAllCachedResources();
