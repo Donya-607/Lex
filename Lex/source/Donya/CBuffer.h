@@ -17,11 +17,11 @@ namespace Donya
 	class CBuffer
 	{
 	public:
-		ContainData data; // Data of template-types.
+		mutable ContainData		data;		// Data of template-types.
 	private:
-		bool			wasCreated; // If create failed, this will false.
-		unsigned int	usingSlot;
-		Microsoft::WRL::ComPtr<ID3D11Buffer> iBuffer;
+		bool					wasCreated;	// If create failed, this will false.
+		mutable unsigned int	usingSlot;
+		mutable Microsoft::WRL::ComPtr<ID3D11Buffer> iBuffer;
 	public:
 		CBuffer() : data(), wasCreated( false ), usingSlot(), iBuffer() {}
 		virtual ~CBuffer() = default;
@@ -68,7 +68,7 @@ namespace Donya
 		/// If the "pImmediateContext" is null, use default(library's) device.<para></para>
 		/// If setXX is false, setting null-object.
 		/// </summary>
-		void Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext = nullptr )
+		void Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext = nullptr ) const
 		{
 			// Use default context.
 			if ( !pImmediateContext )
@@ -101,7 +101,7 @@ namespace Donya
 		/// <summary>
 		/// If the "pImmediateContext" is null, use default(library's) device.<para></para>
 		/// </summary>
-		void Deactivate( ID3D11DeviceContext *pImmediateContext = nullptr )
+		void Deactivate( ID3D11DeviceContext *pImmediateContext = nullptr ) const
 		{
 			// Use default context.
 			if ( !pImmediateContext )
