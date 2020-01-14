@@ -809,51 +809,6 @@ private:
 
 			if ( ImGui::TreeNode( u8"環境設定" ) )
 			{
-				if ( ImGui::TreeNode( u8"カメラ" ) )
-				{
-					iCamera.ShowImGuiNode();
-
-					if ( ImGui::TreeNode( u8"操作方法" ) )
-					{
-						constexpr std::array<const char *, 5> CAPTION
-						{
-							u8"カメラ操作はすべて，ＡＬＴキーを押しながらになります。",
-							u8"マウスホイール　　　　：ズーム（ドリー）イン・アウト",
-							u8"左クリック　　　＋移動：回転移動",
-							u8"ホイール押し込み＋移動：平行移動",
-							u8"Ｒキー　　　　　　　　：位置のリセット",
-						};
-						for ( const auto &it : CAPTION )
-						{
-							ImGui::Text( it );
-						}
-
-						ImGui::TreePop();
-					}
-
-					if ( ImGui::TreeNode( u8"設定" ) )
-					{
-						ImGui::DragFloat  ( u8"Near",		&cameraOp.zNear, 0.01f, 0.0f );
-						ImGui::DragFloat  ( u8"Far",		&cameraOp.zFar,  1.00f, 0.0f );
-						ImGui::SliderFloat( u8"視野角",		&cameraOp.FOV, 0.0f, ToRadian( 360.0f ) );
-						iCamera.SetZRange( cameraOp.zNear, cameraOp.zFar );
-						iCamera.SetFOV( cameraOp.FOV );
-						iCamera.SetProjectionPerspective();
-
-						ImGui::SliderFloat( u8"補間係数",	&cameraOp.slerpFactor, 0.0f, 1.0f );
-						ImGui::DragFloat3 ( u8"移動速度",	&cameraOp.moveSpeed.x, 0.2f );
-						ImGui::DragFloat  ( u8"回転速度",	&cameraOp.rotateSpeed, ToRadian( 1.0f ) );
-						ImGui::Checkbox( u8"反転・横移動",	&cameraOp.reverseMoveHorizontal   );
-						ImGui::Checkbox( u8"反転・縦移動",	&cameraOp.reverseMoveVertical     );
-						ImGui::Checkbox( u8"反転・横回転",	&cameraOp.reverseRotateHorizontal );
-						ImGui::Checkbox( u8"反転・縦回転",	&cameraOp.reverseRotateVertical   );
-
-						ImGui::TreePop();
-					}
-
-					ImGui::TreePop();
-				}
-				
 				constexpr float DIRECTION_RANGE = 8.0f;
 				ImGui::SliderFloat3( u8"方向性ライト・向き",		&directionalLight.direction.x, -DIRECTION_RANGE, DIRECTION_RANGE );
 				ImGui::ColorEdit4  ( u8"方向性ライト・カラー",	&directionalLight.color.x );
@@ -866,6 +821,51 @@ private:
 				ImGui::TreePop();
 			}
 
+			if ( ImGui::TreeNode( u8"カメラ設定" ) )
+			{
+				iCamera.ShowImGuiNode();
+
+				if ( ImGui::TreeNode( u8"操作方法" ) )
+				{
+					constexpr std::array<const char *, 5> CAPTION
+					{
+						u8"カメラ操作はすべて，ＡＬＴキーを押しながらになります。",
+						u8"マウスホイール　　　　：ズーム（ドリー）イン・アウト",
+						u8"左クリック　　　＋移動：回転移動",
+						u8"ホイール押し込み＋移動：平行移動",
+						u8"Ｒキー　　　　　　　　：位置のリセット",
+					};
+					for ( const auto &it : CAPTION )
+					{
+						ImGui::Text( it );
+					}
+
+					ImGui::TreePop();
+				}
+
+				if ( ImGui::TreeNode( u8"設定" ) )
+				{
+					ImGui::DragFloat  ( u8"Near",		&cameraOp.zNear, 0.01f, 0.0f );
+					ImGui::DragFloat  ( u8"Far",		&cameraOp.zFar,  1.00f, 0.0f );
+					ImGui::SliderFloat( u8"視野角",		&cameraOp.FOV, 0.0f, ToRadian( 360.0f ) );
+					iCamera.SetZRange( cameraOp.zNear, cameraOp.zFar );
+					iCamera.SetFOV( cameraOp.FOV );
+					iCamera.SetProjectionPerspective();
+
+					ImGui::SliderFloat( u8"補間係数",	&cameraOp.slerpFactor, 0.0f, 1.0f );
+					ImGui::DragFloat3 ( u8"移動速度",	&cameraOp.moveSpeed.x, 0.2f );
+					ImGui::DragFloat  ( u8"回転速度",	&cameraOp.rotateSpeed, ToRadian( 1.0f ) );
+					ImGui::Checkbox( u8"反転・横移動",	&cameraOp.reverseMoveHorizontal   );
+					ImGui::Checkbox( u8"反転・縦移動",	&cameraOp.reverseMoveVertical     );
+					ImGui::Checkbox( u8"反転・横回転",	&cameraOp.reverseRotateHorizontal );
+					ImGui::Checkbox( u8"反転・縦回転",	&cameraOp.reverseRotateVertical   );
+
+					ImGui::TreePop();
+				}
+
+				ImGui::TreePop();
+			}
+				
 			if ( ImGui::TreeNode( u8"モデル一覧" ) )
 			{
 				size_t modelCount = models.size();
