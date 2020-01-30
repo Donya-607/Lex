@@ -106,6 +106,7 @@ public:
 	ICamera							iCamera;
 	DirectionalLight				directionalLight;
 	Donya::Vector4					materialColor;
+	Donya::Vector4					bgColor;
 
 	int								nowPressMouseButton;	// [None:0][Left:VK_LBUTTON][Middle:VK_MBUTTON][Right:VK_RBUTTON]
 	Donya::Int2						prevMouse;
@@ -133,7 +134,8 @@ public:
 	bool							drawOriginCube;
 public:
 	Impl() :
-		iCamera(), directionalLight(), materialColor( 1.0f, 1.0f, 1.0f, 1.0f ),
+		iCamera(), directionalLight(),
+		materialColor( 1.0f, 1.0f, 1.0f, 1.0f ), bgColor( 0.5f, 0.5f, 0.5f, 1.0f ),
 		nowPressMouseButton(), prevMouse(), currMouse(),
 		cameraOp(),
 		loadSamplingFPS( 0.0f ), models(),
@@ -236,6 +238,11 @@ public:
 
 	void Draw( float elapsedTime )
 	{
+		{
+			const FLOAT colors[4]{ bgColor.x, bgColor.y, bgColor.z, bgColor.w };
+			Donya::ClearViews( colors );
+		}
+
 		const Donya::Vector4x4 W   = Donya::Vector4x4::Identity();
 		const Donya::Vector4x4 V   = iCamera.CalcViewMatrix();
 		const Donya::Vector4x4 P   = iCamera.GetProjectionMatrix();
@@ -815,6 +822,7 @@ private:
 				ImGui::SliderFloat3( u8"方向性ライト・向き",		&directionalLight.direction.x, -DIRECTION_RANGE, DIRECTION_RANGE );
 				ImGui::ColorEdit4  ( u8"方向性ライト・カラー",	&directionalLight.color.x );
 				ImGui::ColorEdit4  ( u8"マテリアル・カラー",		&materialColor.x );
+				ImGui::ColorEdit4  ( u8"背景・カラー",			&bgColor.x );
 				ImGui::Checkbox( u8"原点に単位立方体を表示する",	&drawOriginCube );
 				ImGui::Text( "" );
 
