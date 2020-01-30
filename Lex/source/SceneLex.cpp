@@ -130,6 +130,7 @@ public:
 	std::queue<std::string>			reservedFileNamesUTF8;		// For UI.
 
 	bool							drawWireFrame;
+	bool							drawOriginCube;
 public:
 	Impl() :
 		iCamera(), directionalLight(), materialColor( 1.0f, 1.0f, 1.0f, 1.0f ),
@@ -140,7 +141,7 @@ public:
 		cbPerFrame(), cbPerModel(), VSSkinnedMesh(), PSSkinnedMesh(),
 		pLoadThread( nullptr ), pCurrentLoading( nullptr ),
 		currentLoadingFileNameUTF8(), reservedAbsFilePaths(), reservedFileNamesUTF8(),
-		drawWireFrame( false )
+		drawWireFrame( false ), drawOriginCube( true )
 	{}
 	~Impl()
 	{
@@ -289,6 +290,7 @@ public:
 		cbPerModel.Deactivate();
 
 		// Show a cube to origin with unit scale.
+		if ( drawOriginCube )
 		{
 			static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
 
@@ -813,6 +815,7 @@ private:
 				ImGui::SliderFloat3( u8"方向性ライト・向き",		&directionalLight.direction.x, -DIRECTION_RANGE, DIRECTION_RANGE );
 				ImGui::ColorEdit4  ( u8"方向性ライト・カラー",	&directionalLight.color.x );
 				ImGui::ColorEdit4  ( u8"マテリアル・カラー",		&materialColor.x );
+				ImGui::Checkbox( u8"原点に単位立方体を表示する",	&drawOriginCube );
 				ImGui::Text( "" );
 
 				ImGui::SliderFloat( u8"ロード時：サンプルＦＰＳ", &loadSamplingFPS, 0.0f, 120.0f );
