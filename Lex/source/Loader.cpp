@@ -163,16 +163,14 @@ namespace Donya
 		auto FetchMatricesFromSkin = []( FBX::FbxTime time, const FBX::FbxMesh *pMesh, const FBX::FbxSkin *pSkin, Loader::Skeletal *pSkeletal )
 		{
 			const int clusterCount = pSkin->GetClusterCount();
-
-		#define APPEND ( false )
-		#if APPEND
+			
+		#if 0 // APPEND // If have a probability to run more than once.
 			const size_t oldSkeletalCount = pSkeletal->size();
-			pSkeletal->resize( scast<size_t>( clusterCount ) + oldSkeletalCount );
+			pSkeletal->resize( oldSkeletalCount + scast<size_t>( clusterCount ) );
 		#else
 			pSkeletal->skeletal.resize( scast<size_t>( clusterCount ) );
 		#endif // APPEND
-		#undef APPEND
-
+		
 			pSkeletal->boneCount = pSkeletal->skeletal.size();
 
 			for ( int i = 0; i < clusterCount; ++i )
