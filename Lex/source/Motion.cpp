@@ -92,7 +92,6 @@ namespace Donya
 		elapsedTime(), samplingRate(),
 		enableInterpolate( false )
 	{}
-	Animator::~Animator() = default;
 
 	void Animator::Init()
 	{

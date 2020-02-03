@@ -46,6 +46,9 @@ public:
 		Donya::SkinnedMesh	mesh{};
 		Donya::MotionChunk	motions{};
 		Donya::Animator		animator{};
+		Donya::Vector3		scale		{ 1.0f, 1.0f, 1.0f };
+		Donya::Vector3		rotation	{ 0.0f, 0.0f, 0.0f };	// Pitch, Yaw, Roll. Degree.
+		Donya::Vector3		translation	{ 0.0f, 0.0f, 0.0f };
 		float	currentElapsedTime{};
 		float	motionAccelPercent{ 1.0f };		// Normal is 1.0f.
 		bool	enableMotionInterpolation{ false };
@@ -243,10 +246,8 @@ public:
 			Donya::ClearViews( colors );
 		}
 
-		const Donya::Vector4x4 W   = Donya::Vector4x4::Identity();
 		const Donya::Vector4x4 V   = iCamera.CalcViewMatrix();
 		const Donya::Vector4x4 P   = iCamera.GetProjectionMatrix();
-		const Donya::Vector4x4 WVP = W * V * P;
 		const Donya::Vector4   cameraPos{ iCamera.GetPosition(), 1.0f };
 
 		grid.Draw( V * P );
@@ -272,10 +273,25 @@ public:
 		optionPerSubset.setVS		= true;
 		optionPerSubset.setPS		= true;
 
+		Donya::Vector4x4 S{}, R{}, T{}, W{};
+		Donya::Vector4x4 WVP = W * V * P;
 		for ( auto &it : models )
 		{
 			if ( it.dontWannaDraw ) { continue; }
 			// else
+
+			const Donya::Vector3 eulerRadians
+			{
+				ToRadian( it.rotation.x ),
+				ToRadian( it.rotation.y ),
+				ToRadian( it.rotation.z ),
+			};
+
+			S = Donya::Vector4x4::MakeScaling( it.scale );
+			R = Donya::Vector4x4::MakeRotationEuler( eulerRadians );
+			T = Donya::Vector4x4::MakeTranslation( it.translation );
+			W = S * R * T;
+			WVP = W * V * P;
 
 			it.mesh.Render
 			(
@@ -924,6 +940,10 @@ private:
 							ImGui::Checkbox( u8"隠す", &it->dontWannaDraw );
 							ImGui::Text( "" );
 
+							ImGui::DragFloat3( u8"スケール",			&it->scale.x,		0.1f		);
+							ImGui::DragFloat3( u8"回転量（Degree）",	&it->rotation.x,	1.0f		);
+							ImGui::DragFloat3( u8"平行移動",			&it->translation.x,	1.0f		);
+
 							ImGui::DragFloat( u8"モーション再生速度（倍率）",	&it->motionAccelPercent, 0.01f, 0.0f );
 							ImGui::DragFloat( u8"モーションのフレーム",		&it->currentElapsedTime, 0.01f, 0.0f );
 							it->animator.SetCurrentElapsedTime( it->currentElapsedTime );
@@ -943,6 +963,44 @@ private:
 				}
 
 				ImGui::TreePop();
+			}
+
+			if ( ImGui::TreeNode( u8"アニメーション交換テスト（モデル[0][1]間）" ) )
+			{
+				static bool nowChanged = false;
+				if ( models.size() < 2U )
+				{
+					ImGui::TreePop();
+				}
+				else
+				{
+					ImGui::Text( u8"交換%s", ( nowChanged ) ? u8"している状態" : u8"していない状態" );
+					if ( ImGui::Button( u8"モデル[0]と[1]のアニメーションを交換する" ) )
+					{
+						auto Swap = []( MeshAndInfo &lhs, MeshAndInfo &rhs )
+						{
+							const auto tmp = lhs;
+
+							lhs.animator					= rhs.animator;
+							lhs.motions						= rhs.motions;
+							lhs.currentElapsedTime			= rhs.currentElapsedTime;
+							lhs.motionAccelPercent			= rhs.motionAccelPercent;
+							lhs.enableMotionInterpolation	= rhs.enableMotionInterpolation;
+						
+							rhs.animator					= tmp.animator;
+							rhs.motions						= tmp.motions;
+							rhs.currentElapsedTime			= tmp.currentElapsedTime;
+							rhs.motionAccelPercent			= tmp.motionAccelPercent;
+							rhs.enableMotionInterpolation	= tmp.enableMotionInterpolation;
+						};
+
+						Swap( models[0], models[1] );
+					
+						nowChanged = !nowChanged;
+					}
+
+					ImGui::TreePop();
+				}
 			}
 
 			ImGui::End();

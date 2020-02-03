@@ -30,7 +30,7 @@ namespace Donya
 	/// <summary>
 	/// Gathering of skeletals(I call "Motion"). This represents a motion(animation).
 	/// </summary>
-	class Motion
+	struct Motion
 	{
 	public:
 		static constexpr float DEFAULT_SAMPLING_RATE = 1.0f / 24.0f;
@@ -77,7 +77,6 @@ namespace Donya
 		bool	enableInterpolate;	// Default is false.
 	public:
 		Animator();
-		~Animator();
 	public:
 		/// <summary>
 		/// Set zero to current frame(elapsedTime) and "samplingRate".
