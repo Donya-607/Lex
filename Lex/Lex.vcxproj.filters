@@ -192,7 +192,7 @@
     <ClInclude Include="Source\Grid.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="Source\ModelData.h">
+    <ClInclude Include="Source\ModelSource.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>

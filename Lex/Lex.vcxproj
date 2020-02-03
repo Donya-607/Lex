@@ -203,7 +203,7 @@
     <ClInclude Include="Source\Icon.h" />
     <ClInclude Include="Source\Loader.h" />
     <ClInclude Include="Source\misc.h" />
-    <ClInclude Include="Source\ModelData.h" />
+    <ClInclude Include="Source\ModelSource.h" />
     <ClInclude Include="Source\Motion.h" />
     <ClInclude Include="Source\Music.h" />
     <ClInclude Include="Source\Scene.h" />
