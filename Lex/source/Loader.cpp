@@ -89,7 +89,7 @@ namespace Donya
 		return out;
 	}
 
-	void Traverse( FBX::FbxNode *pNode, std::vector<FBX::FbxNode *> *pFetchedMeshes )
+	void Traverse( FBX::FbxNode *pNode, std::vector<FBX::FbxNode *> *pMeshNodes, std::vector<FBX::FbxNode *> *pAnimationNodes )
 	{
 		if ( !pNode ) { return; }
 		// else
@@ -100,9 +100,15 @@ namespace Donya
 			auto eType = pNodeAttr->GetAttributeType();
 			switch ( eType )
 			{
+			case FBX::FbxNodeAttribute::eSkeleton:
+				{
+					pAnimationNodes->emplace_back( pNode );
+				}
+				break;
 			case FBX::FbxNodeAttribute::eMesh:
 				{
-					pFetchedMeshes->push_back( pNode );
+					pMeshNodes->emplace_back( pNode );
+					pAnimationNodes->emplace_back( pNode );
 				}
 				break;
 			default:
@@ -113,7 +119,7 @@ namespace Donya
 		int end = pNode->GetChildCount();
 		for ( int i = 0; i < end; ++i )
 		{
-			Traverse( pNode->GetChild( i ), pFetchedMeshes );
+			Traverse( pNode->GetChild( i ), pMeshNodes, pAnimationNodes );
 		}
 	}
 
@@ -482,13 +488,14 @@ namespace Donya
 		}
 	#endif
 
-		std::vector<FBX::FbxNode *> fetchedMeshes{};
-		Traverse( pScene->GetRootNode(), &fetchedMeshes );
-
-		std::vector<BoneInfluencesPerControlPoint> influencesPerCtrlPoints{};
+		std::vector<FBX::FbxNode *> fetchedMeshNodes{};
+		std::vector<FBX::FbxNode *> fetchedAnimNodes{};
+		Traverse( pScene->GetRootNode(), &fetchedMeshNodes, &fetchedAnimNodes );
 
 		size_t meshCount = fetchedMeshes.size();
 		OutputDebugProgress( "Start Meshes load. Meshes count:[" + std::to_string( meshCount ) + "]", outputProgress );
+
+		std::vector<BoneInfluencesPerControlPoint> influencesPerCtrlPoints{};
 
 		meshes.resize( meshCount );
 		for ( size_t i = 0; i < meshCount; ++i )

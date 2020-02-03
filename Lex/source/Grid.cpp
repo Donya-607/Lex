@@ -27,7 +27,7 @@ void GridLine::Update()
 #if USE_IMGUI
 	if ( ImGui::BeginIfAllowed() )
 	{
-		if ( ImGui::TreeNode( u8"線描画テスト" ) )
+		if ( ImGui::TreeNode( u8"グリッド線" ) )
 		{
 			ImGui::DragFloat ( u8"線の角度", &lineYaw );
 			ImGui::DragFloat2( u8"線の半径", &lineLength.x,   0.5f  );
