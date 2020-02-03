@@ -492,9 +492,9 @@ namespace Donya
 		std::vector<FBX::FbxNode *> fetchedAnimNodes{};
 		Traverse( pScene->GetRootNode(), &fetchedMeshNodes, &fetchedAnimNodes );
 
-		size_t meshCount = fetchedMeshes.size();
+		size_t meshCount = fetchedMeshNodes.size();
 		OutputDebugProgress( "Start Meshes load. Meshes count:[" + std::to_string( meshCount ) + "]", outputProgress );
-
+		auto tmp = fetchedAnimNodes.size();
 		std::vector<BoneInfluencesPerControlPoint> influencesPerCtrlPoints{};
 
 		meshes.resize( meshCount );
@@ -502,7 +502,7 @@ namespace Donya
 		{
 			meshes[i].meshNo = scast<int>( i );
 			
-			FBX::FbxMesh *pMesh = fetchedMeshes[i]->GetMesh();
+			FBX::FbxMesh *pMesh = fetchedMeshNodes[i]->GetMesh();
 
 			influencesPerCtrlPoints.clear();
 			FetchBoneInfluences( pMesh, influencesPerCtrlPoints );
@@ -774,7 +774,7 @@ namespace Donya
 			if ( prop.IsValid() )
 			{
 				FetchTextures();
-
+				auto tmp = pOutMtl->relativeTexturePaths.size();
 				if ( factor.IsValid() )
 				{
 					AssignFbxDouble4Process( &( pOutMtl->color ) );

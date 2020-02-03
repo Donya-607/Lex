@@ -192,6 +192,9 @@
     <ClInclude Include="Source\Grid.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="Source\ModelData.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
