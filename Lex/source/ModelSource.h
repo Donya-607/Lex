@@ -77,12 +77,13 @@ namespace Donya
 		/// </summary>
 		struct Mesh
 		{
-			int						nodeIndex;		// The index of this mesh's node.
-			std::vector<int>		nodeIndices;	// The indices of associated nodes with this mesh and this mesh's node.
+			int								nodeIndex;		// The index of this mesh's node.
+			std::vector<int>				nodeIndices;	// The indices of associated nodes with this mesh and this mesh's node.
+			std::vector<Donya::Vector4x4>	boneOffsets;	// The bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
 
-			std::vector<Vertex>		vertices;
-			std::vector<int>		indices;		// A index list of vertices.
-			std::vector<Subset>		subsets;
+			std::vector<Vertex>				vertices;
+			std::vector<int>				indices;		// A index list of vertices.
+			std::vector<Subset>				subsets;
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -94,6 +95,7 @@ namespace Donya
 					(
 						CEREAL_NVP(	nodeIndex	),
 						CEREAL_NVP(	nodeIndices	),
+						CEREAL_NVP(	boneOffsets	),
 						CEREAL_NVP(	vertices	),
 						CEREAL_NVP(	indices		),
 						CEREAL_NVP(	subsets		)

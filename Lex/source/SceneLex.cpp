@@ -26,6 +26,27 @@
 #include "Motion.h"
 #include "SkinnedMesh.h"
 
+#include "Model.h"
+namespace
+{
+	std::vector<Donya::Model> tmp{};
+	void Test()
+	{
+		Donya::ModelSource src{};
+		tmp.emplace_back( src, Donya::ModelUsage::Skinned );
+
+		Donya::Model lhs{ src, Donya::ModelUsage::Static };
+		Donya::Model rhs{ std::move( lhs ) };
+		rhs = lhs;
+		rhs = std::move( lhs );
+		
+		/*Donya::ModelSource lhs{ src };
+		Donya::ModelSource rhs{ std::move( lhs ) };
+		rhs = lhs;
+		rhs = std::move( lhs );*/
+	}
+}
+
 #pragma comment( lib, "comdlg32.lib" ) // For common-dialog.
 
 using namespace DirectX;

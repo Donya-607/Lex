@@ -203,6 +203,8 @@
     <ClInclude Include="Source\Icon.h" />
     <ClInclude Include="Source\Loader.h" />
     <ClInclude Include="Source\misc.h" />
+    <ClInclude Include="Source\Model.h" />
+    <ClInclude Include="Source\ModelMaker.h" />
     <ClInclude Include="Source\ModelSource.h" />
     <ClInclude Include="Source\Motion.h" />
     <ClInclude Include="Source\Music.h" />
@@ -250,6 +252,7 @@
     <ClCompile Include="Source\Grid.cpp" />
     <ClCompile Include="Source\Loader.cpp" />
     <ClCompile Include="Source\main.cpp" />
+    <ClCompile Include="Source\Model.cpp" />
     <ClCompile Include="Source\Motion.cpp" />
     <ClCompile Include="Source\SceneLex.cpp" />
     <ClCompile Include="Source\SceneManager.cpp" />

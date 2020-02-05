@@ -195,6 +195,12 @@
     <ClInclude Include="Source\ModelSource.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Model.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\ModelMaker.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -321,6 +327,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\Grid.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Model.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
