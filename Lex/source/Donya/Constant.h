@@ -1,6 +1,9 @@
 #pragma once
 
 #define scast		static_cast
+// Should I change the macro to this?:
+// template<typename out, typename in> __forceinline out scast( in value ) { return static_cast<out>( value ); }
+
 #define DEBUG_MODE	( defined( DEBUG ) || defined( _DEBUG ) )
 
 #define DELETE_COPY_AND_ASSIGN( Typename ) \
