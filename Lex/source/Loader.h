@@ -30,7 +30,7 @@ namespace fbxsdk
 }
 #endif // USE_FBX_SDK
 
-// Program version : 5
+// Program version : 6
 
 namespace Donya
 {
@@ -290,6 +290,8 @@ namespace Donya
 		std::vector<Mesh>	meshes;
 		std::vector<Motion> motions;
 		std::vector<Face>	collisionFaces;
+
+		ModelSource			source;
 	private:
 		float				sampleFPS;		// Use to sampling-rate of an all motions. If set value of lower-equal than zero, use a model's sampling-rate.
 	public:

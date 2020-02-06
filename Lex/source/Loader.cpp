@@ -32,6 +32,7 @@ namespace Donya
 	Loader::Loader() :
 		absFilePath(), fileName(), fileDirectory(),
 		meshes(), motions(), collisionFaces(),
+		source(),
 		sampleFPS( 0.0f )
 	{}
 	Loader::~Loader()
@@ -88,8 +89,18 @@ namespace Donya
 		}
 		return out;
 	}
+	Donya::Quaternion ToQuaternion( const FBX::FbxDouble4 &source )
+	{
+		return Donya::Quaternion
+		{
+			scast<float>( source.mData[0] ),
+			scast<float>( source.mData[1] ),
+			scast<float>( source.mData[2] ),
+			scast<float>( source.mData[3] )
+		};
+	}
 
-	void Traverse( FBX::FbxNode *pNode, std::vector<FBX::FbxNode *> *pMeshNodes, std::vector<FBX::FbxNode *> *pAnimationNodes )
+	void Traverse( FBX::FbxNode *pNode, std::vector<FBX::FbxNode *> *pMeshNodes, std::vector<FBX::FbxNode *> *pSkeltalNodes )
 	{
 		if ( !pNode ) { return; }
 		// else
@@ -97,29 +108,48 @@ namespace Donya
 		FBX::FbxNodeAttribute *pNodeAttr = pNode->GetNodeAttribute();
 		if ( pNodeAttr )
 		{
-			auto eType = pNodeAttr->GetAttributeType();
-			switch ( eType )
+			auto HasMesh		= []( FBX::FbxNodeAttribute::EType attr )->bool
 			{
-			case FBX::FbxNodeAttribute::eSkeleton:
+				constexpr FBX::FbxNodeAttribute::EType HAS_LIST[]
 				{
-					pAnimationNodes->emplace_back( pNode );
-				}
-				break;
-			case FBX::FbxNodeAttribute::eMesh:
+					FBX::FbxNodeAttribute::EType::eMesh
+				};
+				for ( const auto &type : HAS_LIST )
 				{
-					pMeshNodes->emplace_back( pNode );
-					pAnimationNodes->emplace_back( pNode );
+					if ( attr == type ) { return true; }
 				}
-				break;
-			default:
-				break;
+				return false;
+			};
+			auto HasSkeletal	= []( FBX::FbxNodeAttribute::EType attr )
+			{
+				constexpr FBX::FbxNodeAttribute::EType HAS_LIST[]
+				{
+					FBX::FbxNodeAttribute::EType::eSkeleton,
+					FBX::FbxNodeAttribute::EType::eMesh
+				};
+				for ( const auto &type : HAS_LIST )
+				{
+					if ( attr == type ) { return true; }
+				}
+				return false;
+			};
+
+			auto eType = pNodeAttr->GetAttributeType();
+
+			if ( HasSkeletal( eType ) )
+			{
+				pSkeltalNodes->emplace_back( pNode );
+			}
+			if ( HasMesh( eType ) )
+			{
+				pMeshNodes->emplace_back( pNode );
 			}
 		}
 
 		int end = pNode->GetChildCount();
 		for ( int i = 0; i < end; ++i )
 		{
-			Traverse( pNode->GetChild( i ), pMeshNodes, pAnimationNodes );
+			Traverse( pNode->GetChild( i ), pMeshNodes, pSkeltalNodes );
 		}
 	}
 
@@ -301,6 +331,87 @@ namespace Donya
 		return true;
 	}
 
+	void BuildBone( ModelSource::Bone *pBone, FBX::FbxNode *pNode, int parentIndex )
+	{
+		auto ToVec3 = []( const Donya::Vector4 &v )
+		{
+			return Donya::Vector3{ v.x, v.y, v.z };
+		};
+
+		const FbxAMatrix &localTransform = pNode->EvaluateLocalTransform();
+
+		pBone->parentIndex	= parentIndex;
+		pBone->scale		= ToVec3( Convert( localTransform.GetS() ) );
+		pBone->rotation		= ToQuaternion( localTransform.GetQ() );
+		pBone->translation	= ToVec3( Convert( localTransform.GetT() ) );
+		pBone->name			= pNode->GetName();
+	}
+	void BuildSkeletalRecursively( std::vector<ModelSource::Bone> *pSkeletal, FBX::FbxNode *pCurrentNode, int parentIndex )
+	{
+		/*
+		This BuildSkeletalRecursively() function will build a skeletal by brute-forced.
+		(traverse on all nodes, then fetch some data if the node has skeletal)
+		*/
+
+		auto HasSkeletal = []( FBX::FbxNode *pNode )->bool
+		{
+			// Should implement this if you use BuildSkeletalRecursively() function.
+			return false;
+		};
+
+		if ( HasSkeletal( pCurrentNode ) )
+		{
+			ModelSource::Bone bone{};
+			BuildBone( &bone, pCurrentNode, parentIndex );
+
+			pSkeletal->emplace_back( std::move( bone ) );
+
+			// The bone count will increase when BuildSkeletalRecursively() called.
+			// So we can calculate the parentIndex by: current-bone-count - 1.(-1 represent an invalid)
+			// [0] current-bone-count == 0 -> parentIndex = -1
+			// [1] current-bone-count == 1 -> parentIndex = 0
+			// [2] current-bone-count == 2 -> parentIndex = 1 ...
+			parentIndex = scast<int>( pSkeletal->size() ) - 1;
+		}
+
+		const int childCount = pCurrentNode->GetChildCount();
+		for ( int i = 0; i < childCount; ++i )
+		{
+			BuildSkeletalRecursively( pSkeletal, pCurrentNode->GetChild( i ), parentIndex );
+		}
+	}
+	void BuildSkeletal( std::vector<ModelSource::Bone> *pSkeletal, const std::vector<FBX::FbxNode *> &skeletalNodes )
+	{
+		/*
+		This BuildSkeletal() function will build a skeletal by nodes that have skeletal.
+		*/
+
+		int parentIndex = -1;
+
+		for ( auto &pNode : skeletalNodes )
+		{
+			ModelSource::Bone bone{};
+			BuildBone( &bone, pNode, parentIndex );
+			pSkeletal->emplace_back( std::move( bone ) );
+
+			// When first loop, the bone has no parent(-1).
+			// After that loop, the bone has some parent index(0 ~ size()-1).
+			parentIndex++;
+		}
+	}
+
+	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh )
+	{
+
+	}
+
+	void BuildModelSource( ModelSource *pSource, FBX::FbxNode *pSceneNode, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes )
+	{
+		BuildSkeletal( &pSource->skeletal, motionNodes );
+
+
+	}
+
 #endif // USE_FBX_SDK
 
 #if USE_FBX_SDK
@@ -417,11 +528,15 @@ namespace Donya
 
 	bool Loader::LoadByFBXSDK( const std::string &filePath, std::string *outputErrorString, bool outputProgress )
 	{
+		OutputDebugProgress( "Start Separating File-Path.", outputProgress );
+
 		fileDirectory	= ExtractFileDirectoryFromFullPath( filePath );
 		fileName		= filePath.substr( fileDirectory.size() ); // 0x7598C632 で例外がスローされました (Lex.exe 内): Microsoft C++ の例外: std::out_of_range (メモリの場所 0x0EA4E994)。
 		// TODO : Fix this exception that occurred here.
 
 		MakeAbsoluteFilePath( filePath );
+
+		OutputDebugProgress( "Finish Separating File-Path.", outputProgress );
 
 		std::unique_ptr<std::lock_guard<std::mutex>> pLock{}; // Use scoped-lock without code-bracket.
 		pLock = std::make_unique<std::lock_guard<std::mutex>>( fbxMutex );
@@ -478,13 +593,13 @@ namespace Donya
 
 	#if USE_TRIANGULATE
 		{
-			OutputDebugProgress( "Start Triangulate", outputProgress );
+			OutputDebugProgress( "Start Triangulate.", outputProgress );
 
 			FBX::FbxGeometryConverter geometryConverter( pManager );
 			bool replace = true;
 			geometryConverter.Triangulate( pScene, replace );
 
-			OutputDebugProgress( "Finish Triangulate", outputProgress );
+			OutputDebugProgress( "Finish Triangulate.", outputProgress );
 		}
 	#endif
 
@@ -494,7 +609,7 @@ namespace Donya
 
 		size_t meshCount = fetchedMeshNodes.size();
 		OutputDebugProgress( "Start Meshes load. Meshes count:[" + std::to_string( meshCount ) + "]", outputProgress );
-		auto tmp = fetchedAnimNodes.size();
+		
 		std::vector<BoneInfluencesPerControlPoint> influencesPerCtrlPoints{};
 
 		meshes.resize( meshCount );

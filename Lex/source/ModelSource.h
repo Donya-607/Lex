@@ -77,6 +77,9 @@ namespace Donya
 		/// </summary>
 		struct Mesh
 		{
+			Donya::Vector4x4				coordinateConversion;
+			Donya::Vector4x4				globalTransform;
+
 			int								nodeIndex;		// The index of this mesh's node.
 			std::vector<int>				nodeIndices;	// The indices of associated nodes with this mesh and this mesh's node.
 			std::vector<Donya::Vector4x4>	boneOffsets;	// The bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
