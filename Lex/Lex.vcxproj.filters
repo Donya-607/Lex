@@ -332,6 +332,9 @@
     <ClCompile Include="Source\Model.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\ModelMaker.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\SkinnedMesh.hlsli">

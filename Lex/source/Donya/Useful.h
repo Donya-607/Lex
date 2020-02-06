@@ -35,6 +35,17 @@ namespace Donya
 		return integer & 0x3f;
 	}
 
+	constexpr size_t CombineHash( size_t lhsHash, size_t rhsHash )
+	{
+		// see https://www.boost.org/doc/libs/1_55_0/doc/html/hash/reference.html#boost.hash_combine
+		// and https://stackoverflow.com/questions/4948780/magic-number-in-boosthash-combine
+
+		size_t seed = 0;
+		seed ^= lhsHash + 0x9e3779b9 + ( seed << 6U ) + ( seed >> 2U );
+		seed ^= rhsHash + 0x9e3779b9 + ( seed << 6U ) + ( seed >> 2U );
+		return seed;
+	}
+
 	/// <summary>
 	/// Returns:<para></para>
 	/// value ~ 0 : -1, <para></para>

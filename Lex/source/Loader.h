@@ -18,6 +18,8 @@
 #include "Donya/UseImGui.h"
 #include "Donya/Vector.h"
 
+#include "ModelSource.h"
+
 #define USE_FBX_SDK ( true )
 
 #if USE_FBX_SDK
@@ -341,6 +343,11 @@ namespace Donya
 		/// </summary>
 		void SaveByCereal( const std::string &filePath ) const;
 	public:
+		ModelSource TmpModelSource() const
+		{
+			return ModelSource{};
+		}
+
 		std::string GetAbsoluteFilePath()					const { return absFilePath;		}
 		std::string GetOnlyFileName()						const { return fileName;		}
 		std::string GetFileDirectory()						const { return fileDirectory;	}
