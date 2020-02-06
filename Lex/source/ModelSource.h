@@ -82,7 +82,7 @@ namespace Donya
 			std::vector<Donya::Vector4x4>	boneOffsets;	// The bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
 
 			std::vector<Vertex>				vertices;
-			std::vector<int>				indices;		// A index list of vertices.
+			std::vector<unsigned int>		indices;		// A index list of vertices.
 			std::vector<Subset>				subsets;
 		private:
 			friend class cereal::access;

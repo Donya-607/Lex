@@ -126,6 +126,10 @@ namespace Donya
 		// These initialize method are built by "pSource".
 
 		void InitMaterials( ID3D11Device *pDevice );
+		void CreateTextures( ID3D11Device *pDevice );
+
 		void InitMeshes( ID3D11Device *pDevice, Donya::ModelUsage usage );
+		void AssignVertexStructure( Model::Mesh *pMesh, Donya::ModelUsage usage );
+		void CreateBuffers( ID3D11Device *pDevice, Model::Mesh *pMesh, const ModelSource::Mesh &meshSource );
 	};
 }

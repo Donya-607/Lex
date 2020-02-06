@@ -81,9 +81,6 @@ namespace Donya
 			pDevice = Donya::GetDevice();
 		}
 
-		// The meshes must be initialized after the materials.
-		// Because the Subset is using an index of materials.
-
 		InitMaterials( pDevice );
 
 		InitMeshes( pDevice, usage );
@@ -108,42 +105,137 @@ namespace Donya
 			}
 		}
 
-		// Load textures.
+		CreateTextures( pDevice );
+	}
+	void Model::CreateTextures( ID3D11Device *pDevice )
+	{
+		auto Load = [&pDevice]( Model::Material &mtl, bool isEnableCache )
 		{
-			auto Load = [&pDevice]( Model::Material &mtl, bool isEnableCache )
-			{
-				return Resource::CreateTexture2DFromFile
-				(
-					pDevice,
-					Donya::MultiToWide( mtl.textureName ),
-					mtl.pSRV.GetAddressOf(),
-					&mtl.textureDesc,
-					isEnableCache
-				);
-			};
+			return Resource::CreateTexture2DFromFile
+			(
+				pDevice,
+				Donya::MultiToWide( mtl.textureName ),
+				mtl.pSRV.GetAddressOf(),
+				&mtl.textureDesc,
+				isEnableCache
+			);
+		};
 
-			bool isEnableCache{};
-		#if DEBUG_MODE
-			isEnableCache = false;
-		#else
-			isEnableCache = true;
-		#endif // DEBUG_MODE
+		bool isEnableCache{};
+	#if DEBUG_MODE
+		isEnableCache = false;
+	#else
+		isEnableCache = true;
+	#endif // DEBUG_MODE
 
-			bool succeeded = true;
-			for ( size_t i = 0; i < materialCount; ++i )
+		bool succeeded = true;
+		for ( auto &mtl : materials )
+		{
+			succeeded = Load( mtl, isEnableCache );
+			if ( !succeeded )
 			{
-				succeeded = Load( materials[i], isEnableCache );
-				if ( !succeeded )
-				{
-					const std::string errMsg = "Failed : The texture load is failed, that is : " + materials[i].textureName;
-					Donya::OutputDebugStr( errMsg.c_str() );
-					_ASSERT_EXPR( 0, Donya::MultiToWide( errMsg ).c_str() );
-				}
+				const std::string errMsg =
+						"Failed : The model's texture, that is : "
+						+ mtl.textureName;
+				Donya::OutputDebugStr( errMsg.c_str() );
+				_ASSERT_EXPR( 0, Donya::MultiToWide( errMsg ).c_str() );
 			}
 		}
 	}
+
 	void Model::InitMeshes( ID3D11Device *pDevice, Donya::ModelUsage usage )
 	{
+		const size_t meshCount = pSource->meshes.size();
+		meshes.resize( meshCount );
 
+		// Assign source data.
+		{
+			auto Assign = []( Model::Mesh *pDest, const ModelSource::Mesh &source )
+			{
+				auto AssignSubset = []( Model::Subset *pDest, const ModelSource::Subset &source )
+				{
+					pDest->indexCount		= source.indexCount;
+					pDest->indexStart		= source.indexStart;
+					pDest->useMaterialIndex	= source.materialIndex;
+				};
+
+				pDest->nodeIndex	= source.nodeIndex;
+				pDest->nodeIndices	= source.nodeIndices;
+				pDest->boneOffsets	= source.boneOffsets;
+
+				const size_t subsetCount = source.subsets.size();
+				for ( size_t i = 0; i < subsetCount; ++i )
+				{
+					AssignSubset( &pDest->subsets[i], source.subsets[i] );
+				}
+			};
+
+			for ( size_t i = 0; i < meshCount; ++i )
+			{
+				Assign( &meshes[i], pSource->meshes[i] );
+			}
+		}
+
+		for ( auto &mesh : meshes )
+		{
+			AssignVertexStructure( &mesh, usage );
+		}
+
+		for ( size_t i = 0; i < meshCount; ++i )
+		{
+			CreateBuffers( pDevice, &meshes[i], pSource->meshes[i] );
+		}
+	}
+	void Model::AssignVertexStructure( Model::Mesh *pMesh, Donya::ModelUsage usage )
+	{
+		switch ( usage )
+		{
+		case Donya::ModelUsage::Static:
+			pMesh->pVertex = std::make_shared<Strategy::VertexStatic>();
+			return;
+		case Donya::ModelUsage::Skinned:
+			pMesh->pVertex = std::make_shared<Strategy::VertexSkinned>();
+			return;
+		default:
+			_ASSERT_EXPR( 0, L"Error : That model-usage is not supported!" );
+			return;
+		}
+	}
+	void Model::CreateBuffers( ID3D11Device *pDevice, Model::Mesh *pMesh, const ModelSource::Mesh &source )
+	{
+		auto Assert = []( const std::string &bufferName )
+		{
+			const std::string errMsg = "Failed : The model's " + bufferName + "buffer.";
+			Donya::OutputDebugStr( errMsg.c_str() );
+			_ASSERT_EXPR( 0, Donya::MultiToWide( errMsg ).c_str() );
+		};
+
+		HRESULT hr = S_OK;
+
+		hr = pMesh->pVertex->CreateVertexBuffer
+		(
+			pDevice,
+			source.vertices,
+			pMesh->vertexBuffer.GetAddressOf()
+		);
+		if ( FAILED( hr ) )
+		{
+			Assert( "Vertex" );
+			return;
+		}
+		// else
+
+		hr = Donya::CreateIndexBuffer
+		(
+			pDevice,
+			source.indices,
+			pMesh->indexBuffer.GetAddressOf()
+		);
+		if ( FAILED( hr ) )
+		{
+			Assert( "Index" );
+			return;
+		}
+		// else
 	}
 }
