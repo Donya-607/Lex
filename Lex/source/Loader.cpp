@@ -412,16 +412,61 @@ namespace Donya
 		pMesh->coordinateConversion._11 = -1.0f;
 	}
 
-	void BuildSubsets( std::vector<ModelSource::Subset> *pSubsets, FBX::FbxMesh *pMesh )
+	void BuildSubsets( std::vector<ModelSource::Subset> *pSubsets, FBX::FbxMesh *pMesh, const std::string &fileDirectory )
 	{
 		FBX::FbxNode *pNode = pMesh->GetNode();
 
 		const int mtlCount = pNode->GetMaterialCount();
 		pSubsets->resize( ( !mtlCount ) ? 1 : mtlCount );
 
-		auto AnalyzeMaterial = []( ModelSource::Material *pMaterial, const char *strProperty, const char *strFactor, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
+		auto FetchMaterial = [&fileDirectory]( ModelSource::Material *pMaterial, const char *strProperty, const char *strFactor, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
 		{
+			const FBX::FbxProperty property	= pSurfaceMaterial->FindProperty( strProperty	);
+			const FBX::FbxProperty factor	= pSurfaceMaterial->FindProperty( strFactor		);
 
+			if ( !property.IsValid() ) { return; }
+			// else
+
+			auto AssignColor	= [&property, &factor]( ModelSource::Material *pMaterial )
+			{
+				FBX::FbxDouble3 color = property.Get<FBX::FbxDouble3>();
+				pMaterial->color = Donya::Vector4{ Convert( color ), 1.0f };
+			};
+			auto FetchTextures	= [&]()->void
+			{
+				int textureCount = property.GetSrcObjectCount<FBX::FbxFileTexture>();
+				for ( int i = 0; i < textureCount; ++i )
+				{
+					FBX::FbxFileTexture *texture = property.GetSrcObject<FBX::FbxFileTexture>( i );
+					if ( !texture ) { continue; }
+					// else
+				
+					std::string relativePath = texture->GetRelativeFileName();
+					if ( relativePath.empty() )
+					{
+						std::string fullPath = texture->GetFileName();
+						if ( !fullPath.empty() )
+						{
+							relativePath = fullPath.substr( fileDirectory.size() );
+							pMaterial->textureName = relativePath;
+						}
+					}
+					else
+					{
+						pMaterial->textureName = relativePath;
+					}
+
+					// No support a multiple texture currently.
+					break;
+				}
+			};
+			
+			FetchTextures();
+
+			if ( factor.IsValid() )
+			{
+				AssignColor( pMaterial );
+			}
 		};
 
 		for ( int i = 0; i < mtlCount; ++i )
@@ -432,11 +477,11 @@ namespace Donya
 			auto &subset = pSubsets->at( i );
 
 			subset.name  = pSurfaceMaterial->GetName();
-			AnalyzeMaterial( &subset.ambient,	FbxMtl::sAmbient,	FbxMtl::sAmbientFactor,		pSurfaceMaterial );
-			AnalyzeMaterial( &subset.bump,		FbxMtl::sBump,		FbxMtl::sBumpFactor,		pSurfaceMaterial );
-			AnalyzeMaterial( &subset.diffuse,	FbxMtl::sDiffuse,	FbxMtl::sDiffuseFactor,		pSurfaceMaterial );
-			AnalyzeMaterial( &subset.specular,	FbxMtl::sSpecular,	FbxMtl::sSpecularFactor,	pSurfaceMaterial );
-			AnalyzeMaterial( &subset.emissive,	FbxMtl::sEmissive,	FbxMtl::sEmissiveFactor,	pSurfaceMaterial );
+			FetchMaterial( &subset.ambient,		FbxMtl::sAmbient,	FbxMtl::sAmbientFactor,		pSurfaceMaterial );
+			FetchMaterial( &subset.bump,		FbxMtl::sBump,		FbxMtl::sBumpFactor,		pSurfaceMaterial );
+			FetchMaterial( &subset.diffuse,		FbxMtl::sDiffuse,	FbxMtl::sDiffuseFactor,		pSurfaceMaterial );
+			FetchMaterial( &subset.specular,	FbxMtl::sSpecular,	FbxMtl::sSpecularFactor,	pSurfaceMaterial );
+			FetchMaterial( &subset.emissive,	FbxMtl::sEmissive,	FbxMtl::sEmissiveFactor,	pSurfaceMaterial );
 		}
 
 		// Calculate subsets start index(not optimized).
@@ -488,7 +533,7 @@ namespace Donya
 
 		return -1;
 	}
-	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<ModelSource::Bone> &constructedSkeletal )
+	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<ModelSource::Bone> &constructedSkeletal, const std::string &fileDirectory )
 	{
 		AttachGlobalTransform( pMesh, pFBXMesh );
 		AdjustCoordinate( pMesh );
@@ -499,29 +544,11 @@ namespace Donya
 
 		pMesh->nodeIndex = FindBoneIndex( constructedSkeletal, pNode->GetName() );
 		pMesh->indices.resize( polygonCount * EXPECT_POLYGON_SIZE );
-		pMesh->subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
 		pMesh->name = pNode->GetName();
 
-		// Calculate subsets start index(not optimized).
-		if ( mtlCount )
-		{
-			// Count the faces each material.
-			for ( int i = 0; i < polygonCount; ++i )
-			{
-				int mtlIndex = pFBXMesh->GetElementMaterial()->GetIndexArray().GetAt( i );
-				pMesh->subsets[mtlIndex].indexCount += 3;
-			}
-
-			// Record the offset (how many vertex)
-			int offset = 0;
-			for ( auto &subset : pMesh->subsets )
-			{
-				subset.indexStart = offset;
-				offset += subset.indexCount;
-				// This will be used as counter in the following procedures, reset to zero.
-				subset.indexCount = 0;
-			}
-		}
+		// TODO : Should separate the calculation of an indexCount and indexStart from here.
+		// TODO : Should separate the calculation of an indices array from here.
+		BuildSubsets( &pMesh->subsets, pFBXMesh, fileDirectory );
 
 		struct BoneInfluence
 		{
@@ -755,7 +782,7 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMeshes( std::vector<ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<ModelSource::Bone> &constructedSkeletal )
+	void BuildMeshes( std::vector<ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<ModelSource::Bone> &constructedSkeletal, const std::string &fileDirectory )
 	{
 		const size_t meshCount = meshNodes.size();
 		pMeshes->resize( meshCount );
@@ -764,18 +791,18 @@ namespace Donya
 			FBX::FbxMesh *pFBXMesh = meshNodes[i]->GetMesh();
 			_ASSERT_EXPR( pFBXMesh, L"Error : A mesh-node that passed mesh-nodes is not mesh!" );
 
-			BuildMesh( &( *pMeshes )[i], meshNodes[i], pFBXMesh, constructedSkeletal );
+			BuildMesh( &( *pMeshes )[i], meshNodes[i], pFBXMesh, constructedSkeletal, fileDirectory );
 		}
 	}
 
-	void BuildModelSource( ModelSource *pSource, FBX::FbxNode *pSceneNode, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes )
+	void BuildModelSource( ModelSource *pSource, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes, const std::string &fileDirectory )
 	{
 		BuildSkeletal( &pSource->skeletal, motionNodes );
 
 		// The meshes must create after the skeletal.
 		// Because the building of meshes use a constructed skeletal.
 
-		BuildMeshes( &pSource->meshes, meshNodes, pSource->skeletal );
+		BuildMeshes( &pSource->meshes, meshNodes, pSource->skeletal, fileDirectory );
 
 	}
 
