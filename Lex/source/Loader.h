@@ -345,10 +345,7 @@ namespace Donya
 		/// </summary>
 		void SaveByCereal( const std::string &filePath ) const;
 	public:
-		ModelSource TmpModelSource() const
-		{
-			return ModelSource{};
-		}
+		ModelSource GetModelSource() const { return source; }
 
 		std::string GetAbsoluteFilePath()					const { return absFilePath;		}
 		std::string GetOnlyFileName()						const { return fileName;		}

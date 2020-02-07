@@ -1100,6 +1100,15 @@ namespace Donya
 		std::vector<FBX::FbxNode *> fetchedAnimNodes{};
 		Traverse( pScene->GetRootNode(), &fetchedMeshNodes, &fetchedAnimNodes );
 
+		OutputDebugProgress( "Start Building model-source.", outputProgress );
+		BuildModelSource
+		(
+			&source,
+			pScene, fetchedMeshNodes, fetchedAnimNodes,
+			sampleFPS, fileDirectory
+		);
+		OutputDebugProgress( "Finish Building model-source.", outputProgress );
+
 		size_t meshCount = fetchedMeshNodes.size();
 		OutputDebugProgress( "Start Meshes load. Meshes count:[" + std::to_string( meshCount ) + "]", outputProgress );
 		
@@ -1499,6 +1508,168 @@ namespace Donya
 	void Loader::EnumPreservingDataToImGui() const
 	{
 		ImVec2 childFrameSize( 0.0f, 0.0f );
+
+		// Show ModelSource.
+		if ( ImGui::TreeNode( u8"モデルソース" ) )
+		{
+			const size_t meshCount = source.meshes.size();
+			for ( size_t i = 0; i < meshCount; ++i )
+			{
+				const auto &mesh = source.meshes[i];
+				const std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
+				if ( ImGui::TreeNode( meshCaption.c_str() ) )
+				{
+					const size_t verticesCount = mesh.indices.size();
+					std::string verticesCaption = "Vertices[Count:" + std::to_string( verticesCount ) + "]";
+					if ( ImGui::TreeNode( verticesCaption.c_str() ) )
+					{
+						if ( ImGui::TreeNode( "Vertex" ) )
+						{
+							auto &ref = mesh.vertices;
+
+							ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+							size_t end = ref.size();
+							for ( size_t i = 0; i < end; ++i )
+							{
+								ImGui::Text( "Position:[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]",	i, ref[i].position.x,	ref[i].position.y,	ref[i].position.z	);
+								ImGui::Text( "Normal:[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]",	i, ref[i].normal.x,		ref[i].normal.y,	ref[i].normal.z		);
+								ImGui::Text( "TexCoord:[No:%d][X:%6.3f][Y:%6.3f]",			i, ref[i].texCoord.x,	ref[i].texCoord.y	);
+							}
+							ImGui::EndChild();
+
+							ImGui::TreePop();
+						}
+
+						if ( ImGui::TreeNode( "Indices" ) )
+						{
+							ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+							size_t end = mesh.indices.size();
+							for ( size_t i = 0; i < end; ++i )
+							{
+								ImGui::Text( "[No:%d][%d]", i, mesh.indices[i] );
+							}
+							ImGui::EndChild();
+
+							ImGui::TreePop();
+						}
+
+						ImGui::TreePop();
+					}
+
+					if ( ImGui::TreeNode( "Materials" ) )
+					{
+						size_t subsetCount = mesh.subsets.size();
+						for ( size_t j = 0; j < subsetCount; ++j )
+						{
+							const auto &subset = mesh.subsets[j];
+							std::string subsetCaption = "Subset[" + std::to_string( j ) + "]";
+							if ( ImGui::TreeNode( subsetCaption.c_str() ) )
+							{
+								auto ShowMaterialContain = [this]( const ModelSource::Material &mtl )
+								{
+									ImGui::Text
+									(
+										"Color:[X:%05.3f][Y:%05.3f][Z:%05.3f][W:%05.3f]",
+										mtl.color.x, mtl.color.y, mtl.color.z, mtl.color.w
+									);
+
+									if ( !mtl.textureName.empty() )
+									{
+										ImGui::Text( "This material don't have texture." );
+										return;
+									}
+									// else
+									
+									if ( !Donya::IsExistFile( fileDirectory + mtl.textureName ) )
+									{
+										ImGui::Text( "!This texture was not found![%s]", mtl.textureName.c_str() );
+									}
+									else
+									{
+										ImGui::Text( "Texture Name:[%s]", mtl.textureName.c_str() );
+									}
+								};
+
+								if ( ImGui::TreeNode( "Ambient" ) )
+								{
+									ShowMaterialContain( subset.ambient );
+
+									ImGui::TreePop();
+								}
+
+								if ( ImGui::TreeNode( "Bump" ) )
+								{
+									ShowMaterialContain( subset.bump );
+
+									ImGui::TreePop();
+								}
+
+								if ( ImGui::TreeNode( "Diffuse" ) )
+								{
+									ShowMaterialContain( subset.diffuse );
+
+									ImGui::TreePop();
+								}
+
+								if ( ImGui::TreeNode( "Emissive" ) )
+								{
+									ShowMaterialContain( subset.emissive );
+
+									ImGui::TreePop();
+								}
+
+								if ( ImGui::TreeNode( "Specular" ) )
+								{
+									ShowMaterialContain( subset.specular );
+
+									ImGui::TreePop();
+								}
+
+								ImGui::TreePop();
+							}
+						} // subsets loop.
+
+						ImGui::TreePop();
+					}
+
+					if ( 0 && ImGui::TreeNode( "Bone" ) )
+					{
+						/*
+						if ( ImGui::TreeNode( "Influences" ) )
+						{
+							ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+							size_t boneInfluencesCount = mesh.influences.size();
+							for ( size_t v = 0; v < boneInfluencesCount; ++v )
+							{
+								ImGui::Text( "Vertex No[%d]", v );
+
+								auto &data = mesh.influences[v].cluster;
+								size_t containCount = data.size();
+								for ( size_t c = 0; c < containCount; ++c )
+								{
+									ImGui::Text
+									(
+										"\t[Index:%d][Weight[%6.4f]",
+										data[c].index,
+										data[c].weight
+									);
+								}
+							}
+							ImGui::EndChild();
+
+							ImGui::TreePop();
+						}
+						*/
+
+						ImGui::TreePop();
+					}
+
+					ImGui::TreePop();
+				}
+			}
+
+			ImGui::TreePop();
+		}
 
 		const size_t meshCount = meshes.size();
 		for ( size_t i = 0; i < meshCount; ++i )
