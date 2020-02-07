@@ -23,11 +23,11 @@ namespace Donya
 		/// </summary>
 		struct Vertex
 		{
-			Donya::Vector3	position;
-			Donya::Vector3	normal;
-			Donya::Vector2	texCoord;
-			Donya::Vector4	boneWeights; // Each element is used as like array(e.g. x:[0], y:[1], ...).
-			Donya::Int4		boneIndices; // Each element is used as like array(e.g. x:[0], y:[1], ...).
+			Donya::Vector3		position;
+			Donya::Vector3		normal;
+			Donya::Vector2		texCoord;
+			std::vector<float> 	boneWeights;
+			std::vector<int>	boneIndices;
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -87,6 +87,8 @@ namespace Donya
 			std::vector<Vertex>				vertices;
 			std::vector<unsigned int>		indices;		// A index list of vertices.
 			std::vector<Subset>				subsets;
+
+			std::string						name;
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -101,7 +103,8 @@ namespace Donya
 						CEREAL_NVP(	boneOffsets	),
 						CEREAL_NVP(	vertices	),
 						CEREAL_NVP(	indices		),
-						CEREAL_NVP(	subsets		)
+						CEREAL_NVP(	subsets		),
+						CEREAL_NVP(	name		)
 					);
 				}
 			}

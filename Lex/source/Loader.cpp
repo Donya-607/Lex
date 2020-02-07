@@ -1,5 +1,6 @@
 #include "Loader.h"
 
+#include <algorithm>		// Use std::sort.
 #include <crtdbg.h>
 #include <Windows.h>
 
@@ -400,7 +401,20 @@ namespace Donya
 		}
 	}
 
-	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh )
+	int  FindBoneIndex( const std::vector<ModelSource::Bone> &skeletal, const std::string &keyName )
+	{
+		const size_t boneCount = skeletal.size();
+		for ( size_t i = 0; i < boneCount; ++i )
+		{
+			if ( skeletal[i].name == keyName )
+			{
+				return scast<int>( i );
+			}
+		}
+
+		return -1;
+	}
+	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<ModelSource::Bone> &constructedSkeletal )
 	{
 		constexpr int EXPECT_POLYGON_SIZE = 3;
 		const FBX::FbxVector4 *pControlPointsArray = pFBXMesh->GetControlPoints();
@@ -408,7 +422,10 @@ namespace Donya
 		const int mtlCount			= pFBXMesh->GetNode()->GetMaterialCount();
 		const int polygonCount		= pFBXMesh->GetPolygonCount();
 
+		pMesh->nodeIndex = FindBoneIndex( constructedSkeletal, pNode->GetName() );
+		pMesh->indices.resize( polygonCount * EXPECT_POLYGON_SIZE );
 		pMesh->subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
+		pMesh->name = pNode->GetName();
 
 		// Calculate subsets start index(not optimized).
 		if ( mtlCount )
@@ -433,20 +450,91 @@ namespace Donya
 
 		struct BoneInfluence
 		{
-			std::vector<float>	weights;
-			std::vector<int>	indices;
+			using ElementType = std::pair<float, int>;
+			std::vector<ElementType> data; // first:Weight, second:Index.
 		public:
 			void Append( float weight, int index )
 			{
-				weights.emplace_back( weight );
-				indices.emplace_back( index  );
+				data.emplace_back( std::make_pair( weight, index ) );
 			}
 		};
 		std::vector<BoneInfluence> boneInfluences{ scast<size_t>( controlPointCount ) };
 
+		// Sort by descending-order.
+		auto SortInfluences = []( BoneInfluence *pSource )
+		{
+			auto DescendingCompare = []( const BoneInfluence::ElementType &lhs, const BoneInfluence::ElementType &rhs )
+			{
+				// lhs.weight > rhs.weight.
+				return ( lhs.first > rhs.first ) ? true : false;
+			};
+
+			std::sort( pSource->data.begin(), pSource->data.end(), DescendingCompare );
+		};
+		// Sort and Shrink bone-influences count to up to maxInfluenceCount.
+		auto NormalizeBoneInfluence = [&SortInfluences]( BoneInfluence source, size_t maxInfluenceCount )
+		{
+			if ( source.data.size() <= maxInfluenceCount )
+			{
+				SortInfluences( &source );
+				return source;
+			}
+			// else
+
+			/*
+			0,	Prepare the buffer to default-value.
+			1,	Sort with weight the influences by descending order.
+			2,	Assign the higher data of influences to result as many as maxInfluenceCount.
+			3,	Add the remaining influences data to highest weight bone.
+			*/
+
+			// No.0, Default-value is all zero but the first weight is one.
+			BoneInfluence result{};
+			result.Append( 1.0f, 0 );
+			for ( size_t i = 1; i < maxInfluenceCount; ++i )
+			{
+				result.Append( 0.0f, 0 );
+			}
+
+			// No.1
+			SortInfluences( &source );
+
+			// No.2
+			size_t  loopIndex = 0;
+			for ( ; loopIndex < maxInfluenceCount; ++loopIndex )
+			{
+				if ( maxInfluenceCount <= loopIndex ) { continue; }
+				// else
+
+				result.Append( source.data[loopIndex].first, source.data[loopIndex].second );
+			}
+
+			// No.3
+			size_t highestBoneIndex{};
+			{
+				float highestWeight = 0.0f;
+				for ( size_t i = 0; i < maxInfluenceCount; ++i )
+				{
+					float selectWeight = source.data[i].first;
+					if ( highestWeight < selectWeight )
+					{
+						highestBoneIndex = i;
+						highestWeight = selectWeight;
+					}
+				}
+			}
+			const size_t sourceCount = source.data.size();
+			for ( ; loopIndex < sourceCount; ++loopIndex )
+			{
+				result.data[highestBoneIndex].first += source.data[loopIndex].first;
+			}
+
+			return result;
+		};
+
 		// Fetch skinning data and influences by bone.
 		{
-			auto FetchInfluence = [&boneInfluences]( const FBX::FbxCluster *pCluster, int clusterIndex )
+			auto FetchInfluence		= [&boneInfluences]( const FBX::FbxCluster *pCluster, int clusterIndex )
 			{
 				const int		ctrlPointIndicesCount	= pCluster->GetControlPointIndicesCount();
 				const int		*ctrlPointIndices		= pCluster->GetControlPointIndices();
@@ -463,6 +551,29 @@ namespace Donya
 					data.Append( weight, index );
 				}
 			};
+			auto FetchBoneOffset	= [&pMesh, &constructedSkeletal]( FBX::FbxCluster *pCluster, const FBX::FbxNode *pNode )
+			{
+				FBX::FbxAMatrix offsetMatrix{};
+				{
+					// This matrix transforms coordinates of the initial pose from mesh space to global space.
+					FBX::FbxAMatrix referenceGlobalInitPosition{};
+					pCluster->GetTransformMatrix( referenceGlobalInitPosition );
+
+					// This matrix transforms coordinates of the initial pose from bone space to global space.
+					FBX::FbxAMatrix clusterGlobalInitPosition{};
+					pCluster->GetTransformLinkMatrix( clusterGlobalInitPosition );
+
+					// "mesh->global->bone"
+					// Transform from initial mesh space to initial bone space.
+					// FbxAMatrix is column-major, so multiply from right side.
+
+					offsetMatrix = clusterGlobalInitPosition.Inverse() * referenceGlobalInitPosition;
+				}
+
+				Donya::Vector4x4 boneOffset = Convert( offsetMatrix );
+
+				pMesh->boneOffsets.emplace_back( std::move( boneOffset ) );
+			};
 
 			const int deformerCount = pFBXMesh->GetDeformerCount( FBX::FbxDeformer::eSkin );
 			for ( int deformerIndex = 0; deformerIndex < deformerCount; ++deformerIndex )
@@ -471,8 +582,12 @@ namespace Donya
 				const int clusterCount = pSkin->GetClusterCount();
 				for ( int clusterIndex = 0; clusterIndex < clusterCount; ++clusterIndex )
 				{
-					const FBX::FbxCluster *pCluster = pSkin->GetCluster( clusterIndex );
-					FetchInfluence( pCluster, clusterIndex );
+					FBX::FbxCluster *pCluster = pSkin->GetCluster( clusterIndex );
+					FetchInfluence ( pCluster, clusterIndex );
+					FetchBoneOffset( pCluster, pNode );
+
+					int nodeIndex = FindBoneIndex( constructedSkeletal, pCluster->GetLink()->GetName() );
+					pMesh->nodeIndices.emplace_back( nodeIndex );
 				}
 			}
 		}
@@ -483,68 +598,81 @@ namespace Donya
 			pFBXMesh->GetUVSetNames( uvSetName );
 
 			size_t vertexCount = 0;
-			pMesh->indices.resize( polygonCount * EXPECT_POLYGON_SIZE );
 			for ( int polyIndex = 0; polyIndex < polygonCount; ++polyIndex )
-		{
-			// The material for current face.
-			int  mtlIndex = 0;
-			if ( mtlCount )
 			{
-				mtlIndex = pFBXMesh->GetElementMaterial()->GetIndexArray().GetAt( polyIndex );
-			}
-
-			// Where should I save the vertex attribute index, according to the material.
-			auto &subset	= pMesh->subsets[mtlIndex];
-			int indexOffset	= scast<int>( subset.indexStart + subset.indexCount );
-
-			FBX::FbxVector4		fbxNormal{};
-			Donya::Vector3		position{};
-			Donya::Vector3		normal{};
-			Donya::Vector2		texCoord{};
-			ModelSource::Vertex	vertex{};
-
-			const int polygonSize = pFBXMesh->GetPolygonSize( polyIndex );
-			_ASSERT_EXPR( polygonSize == EXPECT_POLYGON_SIZE, L"Error : A mesh did not triangulated!" );
-
-			for ( int v = 0; v < EXPECT_POLYGON_SIZE; ++v )
-			{
-				pFBXMesh->GetPolygonVertexNormal( polyIndex, v, fbxNormal );
-				normal.x = scast<float>( fbxNormal[0] );
-				normal.y = scast<float>( fbxNormal[1] );
-				normal.z = scast<float>( fbxNormal[2] );
-
-				const int ctrlPointIndex = pFBXMesh->GetPolygonVertex( polyIndex, v );
-				position.x = scast<float>( pControlPointsArray[ctrlPointIndex][0] );
-				position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
-				position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
-
-				const int uvCount = pFBXMesh->GetElementUVCount();
-				if ( !uvCount )
+				// The material for current face.
+				int  mtlIndex = 0;
+				if ( mtlCount )
 				{
-					texCoord = Donya::Vector2::Zero();
-				}
-				else
-				{
-					bool ummappedUV{};
-					FbxVector2 uv{};
-					pFBXMesh->GetPolygonVertexUV( polyIndex, v, uvSetName[0], uv, ummappedUV );
-					
-					texCoord.x = scast<float>( uv[0] );
-					texCoord.y = 1.0f - scast<float>( uv[1] ); // For DirectX's uv space(the origin is left-top).
+					mtlIndex = pFBXMesh->GetElementMaterial()->GetIndexArray().GetAt( polyIndex );
 				}
 
-				vertex.position	= position;
-				vertex.normal	= normal;
-				vertex.texCoord	= texCoord;
-					
-				pMesh->vertices.emplace_back( vertex );
-				pMesh->indices[indexOffset + v] = vertexCount;
-				vertexCount++;
+				// Where should I save the vertex attribute index, according to the material.
+				auto &subset	= pMesh->subsets[mtlIndex];
+				int indexOffset	= scast<int>( subset.indexStart + subset.indexCount );
 
-				pMesh->influences.push_back( fetchedInfluences[ctrlPointIndex] );
+				FBX::FbxVector4		fbxNormal{};
+				Donya::Vector3		position{};
+				Donya::Vector3		normal{};
+				Donya::Vector2		texCoord{};
+				ModelSource::Vertex	vertex{};
+
+				const int polygonSize = pFBXMesh->GetPolygonSize( polyIndex );
+				_ASSERT_EXPR( polygonSize == EXPECT_POLYGON_SIZE, L"Error : A mesh did not triangulated!" );
+
+				for ( int v = 0; v < EXPECT_POLYGON_SIZE; ++v )
+				{
+					pFBXMesh->GetPolygonVertexNormal( polyIndex, v, fbxNormal );
+					normal.x = scast<float>( fbxNormal[0] );
+					normal.y = scast<float>( fbxNormal[1] );
+					normal.z = scast<float>( fbxNormal[2] );
+
+					const int ctrlPointIndex = pFBXMesh->GetPolygonVertex( polyIndex, v );
+					position.x = scast<float>( pControlPointsArray[ctrlPointIndex][0] );
+					position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
+					position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
+
+					const int uvCount = pFBXMesh->GetElementUVCount();
+					if ( !uvCount )
+					{
+						texCoord = Donya::Vector2::Zero();
+					}
+					else
+					{
+						bool ummappedUV{};
+						FbxVector2 uv{};
+						pFBXMesh->GetPolygonVertexUV( polyIndex, v, uvSetName[0], uv, ummappedUV );
+					
+						texCoord.x = scast<float>( uv[0] );
+						texCoord.y = 1.0f - scast<float>( uv[1] ); // For DirectX's uv space(the origin is left-top).
+					}
+
+					auto AssignInfluence = [&NormalizeBoneInfluence]( ModelSource::Vertex *pVertex, const BoneInfluence &source )
+					{
+						constexpr size_t MAX_INFLUENCE_COUNT = 4U; // Align as float4.
+						BoneInfluence infl = NormalizeBoneInfluence( source, MAX_INFLUENCE_COUNT );
+
+						pVertex->boneWeights.resize( MAX_INFLUENCE_COUNT );
+						pVertex->boneIndices.resize( MAX_INFLUENCE_COUNT );
+
+						for ( size_t i = 0; i < MAX_INFLUENCE_COUNT; ++i )
+						{
+							pVertex->boneWeights[i] = infl.data[i].first;
+							pVertex->boneIndices[i] = infl.data[i].second;
+						}
+					};
+
+					vertex.position	= position;
+					vertex.normal	= normal;
+					vertex.texCoord	= texCoord;
+					AssignInfluence( &vertex, boneInfluences[ctrlPointIndex ]);
+					
+					pMesh->vertices.emplace_back( vertex );
+					pMesh->indices[indexOffset + v] = vertexCount;
+					vertexCount++;
+				}
+				subset.indexCount += polygonSize;
 			}
-			subset.indexCount += polygonSize;
-		}
 		}
 	}
 
