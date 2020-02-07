@@ -419,9 +419,24 @@ namespace Donya
 		const int mtlCount = pNode->GetMaterialCount();
 		pSubsets->resize( ( !mtlCount ) ? 1 : mtlCount );
 
+		auto AnalyzeMaterial = []( ModelSource::Material *pMaterial, const char *strProperty, const char *strFactor, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
+		{
+
+		};
+
 		for ( int i = 0; i < mtlCount; ++i )
 		{
+			const FBX::FbxSurfaceMaterial *pSurfaceMaterial = pNode->GetMaterial( i );
+			using FbxMtl = FBX::FbxSurfaceMaterial;
+
 			auto &subset = pSubsets->at( i );
+
+			subset.name  = pSurfaceMaterial->GetName();
+			AnalyzeMaterial( &subset.ambient,	FbxMtl::sAmbient,	FbxMtl::sAmbientFactor,		pSurfaceMaterial );
+			AnalyzeMaterial( &subset.bump,		FbxMtl::sBump,		FbxMtl::sBumpFactor,		pSurfaceMaterial );
+			AnalyzeMaterial( &subset.diffuse,	FbxMtl::sDiffuse,	FbxMtl::sDiffuseFactor,		pSurfaceMaterial );
+			AnalyzeMaterial( &subset.specular,	FbxMtl::sSpecular,	FbxMtl::sSpecularFactor,	pSurfaceMaterial );
+			AnalyzeMaterial( &subset.emissive,	FbxMtl::sEmissive,	FbxMtl::sEmissiveFactor,	pSurfaceMaterial );
 		}
 
 		// Calculate subsets start index(not optimized).

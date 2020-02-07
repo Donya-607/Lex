@@ -76,7 +76,7 @@ namespace Donya
 			Material		bump;
 			Material		diffuse;
 			Material		specular;
-			Material		emmisive;
+			Material		emissive;
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -93,7 +93,7 @@ namespace Donya
 						CEREAL_NVP( bump		),
 						CEREAL_NVP( diffuse		),
 						CEREAL_NVP( specular	),
-						CEREAL_NVP( emmisive	)
+						CEREAL_NVP( emissive	)
 					);
 				}
 			}
