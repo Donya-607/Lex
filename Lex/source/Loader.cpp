@@ -402,7 +402,150 @@ namespace Donya
 
 	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh )
 	{
+		constexpr int EXPECT_POLYGON_SIZE = 3;
+		const FBX::FbxVector4 *pControlPointsArray = pFBXMesh->GetControlPoints();
+		const int controlPointCount	= pFBXMesh->GetControlPointsCount();
+		const int mtlCount			= pFBXMesh->GetNode()->GetMaterialCount();
+		const int polygonCount		= pFBXMesh->GetPolygonCount();
 
+		pMesh->subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
+
+		// Calculate subsets start index(not optimized).
+		if ( mtlCount )
+		{
+			// Count the faces each material.
+			for ( int i = 0; i < polygonCount; ++i )
+			{
+				int mtlIndex = pFBXMesh->GetElementMaterial()->GetIndexArray().GetAt( i );
+				pMesh->subsets[mtlIndex].indexCount += 3;
+			}
+
+			// Record the offset (how many vertex)
+			int offset = 0;
+			for ( auto &subset : pMesh->subsets )
+			{
+				subset.indexStart = offset;
+				offset += subset.indexCount;
+				// This will be used as counter in the following procedures, reset to zero.
+				subset.indexCount = 0;
+			}
+		}
+
+		struct BoneInfluence
+		{
+			std::vector<float>	weights;
+			std::vector<int>	indices;
+		public:
+			void Append( float weight, int index )
+			{
+				weights.emplace_back( weight );
+				indices.emplace_back( index  );
+			}
+		};
+		std::vector<BoneInfluence> boneInfluences{ scast<size_t>( controlPointCount ) };
+
+		// Fetch skinning data and influences by bone.
+		{
+			auto FetchInfluence = [&boneInfluences]( const FBX::FbxCluster *pCluster, int clusterIndex )
+			{
+				const int		ctrlPointIndicesCount	= pCluster->GetControlPointIndicesCount();
+				const int		*ctrlPointIndices		= pCluster->GetControlPointIndices();
+				const double	*ctrlPointWeights		= pCluster->GetControlPointWeights();
+
+				if ( !ctrlPointIndices || !ctrlPointWeights ) { return; }
+				// else
+
+				for ( int i = 0; i < ctrlPointIndicesCount; ++i )
+				{
+					BoneInfluence &data	= boneInfluences[ctrlPointIndices[i]];
+					float weight = scast<float>( ctrlPointWeights[i] );
+					int   index  = clusterIndex;
+					data.Append( weight, index );
+				}
+			};
+
+			const int deformerCount = pFBXMesh->GetDeformerCount( FBX::FbxDeformer::eSkin );
+			for ( int deformerIndex = 0; deformerIndex < deformerCount; ++deformerIndex )
+			{
+				FBX::FbxSkin *pSkin = scast<FBX::FbxSkin *>( pFBXMesh->GetDeformer( deformerIndex, FBX::FbxDeformer::eSkin ) );
+				const int clusterCount = pSkin->GetClusterCount();
+				for ( int clusterIndex = 0; clusterIndex < clusterCount; ++clusterIndex )
+				{
+					const FBX::FbxCluster *pCluster = pSkin->GetCluster( clusterIndex );
+					FetchInfluence( pCluster, clusterIndex );
+				}
+			}
+		}
+
+		// Fetch vertex data.
+		{
+			FBX::FbxStringList uvSetName;
+			pFBXMesh->GetUVSetNames( uvSetName );
+
+			size_t vertexCount = 0;
+			pMesh->indices.resize( polygonCount * EXPECT_POLYGON_SIZE );
+			for ( int polyIndex = 0; polyIndex < polygonCount; ++polyIndex )
+		{
+			// The material for current face.
+			int  mtlIndex = 0;
+			if ( mtlCount )
+			{
+				mtlIndex = pFBXMesh->GetElementMaterial()->GetIndexArray().GetAt( polyIndex );
+			}
+
+			// Where should I save the vertex attribute index, according to the material.
+			auto &subset	= pMesh->subsets[mtlIndex];
+			int indexOffset	= scast<int>( subset.indexStart + subset.indexCount );
+
+			FBX::FbxVector4		fbxNormal{};
+			Donya::Vector3		position{};
+			Donya::Vector3		normal{};
+			Donya::Vector2		texCoord{};
+			ModelSource::Vertex	vertex{};
+
+			const int polygonSize = pFBXMesh->GetPolygonSize( polyIndex );
+			_ASSERT_EXPR( polygonSize == EXPECT_POLYGON_SIZE, L"Error : A mesh did not triangulated!" );
+
+			for ( int v = 0; v < EXPECT_POLYGON_SIZE; ++v )
+			{
+				pFBXMesh->GetPolygonVertexNormal( polyIndex, v, fbxNormal );
+				normal.x = scast<float>( fbxNormal[0] );
+				normal.y = scast<float>( fbxNormal[1] );
+				normal.z = scast<float>( fbxNormal[2] );
+
+				const int ctrlPointIndex = pFBXMesh->GetPolygonVertex( polyIndex, v );
+				position.x = scast<float>( pControlPointsArray[ctrlPointIndex][0] );
+				position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
+				position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
+
+				const int uvCount = pFBXMesh->GetElementUVCount();
+				if ( !uvCount )
+				{
+					texCoord = Donya::Vector2::Zero();
+				}
+				else
+				{
+					bool ummappedUV{};
+					FbxVector2 uv{};
+					pFBXMesh->GetPolygonVertexUV( polyIndex, v, uvSetName[0], uv, ummappedUV );
+					
+					texCoord.x = scast<float>( uv[0] );
+					texCoord.y = 1.0f - scast<float>( uv[1] ); // For DirectX's uv space(the origin is left-top).
+				}
+
+				vertex.position	= position;
+				vertex.normal	= normal;
+				vertex.texCoord	= texCoord;
+					
+				pMesh->vertices.emplace_back( vertex );
+				pMesh->indices[indexOffset + v] = vertexCount;
+				vertexCount++;
+
+				pMesh->influences.push_back( fetchedInfluences[ctrlPointIndex] );
+			}
+			subset.indexCount += polygonSize;
+		}
+		}
 	}
 
 	void BuildModelSource( ModelSource *pSource, FBX::FbxNode *pSceneNode, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes )
