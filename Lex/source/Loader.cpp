@@ -401,6 +401,19 @@ namespace Donya
 		}
 	}
 
+	int  FindMaterialIndex( FBX::FbxScene *pScene, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
+	{
+		const int mtlCount = pScene->GetMaterialCount();
+		for ( int i = 0; i < mtlCount; ++i )
+		{
+			if ( pScene->GetMaterial( i ) == pSurfaceMaterial )
+			{
+				return i;
+			}
+		}
+
+		return -1;
+	}
 	int  FindBoneIndex( const std::vector<ModelSource::Bone> &skeletal, const std::string &keyName )
 	{
 		const size_t boneCount = skeletal.size();
@@ -416,16 +429,23 @@ namespace Donya
 	}
 	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<ModelSource::Bone> &constructedSkeletal )
 	{
-		constexpr int EXPECT_POLYGON_SIZE = 3;
-		const FBX::FbxVector4 *pControlPointsArray = pFBXMesh->GetControlPoints();
-		const int controlPointCount	= pFBXMesh->GetControlPointsCount();
-		const int mtlCount			= pFBXMesh->GetNode()->GetMaterialCount();
-		const int polygonCount		= pFBXMesh->GetPolygonCount();
+		constexpr	int EXPECT_POLYGON_SIZE	= 3;
+		const		int mtlCount			= pNode->GetMaterialCount();
+		const		int polygonCount		= pFBXMesh->GetPolygonCount();
 
 		pMesh->nodeIndex = FindBoneIndex( constructedSkeletal, pNode->GetName() );
 		pMesh->indices.resize( polygonCount * EXPECT_POLYGON_SIZE );
 		pMesh->subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
 		pMesh->name = pNode->GetName();
+
+		// Attach material index of subsets.
+		for ( int i = 0; i < mtlCount; ++i )
+		{
+			const FBX::FbxSurfaceMaterial *pSurfaceMaterial = pNode->GetMaterial( i );
+
+			ModelSource::Subset &subset = pMesh->subsets[i];
+			subset.materialIndex = FindMaterialIndex( pNode->GetScene(), pSurfaceMaterial );
+		}
 
 		// Calculate subsets start index(not optimized).
 		if ( mtlCount )
@@ -458,82 +478,13 @@ namespace Donya
 				data.emplace_back( std::make_pair( weight, index ) );
 			}
 		};
-		std::vector<BoneInfluence> boneInfluences{ scast<size_t>( controlPointCount ) };
-
-		// Sort by descending-order.
-		auto SortInfluences = []( BoneInfluence *pSource )
-		{
-			auto DescendingCompare = []( const BoneInfluence::ElementType &lhs, const BoneInfluence::ElementType &rhs )
-			{
-				// lhs.weight > rhs.weight.
-				return ( lhs.first > rhs.first ) ? true : false;
-			};
-
-			std::sort( pSource->data.begin(), pSource->data.end(), DescendingCompare );
-		};
-		// Sort and Shrink bone-influences count to up to maxInfluenceCount.
-		auto NormalizeBoneInfluence = [&SortInfluences]( BoneInfluence source, size_t maxInfluenceCount )
-		{
-			if ( source.data.size() <= maxInfluenceCount )
-			{
-				SortInfluences( &source );
-				return source;
-			}
-			// else
-
-			/*
-			0,	Prepare the buffer to default-value.
-			1,	Sort with weight the influences by descending order.
-			2,	Assign the higher data of influences to result as many as maxInfluenceCount.
-			3,	Add the remaining influences data to highest weight bone.
-			*/
-
-			// No.0, Default-value is all zero but the first weight is one.
-			BoneInfluence result{};
-			result.Append( 1.0f, 0 );
-			for ( size_t i = 1; i < maxInfluenceCount; ++i )
-			{
-				result.Append( 0.0f, 0 );
-			}
-
-			// No.1
-			SortInfluences( &source );
-
-			// No.2
-			size_t  loopIndex = 0;
-			for ( ; loopIndex < maxInfluenceCount; ++loopIndex )
-			{
-				if ( maxInfluenceCount <= loopIndex ) { continue; }
-				// else
-
-				result.Append( source.data[loopIndex].first, source.data[loopIndex].second );
-			}
-
-			// No.3
-			size_t highestBoneIndex{};
-			{
-				float highestWeight = 0.0f;
-				for ( size_t i = 0; i < maxInfluenceCount; ++i )
-				{
-					float selectWeight = source.data[i].first;
-					if ( highestWeight < selectWeight )
-					{
-						highestBoneIndex = i;
-						highestWeight = selectWeight;
-					}
-				}
-			}
-			const size_t sourceCount = source.data.size();
-			for ( ; loopIndex < sourceCount; ++loopIndex )
-			{
-				result.data[highestBoneIndex].first += source.data[loopIndex].first;
-			}
-
-			return result;
-		};
+		std::vector<BoneInfluence> boneInfluences{};
 
 		// Fetch skinning data and influences by bone.
 		{
+			const int controlPointCount = pFBXMesh->GetControlPointsCount();
+			boneInfluences.resize( scast<size_t>( controlPointCount ) );
+
 			auto FetchInfluence		= [&boneInfluences]( const FBX::FbxCluster *pCluster, int clusterIndex )
 			{
 				const int		ctrlPointIndicesCount	= pCluster->GetControlPointIndicesCount();
@@ -594,6 +545,80 @@ namespace Donya
 
 		// Fetch vertex data.
 		{
+			// Sort by descending-order.
+			auto SortInfluences = []( BoneInfluence *pSource )
+			{
+				auto DescendingCompare = []( const BoneInfluence::ElementType &lhs, const BoneInfluence::ElementType &rhs )
+				{
+					// lhs.weight > rhs.weight.
+					return ( lhs.first > rhs.first ) ? true : false;
+				};
+
+				std::sort( pSource->data.begin(), pSource->data.end(), DescendingCompare );
+			};
+			// Sort and Shrink bone-influences count to up to maxInfluenceCount.
+			auto NormalizeBoneInfluence = [&SortInfluences]( BoneInfluence source, size_t maxInfluenceCount )
+			{
+				if ( source.data.size() <= maxInfluenceCount )
+				{
+					SortInfluences( &source );
+					return source;
+				}
+				// else
+
+				/*
+				0,	Prepare the buffer to default-value.
+				1,	Sort with weight the influences by descending order.
+				2,	Assign the higher data of influences to result as many as maxInfluenceCount.
+				3,	Add the remaining influences data to highest weight bone.
+				*/
+
+				// No.0, Default-value is all zero but the first weight is one.
+				BoneInfluence result{};
+				result.Append( 1.0f, 0 );
+				for ( size_t i = 1; i < maxInfluenceCount; ++i )
+				{
+					result.Append( 0.0f, 0 );
+				}
+
+				// No.1
+				SortInfluences( &source );
+
+				// No.2
+				size_t  loopIndex = 0;
+				for ( ; loopIndex < maxInfluenceCount; ++loopIndex )
+				{
+					if ( maxInfluenceCount <= loopIndex ) { continue; }
+					// else
+
+					result.Append( source.data[loopIndex].first, source.data[loopIndex].second );
+				}
+
+				// No.3
+				size_t highestBoneIndex{};
+				{
+					float highestWeight = 0.0f;
+					for ( size_t i = 0; i < maxInfluenceCount; ++i )
+					{
+						float selectWeight = source.data[i].first;
+						if ( highestWeight < selectWeight )
+						{
+							highestBoneIndex = i;
+							highestWeight = selectWeight;
+						}
+					}
+				}
+				const size_t sourceCount = source.data.size();
+				for ( ; loopIndex < sourceCount; ++loopIndex )
+				{
+					result.data[highestBoneIndex].first += source.data[loopIndex].first;
+				}
+
+				return result;
+			};
+
+			const FBX::FbxVector4 *pControlPointsArray = pFBXMesh->GetControlPoints();
+
 			FBX::FbxStringList uvSetName;
 			pFBXMesh->GetUVSetNames( uvSetName );
 
