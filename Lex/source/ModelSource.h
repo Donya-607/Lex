@@ -47,14 +47,10 @@ namespace Donya
 			}
 		};
 
-		/// <summary>
-		/// The materialIndex is used as an index of an array of whole materials.
-		/// </summary>
-		struct Subset
+		struct Material
 		{
-			unsigned int	indexCount;
-			unsigned int	indexStart;
-			unsigned int	materialIndex = -1;	// -1 is invalid. This index link to the vector of ModelSource::materials.
+			Donya::Vector4	color{ 1.0f, 1.0f, 1.0f, 1.0f };	// RGBA.
+			std::string		textureName;	// Relative file path. No need to multiple texture.
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -64,9 +60,40 @@ namespace Donya
 				{
 					archive
 					(
-						CEREAL_NVP(	indexCount		),
-						CEREAL_NVP(	indexStart		),
-						CEREAL_NVP( materialIndex	)
+						CEREAL_NVP(	color		),
+						CEREAL_NVP(	textureName	)
+					);
+				}
+			}
+		};
+
+		struct Subset
+		{
+			unsigned int	indexCount;
+			unsigned int	indexStart;
+			std::string		name;
+			Material		ambient;
+			Material		bump;
+			Material		diffuse;
+			Material		specular;
+			Material		emmisive;
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				if ( version == 0 )
+				{
+					archive
+					(
+						CEREAL_NVP(	indexCount	),
+						CEREAL_NVP(	indexStart	),
+						CEREAL_NVP( name		).
+						CEREAL_NVP( ambient		),
+						CEREAL_NVP( bump		),
+						CEREAL_NVP( diffuse		),
+						CEREAL_NVP( specular	),
+						CEREAL_NVP( emmisive	)
 					);
 				}
 			}
@@ -105,26 +132,6 @@ namespace Donya
 						CEREAL_NVP(	indices		),
 						CEREAL_NVP(	subsets		),
 						CEREAL_NVP(	name		)
-					);
-				}
-			}
-		};
-
-		struct Material
-		{
-			Donya::Vector4	color{ 1.0f, 1.0f, 1.0f, 1.0f };	// RGBA.
-			std::string		textureName;	// Relative file path. No need to multiple texture.
-		private:
-			friend class cereal::access;
-			template<class Archive>
-			void serialize( Archive &archive, std::uint32_t version )
-			{
-				if ( version == 0 )
-				{
-					archive
-					(
-						CEREAL_NVP(	color		),
-						CEREAL_NVP(	textureName	)
 					);
 				}
 			}
@@ -231,7 +238,6 @@ namespace Donya
 		};
 
 		std::vector<Mesh>		meshes;
-		std::vector<Material>	materials;	// The materials will accessed with Subset::materialIndex.
 		std::vector<Bone>		skeletal;	// Represent bones of initial pose(like T-pose).
 		std::vector<Animation>	animations;	// Represent animations. The animations contain only animation(i.e. The animation provides a matrix of from mesh space to local(current pose) space).
 	private:
@@ -244,7 +250,6 @@ namespace Donya
 					archive
 					(
 						CEREAL_NVP(	meshes		),
-						CEREAL_NVP(	materials	),
 						CEREAL_NVP(	skeletal	),
 						CEREAL_NVP(	animations	)
 					);

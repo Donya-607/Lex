@@ -411,6 +411,42 @@ namespace Donya
 		// Convert right-hand space to left-hand space.
 		pMesh->coordinateConversion._11 = -1.0f;
 	}
+
+	void BuildSubsets( std::vector<ModelSource::Subset> *pSubsets, FBX::FbxMesh *pMesh )
+	{
+		FBX::FbxNode *pNode = pMesh->GetNode();
+
+		const int mtlCount = pNode->GetMaterialCount();
+		pSubsets->resize( ( !mtlCount ) ? 1 : mtlCount );
+
+		for ( int i = 0; i < mtlCount; ++i )
+		{
+			auto &subset = pSubsets->at( i );
+		}
+
+		// Calculate subsets start index(not optimized).
+		if ( mtlCount )
+		{
+			// Count the faces each material.
+			const int polygonCount = pMesh->GetPolygonCount();
+			for ( int i = 0; i < polygonCount; ++i )
+			{
+				const int mtlIndex = pMesh->GetElementMaterial()->GetIndexArray().GetAt( i );
+				pSubsets->at( mtlIndex ).indexCount += 3;
+			}
+
+			// Record the offset (how many vertex)
+			int offset = 0;
+			for ( auto &subset : *pSubsets )
+			{
+				subset.indexStart = offset;
+				offset += subset.indexCount;
+				// This will be used as counter in the following procedures, reset to zero.
+				subset.indexCount = 0;
+			}
+		}
+	}
+
 	int  FindMaterialIndex( FBX::FbxScene *pScene, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
 	{
 		const int mtlCount = pScene->GetMaterialCount();
@@ -450,15 +486,6 @@ namespace Donya
 		pMesh->indices.resize( polygonCount * EXPECT_POLYGON_SIZE );
 		pMesh->subsets.resize( ( !mtlCount ) ? 1 : mtlCount );
 		pMesh->name = pNode->GetName();
-
-		// Attach material index of subsets.
-		for ( int i = 0; i < mtlCount; ++i )
-		{
-			const FBX::FbxSurfaceMaterial *pSurfaceMaterial = pNode->GetMaterial( i );
-
-			ModelSource::Subset &subset = pMesh->subsets[i];
-			subset.materialIndex = FindMaterialIndex( pNode->GetScene(), pSurfaceMaterial );
-		}
 
 		// Calculate subsets start index(not optimized).
 		if ( mtlCount )
@@ -709,8 +736,20 @@ namespace Donya
 					pMesh->indices[indexOffset + v] = vertexCount;
 					vertexCount++;
 				}
-				subset.indexCount += polygonSize;
+				subset.indexCount += EXPECT_POLYGON_SIZE;
 			}
+		}
+	}
+	void BuildMeshes( std::vector<ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<ModelSource::Bone> &constructedSkeletal )
+	{
+		const size_t meshCount = meshNodes.size();
+		pMeshes->resize( meshCount );
+		for ( size_t i = 0; i < meshCount; ++i )
+		{
+			FBX::FbxMesh *pFBXMesh = meshNodes[i]->GetMesh();
+			_ASSERT_EXPR( pFBXMesh, L"Error : A mesh-node that passed mesh-nodes is not mesh!" );
+
+			BuildMesh( &( *pMeshes )[i], meshNodes[i], pFBXMesh, constructedSkeletal );
 		}
 	}
 
@@ -718,15 +757,10 @@ namespace Donya
 	{
 		BuildSkeletal( &pSource->skeletal, motionNodes );
 
-		const size_t meshCount = meshNodes.size();
-		pSource->meshes.resize( meshCount );
-		for ( size_t i = 0; i < meshCount; ++i )
-		{
-			FBX::FbxMesh *pFBXMesh = meshNodes[i]->GetMesh();
-			_ASSERT_EXPR( pFBXMesh, L"Error : A mesh-node that passed mesh-nodes is not mesh!" );
+		// The meshes must create after the skeletal.
+		// Because the building of meshes use a constructed skeletal.
 
-			BuildMesh( &pSource->meshes[i], meshNodes[i], pFBXMesh, pSource->skeletal );
-		}
+		BuildMeshes( &pSource->meshes, meshNodes, pSource->skeletal );
 
 	}
 
