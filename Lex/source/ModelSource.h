@@ -219,8 +219,12 @@ namespace Donya
 		/// </summary>
 		struct Animation
 		{
+			static constexpr float	DEFAULT_SAMPLING_RATE = 1.0f / 24.0f;
+		public:
+			float					samplingRate = DEFAULT_SAMPLING_RATE;
 			float					animSeconds;
 			std::vector<KeyFrame>	keyFrames;
+			std::string				name;
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -230,8 +234,11 @@ namespace Donya
 				{
 					archive
 					(
-						CEREAL_NVP(	animSeconds	),
-						CEREAL_NVP(	keyFrames	)
+						CEREAL_NVP(	samplingRate	),
+						CEREAL_NVP(	animSeconds		),
+						CEREAL_NVP(	animSeconds		),
+						CEREAL_NVP(	keyFrames		)
+						CEREAL_NVP(	name			),
 					);
 				}
 			}

@@ -412,6 +412,33 @@ namespace Donya
 		pMesh->coordinateConversion._11 = -1.0f;
 	}
 
+	int  FindMaterialIndex( FBX::FbxScene *pScene, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
+	{
+		const int mtlCount = pScene->GetMaterialCount();
+		for ( int i = 0; i < mtlCount; ++i )
+		{
+			if ( pScene->GetMaterial( i ) == pSurfaceMaterial )
+			{
+				return i;
+			}
+		}
+
+		return -1;
+	}
+	int  FindBoneIndex( const std::vector<ModelSource::Bone> &skeletal, const std::string &keyName )
+	{
+		const size_t boneCount = skeletal.size();
+		for ( size_t i = 0; i < boneCount; ++i )
+		{
+			if ( skeletal[i].name == keyName )
+			{
+				return scast<int>( i );
+			}
+		}
+
+		return -1;
+	}
+
 	void BuildSubsets( std::vector<ModelSource::Subset> *pSubsets, FBX::FbxMesh *pMesh, const std::string &fileDirectory )
 	{
 		FBX::FbxNode *pNode = pMesh->GetNode();
@@ -505,33 +532,6 @@ namespace Donya
 				subset.indexCount = 0;
 			}
 		}
-	}
-
-	int  FindMaterialIndex( FBX::FbxScene *pScene, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
-	{
-		const int mtlCount = pScene->GetMaterialCount();
-		for ( int i = 0; i < mtlCount; ++i )
-		{
-			if ( pScene->GetMaterial( i ) == pSurfaceMaterial )
-			{
-				return i;
-			}
-		}
-
-		return -1;
-	}
-	int  FindBoneIndex( const std::vector<ModelSource::Bone> &skeletal, const std::string &keyName )
-	{
-		const size_t boneCount = skeletal.size();
-		for ( size_t i = 0; i < boneCount; ++i )
-		{
-			if ( skeletal[i].name == keyName )
-			{
-				return scast<int>( i );
-			}
-		}
-
-		return -1;
 	}
 	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<ModelSource::Bone> &constructedSkeletal, const std::string &fileDirectory )
 	{
@@ -795,7 +795,105 @@ namespace Donya
 		}
 	}
 
-	void BuildModelSource( ModelSource *pSource, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes, const std::string &fileDirectory )
+	void BuildKeyFrame( ModelSource::KeyFrame *pKeyFrame, const std::vector<FBX::FbxNode *> &animNodes, const FBX::FbxTime &currentTime, float currentSeconds )
+	{
+		const size_t nodeCount = animNodes.size();
+
+		pKeyFrame->seconds = currentSeconds;
+		pKeyFrame->keyData.resize( nodeCount );
+
+		auto ToVec3 = []( const Donya::Vector4 &v )
+		{
+			return Donya::Vector3{ v.x, v.y, v.z };
+		};
+
+		FBX::FbxAMatrix localTransform{};
+		for ( size_t i = 0; i < nodeCount; ++i )
+		{
+			FBX::FbxNode *pNode = animNodes[i];
+			ModelSource::KeyBone &bone = pKeyFrame->keyData[i];
+
+			localTransform		= pNode->EvaluateLocalTransform( currentTime );
+			bone.scale			= ToVec3( Convert( localTransform.GetS() ) );
+			bone.rotation		= ToQuaternion( localTransform.GetQ() );
+			bone.translation	= ToVec3( Convert( localTransform.GetT() ) );
+		}
+	}
+	void BuildAnimations( std::vector<ModelSource::Animation> *pAnimations, float samplingFPS, FBX::FbxScene *pScene , const std::vector<FBX::FbxNode *> &animNodes )
+	{
+		// List of all the animation stack. 
+		FBX::FbxArray<FBX::FbxString *> animationStackNames;
+		pScene->FillAnimStackNameArray( animationStackNames );
+		const int animationStackCount = animationStackNames.Size();
+
+		auto ReleaseAnimationStackNames = [&animationStackNames, &animationStackCount]()->void
+		{
+			for ( int i = 0; i < animationStackCount; i++ )
+			{
+				delete animationStackNames[i];
+			}
+		};
+
+		if ( animationStackCount <= 0 )
+		{
+			// FBX::DeleteArray
+			ReleaseAnimationStackNames();
+			return;
+		}
+		// else
+
+		// Get the FbxTime per animation's frame. 
+		const FBX::FbxTime::EMode timeMode = pScene->GetGlobalSettings().GetTimeMode();
+		FBX::FbxTime frameTime{};
+		frameTime.SetTime( 0, 0, 0, 1, 0, timeMode );
+
+		const float samplingRate = ( samplingFPS <= 0.0f ) ? scast<float>( FBX::FbxTime::GetFrameRate( timeMode ) /* Contain FPS */ ) : samplingFPS;
+		const float samplingTime = 1.0f / samplingRate;
+
+		// Sampling criteria is 60fps.
+		FBX::FbxTime samplingStep;
+		samplingStep.SetTime( 0, 0, 1, 0, 0, timeMode );
+		samplingStep = scast<FBX::FbxLongLong>( scast<double>( samplingStep.Get() ) * samplingTime );
+
+		for ( int i = 0; i < animationStackCount; ++i )
+		{
+			FBX::FbxString		*pAnimStackName			= animationStackNames.GetAt( i );
+			FBX::FbxAnimStack	*pCurrentAnimationStack	= pScene->FindMember<FBX::FbxAnimStack>( pAnimStackName->Buffer() );
+			pScene->SetCurrentAnimationStack( pCurrentAnimationStack );
+
+			FBX::FbxTakeInfo	*pTakeInfo = pScene->GetTakeInfo( pAnimStackName->Buffer() );
+			if ( !pTakeInfo )	{ continue; }
+			// else
+
+			const FBX::FbxTime beginTime	= pTakeInfo->mLocalTimeSpan.GetStart();
+			const FBX::FbxTime endTime		= pTakeInfo->mLocalTimeSpan.GetStop();
+			const int startFrame	= scast<int>( beginTime.Get() / samplingStep.Get() );
+			const int endFrame		= scast<int>( endTime.Get()   / samplingStep.Get() );
+			const int frameCount	= scast<int>( endTime.Get()   - beginTime.Get() / samplingStep.Get() );
+
+			ModelSource::Animation animation{};
+			animation.samplingRate	= samplingRate;
+			animation.animSeconds	= samplingTime * frameCount;
+			animation.keyFrames.resize( scast<size_t>( frameCount + 1 ) );
+			animation.name			= std::string{ pAnimStackName->Buffer() };	
+
+			float	seconds	= 0.0f;
+			size_t	index	= 0;
+			for (	FBX::FbxTime currentTime = beginTime; currentTime < endTime; currentTime += samplingStep )
+			{
+				BuildKeyFrame( &animation.keyFrames[index], animNodes, currentTime, seconds );
+
+				seconds	+= samplingTime;
+				index	+= 1U;
+			}
+
+			pAnimations->emplace_back( std::move( animation ) );
+		}
+		
+		ReleaseAnimationStackNames();
+	}
+
+	void BuildModelSource( ModelSource *pSource, FBX::FbxScene *pScene, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes, float animationSamplingFPS, const std::string &fileDirectory )
 	{
 		BuildSkeletal( &pSource->skeletal, motionNodes );
 
@@ -804,6 +902,7 @@ namespace Donya
 
 		BuildMeshes( &pSource->meshes, meshNodes, pSource->skeletal, fileDirectory );
 
+		BuildAnimations( &pSource->animations, animationSamplingFPS, pScene, motionNodes );
 	}
 
 #endif // USE_FBX_SDK
