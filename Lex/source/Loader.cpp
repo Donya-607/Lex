@@ -401,6 +401,16 @@ namespace Donya
 		}
 	}
 
+	void AttachGlobalTransform( ModelSource::Mesh *pMesh, FBX::FbxMesh *pFBXMesh )
+	{
+		FBX::FbxAMatrix globalTransform = pFBXMesh->GetNode()->EvaluateGlobalTransform( 0 );
+		pMesh->globalTransform = Convert( globalTransform );
+	}
+	void AdjustCoordinate( ModelSource::Mesh *pMesh )
+	{
+		// Convert right-hand space to left-hand space.
+		pMesh->coordinateConversion._11 = -1.0f;
+	}
 	int  FindMaterialIndex( FBX::FbxScene *pScene, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
 	{
 		const int mtlCount = pScene->GetMaterialCount();
@@ -429,6 +439,9 @@ namespace Donya
 	}
 	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<ModelSource::Bone> &constructedSkeletal )
 	{
+		AttachGlobalTransform( pMesh, pFBXMesh );
+		AdjustCoordinate( pMesh );
+
 		constexpr	int EXPECT_POLYGON_SIZE	= 3;
 		const		int mtlCount			= pNode->GetMaterialCount();
 		const		int polygonCount		= pFBXMesh->GetPolygonCount();
@@ -705,6 +718,15 @@ namespace Donya
 	{
 		BuildSkeletal( &pSource->skeletal, motionNodes );
 
+		const size_t meshCount = meshNodes.size();
+		pSource->meshes.resize( meshCount );
+		for ( size_t i = 0; i < meshCount; ++i )
+		{
+			FBX::FbxMesh *pFBXMesh = meshNodes[i]->GetMesh();
+			_ASSERT_EXPR( pFBXMesh, L"Error : A mesh-node that passed mesh-nodes is not mesh!" );
+
+			BuildMesh( &pSource->meshes[i], meshNodes[i], pFBXMesh, pSource->skeletal );
+		}
 
 	}
 
