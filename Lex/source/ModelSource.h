@@ -69,9 +69,9 @@ namespace Donya
 
 		struct Subset
 		{
+			std::string		name;
 			unsigned int	indexCount;
 			unsigned int	indexStart;
-			std::string		name;
 			Material		ambient;
 			Material		bump;
 			Material		diffuse;
@@ -86,9 +86,9 @@ namespace Donya
 				{
 					archive
 					(
+						CEREAL_NVP( name		).
 						CEREAL_NVP(	indexCount	),
 						CEREAL_NVP(	indexStart	),
-						CEREAL_NVP( name		).
 						CEREAL_NVP( ambient		),
 						CEREAL_NVP( bump		),
 						CEREAL_NVP( diffuse		),
@@ -104,6 +104,8 @@ namespace Donya
 		/// </summary>
 		struct Mesh
 		{
+			std::string						name;
+
 			Donya::Vector4x4				coordinateConversion;
 			Donya::Vector4x4				globalTransform;
 
@@ -114,8 +116,6 @@ namespace Donya
 			std::vector<Vertex>				vertices;
 			std::vector<unsigned int>		indices;		// A index list of vertices.
 			std::vector<Subset>				subsets;
-
-			std::string						name;
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -125,13 +125,15 @@ namespace Donya
 				{
 					archive
 					(
+						CEREAL_NVP(	name		),
+						CEREAL_NVP(	coordinateConversion	),
+						CEREAL_NVP(	globalTransform			),
 						CEREAL_NVP(	nodeIndex	),
 						CEREAL_NVP(	nodeIndices	),
 						CEREAL_NVP(	boneOffsets	),
 						CEREAL_NVP(	vertices	),
 						CEREAL_NVP(	indices		),
-						CEREAL_NVP(	subsets		),
-						CEREAL_NVP(	name		)
+						CEREAL_NVP(	subsets		)
 					);
 				}
 			}
@@ -143,11 +145,11 @@ namespace Donya
 		/// </summary>
 		struct Bone
 		{
+			std::string			name;
 			int					parentIndex = -1; // -1 is invalid.
 			Donya::Vector3		scale{ 1.0f, 1.0f, 1.0f };
 			Donya::Quaternion	rotation;
 			Donya::Vector3		translation;
-			std::string			name;
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -157,11 +159,11 @@ namespace Donya
 				{
 					archive
 					(
+						CEREAL_NVP(	name		),
 						CEREAL_NVP(	parentIndex	),
 						CEREAL_NVP(	scale		),
 						CEREAL_NVP(	rotation	),
-						CEREAL_NVP(	translation	),
-						CEREAL_NVP(	name		)
+						CEREAL_NVP(	translation	)
 					);
 				}
 			}
@@ -221,10 +223,10 @@ namespace Donya
 		{
 			static constexpr float	DEFAULT_SAMPLING_RATE = 1.0f / 24.0f;
 		public:
-			float					samplingRate = DEFAULT_SAMPLING_RATE;
+			std::string				name;
+			float					samplingRate{ DEFAULT_SAMPLING_RATE };
 			float					animSeconds;
 			std::vector<KeyFrame>	keyFrames;
-			std::string				name;
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -234,11 +236,11 @@ namespace Donya
 				{
 					archive
 					(
+						CEREAL_NVP(	name			),
 						CEREAL_NVP(	samplingRate	),
 						CEREAL_NVP(	animSeconds		),
 						CEREAL_NVP(	animSeconds		),
 						CEREAL_NVP(	keyFrames		)
-						CEREAL_NVP(	name			),
 					);
 				}
 			}

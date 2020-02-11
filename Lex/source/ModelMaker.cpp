@@ -37,7 +37,7 @@ namespace Donya
 		}
 		// else
 
-		Model model{ loader.TmpModelSource(), usage, pDevice };
+		Model model{ loader.GetModelSource(), loader.GetFileDirectory(), usage, pDevice };
 		modelMap.insert
 		(
 			std::make_pair

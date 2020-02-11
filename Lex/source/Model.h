@@ -81,14 +81,14 @@ namespace Donya
 			D3D11_TEXTURE2D_DESC				textureDesc;
 			ComPtr<ID3D11ShaderResourceView>	pSRV;
 		};
-		/// <summary>
-		/// The "useMaterialIndex" member is valid when used for index of the array of Model::materials.
-		/// </summary>
 		struct Subset
 		{
+			std::string		name;
 			size_t			indexCount;
 			size_t			indexStart;
-			unsigned int	useMaterialIndex;	// Represent the index of Model::materials.
+			Material		ambient;
+			Material		diffuse;
+			Material		specular;
 		};
 		/// <summary>
 		/// If you have this with some array, you should align the dynamic type of "pVertex".<para></para>
@@ -96,6 +96,8 @@ namespace Donya
 		/// </summary>
 		struct Mesh
 		{
+			std::string							name;
+
 			int									nodeIndex;		// The index of this mesh's node.
 			std::vector<int>					nodeIndices;	// The indices of associated nodes with this mesh and this mesh's node.
 			std::vector<Donya::Vector4x4>		boneOffsets;	// The bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
@@ -115,21 +117,22 @@ namespace Donya
 		};
 	private:
 		std::shared_ptr<ModelSource>	pSource;
-		std::vector<Material>			materials;
+		std::string						fileDirectory;	// Use for making file path.
 		std::vector<Mesh>				meshes;
 	public:
 		/// <summary>
 		/// If set nullptr to "pDevice", use default device.
 		/// </summary>
-		Model( ModelSource &rvLoadedSource, Donya::ModelUsage usage, ID3D11Device *pDevice = nullptr );
+		Model( ModelSource &rvLoadedSource, const std::string &fileDirectory, Donya::ModelUsage usage, ID3D11Device *pDevice = nullptr );
 	private:
 		// These initialize method are built by "pSource".
 
-		void InitMaterials( ID3D11Device *pDevice );
-		void CreateTextures( ID3D11Device *pDevice );
-
 		void InitMeshes( ID3D11Device *pDevice, Donya::ModelUsage usage );
-		void AssignVertexStructure( Model::Mesh *pMesh, Donya::ModelUsage usage );
-		void CreateBuffers( ID3D11Device *pDevice, Model::Mesh *pMesh, const ModelSource::Mesh &meshSource );
+		void AssignVertexStructure( Model::Mesh *pDestination, Donya::ModelUsage usage );
+		void CreateBuffers( ID3D11Device *pDevice, Model::Mesh *pDestination, const ModelSource::Mesh &source );
+
+		void InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDestination, const std::vector<ModelSource::Subset> &source );
+		void InitSubset( ID3D11Device *pDevice, Model::Subset *pDestination, const ModelSource::Subset &source );
+		void CreateMaterial( Model::Material *pDestination, ID3D11Device *pDevice );
 	};
 }

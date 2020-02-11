@@ -33,9 +33,9 @@ namespace
 	void Test()
 	{
 		Donya::ModelSource src{};
-		tmp.emplace_back( src, Donya::ModelUsage::Skinned );
+		tmp.emplace_back( src, "Test/Directory/", Donya::ModelUsage::Skinned );
 
-		Donya::Model lhs{ src, Donya::ModelUsage::Static };
+		Donya::Model lhs{ src, "Test/Directory/", Donya::ModelUsage::Static };
 		Donya::Model rhs{ std::move( lhs ) };
 		rhs = lhs;
 		rhs = std::move( lhs );

@@ -456,8 +456,9 @@ namespace Donya
 
 			auto AssignColor	= [&property, &factor]( ModelSource::Material *pMaterial )
 			{
-				FBX::FbxDouble3 color = property.Get<FBX::FbxDouble3>();
-				pMaterial->color = Donya::Vector4{ Convert( color ), 1.0f };
+				Donya::Vector3	color	= Convert( property.Get<FBX::FbxDouble3>() );
+				float			bias	= scast<float>( factor.Get<FBX::FbxDouble>() );
+				pMaterial->color = Donya::Vector4{ color * bias, 1.0f };
 			};
 			auto FetchTextures	= [&]()->void
 			{
@@ -496,19 +497,53 @@ namespace Donya
 			}
 		};
 
+		enum class MaterialType
+		{
+			Nil = 0,
+			Lambert,
+			Phong
+		};
+		auto AnalyseMaterialType = []( const FBX::FbxSurfaceMaterial *pMaterial )
+		{
+			if ( pMaterial->GetClassId().Is( FBX::FbxSurfacePhong::ClassId ) )
+			{
+				return MaterialType::Phong;
+			}
+			if ( pMaterial->GetClassId().Is( FBX::FbxSurfaceLambert::ClassId ) )
+			{
+				return MaterialType::Lambert;
+			}
+			// else
+			return MaterialType::Nil;
+		};
+
+		MaterialType mtlType = MaterialType::Nil;
 		for ( int i = 0; i < mtlCount; ++i )
 		{
-			const FBX::FbxSurfaceMaterial *pSurfaceMaterial = pNode->GetMaterial( i );
 			using FbxMtl = FBX::FbxSurfaceMaterial;
+			const FbxMtl *pSurfaceMaterial = pNode->GetMaterial( i );
 
 			auto &subset = pSubsets->at( i );
-
 			subset.name  = pSurfaceMaterial->GetName();
 			FetchMaterial( &subset.ambient,		FbxMtl::sAmbient,	FbxMtl::sAmbientFactor,		pSurfaceMaterial );
 			FetchMaterial( &subset.bump,		FbxMtl::sBump,		FbxMtl::sBumpFactor,		pSurfaceMaterial );
 			FetchMaterial( &subset.diffuse,		FbxMtl::sDiffuse,	FbxMtl::sDiffuseFactor,		pSurfaceMaterial );
 			FetchMaterial( &subset.specular,	FbxMtl::sSpecular,	FbxMtl::sSpecularFactor,	pSurfaceMaterial );
 			FetchMaterial( &subset.emissive,	FbxMtl::sEmissive,	FbxMtl::sEmissiveFactor,	pSurfaceMaterial );
+
+			mtlType = AnalyseMaterialType( pSurfaceMaterial );
+			if ( mtlType == MaterialType::Phong )
+			{
+				const FBX::FbxProperty shininess = pSurfaceMaterial->FindProperty( FbxMtl::sShininess );
+				if ( shininess.IsValid() )
+				{
+					subset.specular.color.w = scast<float>( shininess.Get<FBX::FbxDouble>() );
+				}
+			}
+			else
+			{
+				subset.specular.color = Donya::Vector4{ 0.0f, 0.0f, 0.0f, 1.0f };
+			}
 		}
 
 		// Calculate subsets start index(not optimized).
@@ -762,17 +797,25 @@ namespace Donya
 						pVertex->boneWeights.resize( MAX_INFLUENCE_COUNT );
 						pVertex->boneIndices.resize( MAX_INFLUENCE_COUNT );
 
-						for ( size_t i = 0; i < MAX_INFLUENCE_COUNT; ++i )
+						const size_t sourceCount	= infl.data.size();
+						const size_t firstLoopCount	= std::min( sourceCount, MAX_INFLUENCE_COUNT );
+						size_t  i = 0;
+						for ( ; i <  firstLoopCount; ++i )
 						{
 							pVertex->boneWeights[i] = infl.data[i].first;
 							pVertex->boneIndices[i] = infl.data[i].second;
+						}
+						for ( ; i <  MAX_INFLUENCE_COUNT; ++i )
+						{
+							pVertex->boneWeights[i] = ( i == 0 ) ? 1.0f : 0.0f;
+							pVertex->boneIndices[i] = NULL;
 						}
 					};
 
 					vertex.position	= position;
 					vertex.normal	= normal;
 					vertex.texCoord	= texCoord;
-					AssignInfluence( &vertex, boneInfluences[ctrlPointIndex ]);
+					AssignInfluence( &vertex, boneInfluences[ctrlPointIndex] );
 					
 					pMesh->vertices.emplace_back( vertex );
 					pMesh->indices[indexOffset + v] = vertexCount;
@@ -869,7 +912,7 @@ namespace Donya
 			const FBX::FbxTime endTime		= pTakeInfo->mLocalTimeSpan.GetStop();
 			const int startFrame	= scast<int>( beginTime.Get() / samplingStep.Get() );
 			const int endFrame		= scast<int>( endTime.Get()   / samplingStep.Get() );
-			const int frameCount	= scast<int>( endTime.Get()   - beginTime.Get() / samplingStep.Get() );
+			const int frameCount	= scast<int>( ( endTime.Get() - beginTime.Get() ) / samplingStep.Get() );
 
 			ModelSource::Animation animation{};
 			animation.samplingRate	= samplingRate;
@@ -1573,7 +1616,7 @@ namespace Donya
 										mtl.color.x, mtl.color.y, mtl.color.z, mtl.color.w
 									);
 
-									if ( !mtl.textureName.empty() )
+									if ( mtl.textureName.empty() )
 									{
 										ImGui::Text( "This material don't have texture." );
 										return;
@@ -1632,8 +1675,10 @@ namespace Donya
 						ImGui::TreePop();
 					}
 
-					if ( 0 && ImGui::TreeNode( "Bone" ) )
+					if ( ImGui::TreeNode( "Bone" ) )
 					{
+						ImGui::Text( "I didn't implemented this yet." );
+
 						/*
 						if ( ImGui::TreeNode( "Influences" ) )
 						{

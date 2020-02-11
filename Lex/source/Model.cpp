@@ -6,6 +6,18 @@
 #include "Donya/Resource.h"		// Use for create a texture.
 #include "Donya/Useful.h"		// Use convert string functions.
 
+namespace
+{
+	void AssertCreation( const std::string &contentName, const std::string &identityName )
+	{
+		const std::string errMsg =
+			"Failed : The creation of model's " + contentName +
+			", that is : " + identityName + ".";
+		Donya::OutputDebugStr( errMsg.c_str() );
+		_ASSERT_EXPR( 0, Donya::MultiToWide( errMsg ).c_str() );
+	}
+}
+
 namespace Donya
 {
 	namespace Strategy
@@ -23,8 +35,17 @@ namespace Donya
 				pDest->position		= source.position;
 				pDest->normal		= source.normal;
 				pDest->texCoord		= source.texCoord;
-				pDest->boneWeights	= source.boneWeights;
-				pDest->boneIndices	= source.boneIndices;
+
+				auto ToVec4  = []( const auto &vector )->Donya::Int4
+				{
+					return Donya::Int4{ vector[0], vector[1], vector[2], vector[3] };
+				};
+				auto ToVec4F = []( const auto &vector )->Donya::Vector4
+				{
+					return Donya::Vector4{ vector[0], vector[1], vector[2], vector[3] };
+				};
+				pDest->boneWeights	= ToVec4F( source.boneWeights );
+				pDest->boneIndices	= ToVec4 ( source.boneIndices );
 			};
 
 			const size_t vertexCount = source.size();
@@ -71,8 +92,8 @@ namespace Donya
 		}
 	}
 
-	Model::Model( ModelSource &rvSource, Donya::ModelUsage usage, ID3D11Device *pDevice ) :
-		pSource( nullptr ), materials(), meshes()
+	Model::Model( ModelSource &rvSource, const std::string &fileDirectory, Donya::ModelUsage usage, ID3D11Device *pDevice ) :
+		pSource( nullptr ), fileDirectory( fileDirectory ), meshes()
 	{
 		pSource = std::make_shared<ModelSource>( std::move( rvSource ) );
 
@@ -81,66 +102,7 @@ namespace Donya
 			pDevice = Donya::GetDevice();
 		}
 
-		InitMaterials( pDevice );
-
 		InitMeshes( pDevice, usage );
-	}
-
-	void Model::InitMaterials( ID3D11Device *pDevice )
-	{
-		const size_t materialCount = pSource->materials.size();
-		materials.resize( materialCount );
-
-		// Assign source data.
-		{
-			auto Assign = []( Model::Material *pDest, const ModelSource::Material &source )
-			{
-				pDest->color		= source.color;
-				pDest->textureName	= source.textureName;
-			};
-
-			for ( size_t i = 0; i < materialCount; ++i )
-			{
-				Assign( &materials[i], pSource->materials[i] );
-			}
-		}
-
-		CreateTextures( pDevice );
-	}
-	void Model::CreateTextures( ID3D11Device *pDevice )
-	{
-		auto Load = [&pDevice]( Model::Material &mtl, bool isEnableCache )
-		{
-			return Resource::CreateTexture2DFromFile
-			(
-				pDevice,
-				Donya::MultiToWide( mtl.textureName ),
-				mtl.pSRV.GetAddressOf(),
-				&mtl.textureDesc,
-				isEnableCache
-			);
-		};
-
-		bool isEnableCache{};
-	#if DEBUG_MODE
-		isEnableCache = false;
-	#else
-		isEnableCache = true;
-	#endif // DEBUG_MODE
-
-		bool succeeded = true;
-		for ( auto &mtl : materials )
-		{
-			succeeded = Load( mtl, isEnableCache );
-			if ( !succeeded )
-			{
-				const std::string errMsg =
-						"Failed : The model's texture, that is : "
-						+ mtl.textureName;
-				Donya::OutputDebugStr( errMsg.c_str() );
-				_ASSERT_EXPR( 0, Donya::MultiToWide( errMsg ).c_str() );
-			}
-		}
 	}
 
 	void Model::InitMeshes( ID3D11Device *pDevice, Donya::ModelUsage usage )
@@ -152,22 +114,10 @@ namespace Donya
 		{
 			auto Assign = []( Model::Mesh *pDest, const ModelSource::Mesh &source )
 			{
-				auto AssignSubset = []( Model::Subset *pDest, const ModelSource::Subset &source )
-				{
-					pDest->indexCount		= source.indexCount;
-					pDest->indexStart		= source.indexStart;
-					pDest->useMaterialIndex	= source.materialIndex;
-				};
-
+				pDest->name			= source.name;
 				pDest->nodeIndex	= source.nodeIndex;
 				pDest->nodeIndices	= source.nodeIndices;
 				pDest->boneOffsets	= source.boneOffsets;
-
-				const size_t subsetCount = source.subsets.size();
-				for ( size_t i = 0; i < subsetCount; ++i )
-				{
-					AssignSubset( &pDest->subsets[i], source.subsets[i] );
-				}
 			};
 
 			for ( size_t i = 0; i < meshCount; ++i )
@@ -180,43 +130,44 @@ namespace Donya
 		{
 			AssignVertexStructure( &mesh, usage );
 		}
-
+		for ( size_t i = 0; i < meshCount; ++i )
+		{
+			InitSubsets( pDevice, &meshes[i], pSource->meshes[i].subsets );
+		}
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
 			CreateBuffers( pDevice, &meshes[i], pSource->meshes[i] );
 		}
 	}
-	void Model::AssignVertexStructure( Model::Mesh *pMesh, Donya::ModelUsage usage )
+	void Model::AssignVertexStructure( Model::Mesh *pDest, Donya::ModelUsage usage )
 	{
 		switch ( usage )
 		{
 		case Donya::ModelUsage::Static:
-			pMesh->pVertex = std::make_shared<Strategy::VertexStatic>();
+			pDest->pVertex = std::make_shared<Strategy::VertexStatic>();
 			return;
 		case Donya::ModelUsage::Skinned:
-			pMesh->pVertex = std::make_shared<Strategy::VertexSkinned>();
+			pDest->pVertex = std::make_shared<Strategy::VertexSkinned>();
 			return;
 		default:
 			_ASSERT_EXPR( 0, L"Error : That model-usage is not supported!" );
 			return;
 		}
 	}
-	void Model::CreateBuffers( ID3D11Device *pDevice, Model::Mesh *pMesh, const ModelSource::Mesh &source )
+	void Model::CreateBuffers( ID3D11Device *pDevice, Model::Mesh *pDest, const ModelSource::Mesh &source )
 	{
 		auto Assert = []( const std::string &bufferName )
 		{
-			const std::string errMsg = "Failed : The model's " + bufferName + "buffer.";
-			Donya::OutputDebugStr( errMsg.c_str() );
-			_ASSERT_EXPR( 0, Donya::MultiToWide( errMsg ).c_str() );
+			AssertCreation( "buffer", bufferName );
 		};
 
 		HRESULT hr = S_OK;
 
-		hr = pMesh->pVertex->CreateVertexBuffer
+		hr = pDest->pVertex->CreateVertexBuffer
 		(
 			pDevice,
 			source.vertices,
-			pMesh->vertexBuffer.GetAddressOf()
+			pDest->vertexBuffer.GetAddressOf()
 		);
 		if ( FAILED( hr ) )
 		{
@@ -229,7 +180,7 @@ namespace Donya
 		(
 			pDevice,
 			source.indices,
-			pMesh->indexBuffer.GetAddressOf()
+			pDest->indexBuffer.GetAddressOf()
 		);
 		if ( FAILED( hr ) )
 		{
@@ -237,5 +188,61 @@ namespace Donya
 			return;
 		}
 		// else
+	}
+
+	void Model::InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDest, const std::vector<ModelSource::Subset> &source )
+	{
+		const size_t subsetCount = source.size();
+		for ( size_t i = 0; i < subsetCount; ++i )
+		{
+			InitSubset( pDevice, &pDest->subsets[i], source[i] );
+		}
+	}
+	void Model::InitSubset( ID3D11Device *pDevice, Model::Subset *pDest, const ModelSource::Subset &source )
+	{
+		auto AssignMaterial = []( Model::Material *pDest, const ModelSource::Material &source )
+		{
+			pDest->color		= source.color;
+			pDest->textureName	= source.textureName;
+		};
+			
+		pDest->name			= source.name;
+		pDest->indexCount	= source.indexCount;
+		pDest->indexStart	= source.indexStart;
+
+		AssignMaterial( &pDest->ambient,	source.ambient	);
+		CreateMaterial( &pDest->ambient,	pDevice			);
+
+		AssignMaterial( &pDest->diffuse,	source.diffuse	);
+		CreateMaterial( &pDest->diffuse,	pDevice			);
+
+		AssignMaterial( &pDest->specular,	source.specular	);
+		CreateMaterial( &pDest->specular,	pDevice			);
+	}
+	void Model::CreateMaterial( Model::Material *pDest, ID3D11Device *pDevice )
+	{
+		// This method regard as the material info was already fetched by source data.
+		// Because this behave only create a texture.
+
+		bool isEnableCache{};
+	#if DEBUG_MODE
+		isEnableCache = false;
+	#else
+		isEnableCache = true;
+	#endif // DEBUG_MODE
+
+		bool succeeded = Resource::CreateTexture2DFromFile
+		(
+			pDevice,
+			Donya::MultiToWide( fileDirectory + pDest->textureName ),
+			pDest->pSRV.GetAddressOf(),
+			&pDest->textureDesc,
+			isEnableCache
+		);
+
+		if ( !succeeded )
+		{
+			AssertCreation( "texture", fileDirectory + pDest->textureName );
+		}
 	}
 }
