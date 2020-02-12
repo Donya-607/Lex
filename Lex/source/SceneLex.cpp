@@ -65,6 +65,7 @@ public:
 	{
 		Donya::Loader		loader{};
 		Donya::SkinnedMesh	mesh{};
+		size_t				modelID{ NULL };
 		Donya::MotionChunk	motions{};
 		Donya::Animator		animator{};
 		Donya::Vector3		scale		{ 1.0f, 1.0f, 1.0f };
@@ -82,6 +83,9 @@ public:
 
 			result = Donya::SkinnedMesh::Create( loader, &mesh );
 			if ( !result ) { succeeded = false; }
+			
+			modelID = Donya::MakeModel( loader, Donya::ModelUsage::Skinned );
+			if ( !modelID ) { succeeded = false; }
 
 			result = Donya::MotionChunk::Create( loader, &motions );
 			if ( !result ) { succeeded = false; }

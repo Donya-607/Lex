@@ -542,6 +542,7 @@ namespace Donya
 			{
 				*pOutSRV = it->second.d3dShaderResourceView.Get();
 				( *pOutSRV )->AddRef();
+				*pOutTexDesc = it->second.d3dTexture2DDesc;
 
 				return;
 			}

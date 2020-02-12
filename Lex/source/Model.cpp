@@ -193,6 +193,8 @@ namespace Donya
 	void Model::InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDest, const std::vector<ModelSource::Subset> &source )
 	{
 		const size_t subsetCount = source.size();
+		pDest->subsets.resize( subsetCount );
+
 		for ( size_t i = 0; i < subsetCount; ++i )
 		{
 			InitSubset( pDevice, &pDest->subsets[i], source[i] );
@@ -231,14 +233,31 @@ namespace Donya
 		isEnableCache = true;
 	#endif // DEBUG_MODE
 
-		bool succeeded = Resource::CreateTexture2DFromFile
-		(
-			pDevice,
-			Donya::MultiToWide( fileDirectory + pDest->textureName ),
-			pDest->pSRV.GetAddressOf(),
-			&pDest->textureDesc,
-			isEnableCache
-		);
+		bool succeeded = true;
+		bool hasTexture = ( pDest->textureName.empty() ) ? false : true;
+		if ( hasTexture )
+		{
+			succeeded = Resource::CreateTexture2DFromFile
+			(
+				pDevice,
+				Donya::MultiToWide( fileDirectory + pDest->textureName ),
+				pDest->pSRV.GetAddressOf(),
+				&pDest->textureDesc,
+				isEnableCache
+			);
+		}
+		else
+		{
+			pDest->textureName = "[EMPTY]";
+			Resource::CreateUnicolorTexture
+			(
+				pDevice,
+				pDest->pSRV.GetAddressOf(),
+				&pDest->textureDesc,
+				isEnableCache
+			);
+		}
+
 
 		if ( !succeeded )
 		{
