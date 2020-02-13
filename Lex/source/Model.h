@@ -9,7 +9,7 @@
 #include "Donya/Vector.h"
 
 #include "ModelSource.h"
-#include "ModelMaker.h"
+#include "ModelMaker.h"		// Use for ModelUsage.
 
 namespace Donya
 {
