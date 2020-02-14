@@ -9,7 +9,31 @@ namespace Donya
 {
 	namespace Strategy
 	{
+		bool SkinnedConstantsPerMesh::CreateBuffer()
+		{
+			return false;
+		}
+		void SkinnedConstantsPerMesh::Activate()
+		{
 
+		}
+		void SkinnedConstantsPerMesh::Deactivate()
+		{
+
+		}
+		
+		bool StaticConstantsPerMesh::CreateBuffer()
+		{
+			return false;
+		}
+		void StaticConstantsPerMesh::Activate()
+		{
+
+		}
+		void StaticConstantsPerMesh::Deactivate()
+		{
+
+		}
 	}
 
 	// TODO : To specifiable these configuration by arguments of render method.
@@ -55,6 +79,7 @@ namespace Donya
 		return standard;
 	}
 
+	std::unique_ptr<ModelRenderer::DefaultStatus> ModelRenderer::pDefaultStatus = nullptr;
 	bool ModelRenderer::InitDefaultStatus( ID3D11Device *pDevice )
 	{
 		// Already initialized.
