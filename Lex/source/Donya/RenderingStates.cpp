@@ -34,7 +34,7 @@ namespace Donya
 		static ComPtr<ID3D11DepthStencilState> oldState{}; // Use for Deactivate().
 		bool CreateState( int id, const D3D11_DEPTH_STENCIL_DESC &desc, ID3D11Device *pDevice )
 		{
-			if ( !IsUsableIdentifier( id ) ) { return false; }
+			if ( IsAlreadyExists( id ) ) { return true; }
 			// else
 
 			SetDefaultDeviceIfNull( &pDevice );
@@ -62,12 +62,10 @@ namespace Donya
 			return true;
 		}
 
-		bool IsUsableIdentifier( int id )
+		bool IsAlreadyExists( int id )
 		{
-			auto found =  mapDepthStencil.find( id );
-			if ( found == mapDepthStencil.end() ) { return true; }
-			// else
-			return false;
+			const auto found =  mapDepthStencil.find( id );
+			return   ( found != mapDepthStencil.end() );
 		}
 
 		constexpr unsigned int STENCIL_REF = 0xFFFFFFFF;
@@ -104,7 +102,7 @@ namespace Donya
 
 		bool CreateState( int id, const D3D11_RASTERIZER_DESC &desc, ID3D11Device *pDevice )
 		{
-			if ( !IsUsableIdentifier( id ) ) { return false; }
+			if ( IsAlreadyExists( id ) ) { return true; }
 			// else
 
 			SetDefaultDeviceIfNull( &pDevice );
@@ -132,12 +130,10 @@ namespace Donya
 			return true;
 		}
 
-		bool IsUsableIdentifier( int id )
+		bool IsAlreadyExists( int id )
 		{
-			auto found =  mapRasterizer.find( id );
-			if ( found == mapRasterizer.end() ) { return true; }
-			// else
-			return false;
+			const auto found =  mapRasterizer.find( id );
+			return   ( found != mapRasterizer.end() );
 		}
 
 		bool Activate( int id, ID3D11DeviceContext *pImmediateContext )
@@ -185,7 +181,7 @@ namespace Donya
 
 		bool CreateState( int id, const D3D11_SAMPLER_DESC &desc, ID3D11Device *pDevice )
 		{
-			if ( !IsUsableIdentifier( id ) ) { return false; }
+			if ( IsAlreadyExists( id ) ) { return true; }
 			// else
 
 			SetDefaultDeviceIfNull( &pDevice );
@@ -213,12 +209,10 @@ namespace Donya
 			return true;
 		}
 
-		bool IsUsableIdentifier( int id )
+		bool IsAlreadyExists( int id )
 		{
-			auto found =  mapSampler.find( id );
-			if ( found == mapSampler.end() ) { return true; }
-			// else
-			return false;
+			const auto found =  mapSampler.find( id );
+			return   ( found != mapSampler.end() );
 		}
 
 		void SetSampler( const Option &op, const ComPtr<ID3D11SamplerState> &samplerVS, const ComPtr<ID3D11SamplerState> &samplerPS, ID3D11DeviceContext *pImmediateContext )

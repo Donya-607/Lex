@@ -9,6 +9,8 @@ struct ID3D11DeviceContext;
 namespace Donya
 {
 	// The Blend-State is there at "Blend.h".
+	// Because the timing of creating this file was different from "Blend.h".
+	// And I think the using frequency by a user is lower than "Blend.h".
 
 	/// <summary>
 	/// Provides caching system for global access.
@@ -24,9 +26,9 @@ namespace Donya
 		bool CreateState( int identifier, const D3D11_DEPTH_STENCIL_DESC &registerDesc, ID3D11Device *pDevice = nullptr );
 
 		/// <summary>
-		/// A identifier that was returned false can not use for create a state.
+		/// Returns true if the identifier already used for creating. This confirmation is also used internally at the create method.
 		/// </summary>
-		bool IsUsableIdentifier( int identifier );
+		bool IsAlreadyExists( int identifier );
 
 		/// <summary>
 		/// Activate the specify depth-stencil-state.<para></para>
@@ -61,9 +63,9 @@ namespace Donya
 		bool CreateState( int identifier, const D3D11_RASTERIZER_DESC &registerDesc, ID3D11Device *pDevice = nullptr );
 
 		/// <summary>
-		/// A identifier that was returned false can not use for create a state.
+		/// Returns true if the identifier already used for creating. This confirmation is also used internally at the create method.
 		/// </summary>
-		bool IsUsableIdentifier( int identifier );
+		bool IsAlreadyExists( int identifier );
 
 		/// <summary>
 		/// Activate the specify rasterizer-state.<para></para>
@@ -97,9 +99,9 @@ namespace Donya
 		bool CreateState( int identifier, const D3D11_SAMPLER_DESC &registerDesc, ID3D11Device *pDevice = nullptr );
 
 		/// <summary>
-		/// A identifier that was returned false can not use for create a state.
+		/// Returns true if the identifier already used for creating. This confirmation is also used internally at the create method.
 		/// </summary>
-		bool IsUsableIdentifier( int identifier );
+		bool IsAlreadyExists( int identifier );
 
 		/// <summary>
 		/// Activate the specify sampler-state.<para></para>
