@@ -24,7 +24,7 @@ cbuffer CBPerFrame : register( b0 )
 
 cbuffer CBPerModel : register( b1 )
 {
-	float4 cbMaterialColor;
+	float4 cbDrawColor;
 };
 
 static const int MAX_BONE_COUNT = 64;

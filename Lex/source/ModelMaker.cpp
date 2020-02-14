@@ -12,6 +12,9 @@
 
 namespace Donya
 {
+
+#pragma region Model
+
 	static std::unordered_map<size_t, std::unique_ptr<Model>> modelMap{};
 
 	size_t MakeHash( const Donya::Loader &loader, ModelUsage usage )
@@ -75,8 +78,22 @@ namespace Donya
 
 		return true;
 	}
-	void ClearAllModelCache()
+	void ClearModelCache()
 	{
 		modelMap.clear();
 	}
+
+// region Model
+#pragma endregion
+
+#pragma region Renderer
+
+	size_t MakeRenderer( ModelUsage usage, ID3D11Device *pDevice )
+	{
+		return NULL;
+	}
+
+// region Renderer
+#pragma endregion
+
 }

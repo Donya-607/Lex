@@ -30,5 +30,5 @@ float4 main( VS_OUT pin ) : SV_TARGET
 	float3	outputColor		= Ka + ( ( Kd + Ks ) * lightColor );
 	//		outputColor		= AffectFog( outputColor, eyePosition.rgb, pin.wsPos.rgb, fogNear, fogFar, fogColor.rgb );
 
-	return	float4( outputColor, diffuseMapAlpha ) * cbMaterialColor;
+	return	float4( outputColor, diffuseMapAlpha ) * cbDrawColor;
 }

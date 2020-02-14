@@ -9,8 +9,6 @@ struct ID3D11Device;
 
 namespace Donya
 {
-	class Model;
-
 	/// <summary>
 	/// The specification of a type of vertex. Static or Skinned.
 	/// </summary>
@@ -20,6 +18,10 @@ namespace Donya
 		Skinned,	// Use skinning.
 		// Dynamic, Will be implemented. // User can choose the usage at use.
 	};
+
+#pragma region Model
+
+	class Model;
 
 	/// <summary>
 	/// Returns an identifier of the made model, or NULL when failed making.<para></para>
@@ -40,7 +42,21 @@ namespace Donya
 	/// <summary>
 	/// Remove the all internally caches of model.
 	/// </summary>
-	void ClearAllModelCache();
+	void ClearModelCache();
 
-	// ModelRenderer MakeRenderer( ModelUsage usage );
+// region Model
+#pragma endregion
+
+#pragma region Renderer
+
+	/// <summary>
+	/// Returns an identifier of the made renderer, or NULL when failed making.<para></para>
+	/// The made renderer will be cached.<para></para>
+	/// If set nullptr to "pDevice", use default device.
+	/// </summary>
+	size_t MakeRenderer( ModelUsage usage, ID3D11Device *pDevice = nullptr );
+
+// region Renderer
+#pragma endregion
+
 }
