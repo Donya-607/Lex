@@ -9,30 +9,30 @@ namespace Donya
 {
 	namespace Strategy
 	{
-		bool SkinnedConstantsPerMesh::CreateBuffer()
+		bool SkinnedConstantsPerMesh::CreateBuffer( ID3D11Device *pDevice )
 		{
-			return false;
+			return cbuffer.Create( pDevice );
 		}
-		void SkinnedConstantsPerMesh::Activate()
+		void SkinnedConstantsPerMesh::Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const
 		{
-
+			cbuffer.Activate( setSlot, setVS, setPS, pImmediateContext );
 		}
-		void SkinnedConstantsPerMesh::Deactivate()
+		void SkinnedConstantsPerMesh::Deactivate( ID3D11DeviceContext *pImmediateContext ) const
 		{
-
+			cbuffer.Deactivate( pImmediateContext );
 		}
 		
-		bool StaticConstantsPerMesh::CreateBuffer()
+		bool StaticConstantsPerMesh::CreateBuffer( ID3D11Device *pDevice )
 		{
-			return false;
+			return cbuffer.Create( pDevice );
 		}
-		void StaticConstantsPerMesh::Activate()
+		void StaticConstantsPerMesh::Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const
 		{
-
+			cbuffer.Activate( setSlot, setVS, setPS, pImmediateContext );
 		}
-		void StaticConstantsPerMesh::Deactivate()
+		void StaticConstantsPerMesh::Deactivate( ID3D11DeviceContext *pImmediateContext ) const
 		{
-
+			cbuffer.Deactivate( pImmediateContext );
 		}
 	}
 

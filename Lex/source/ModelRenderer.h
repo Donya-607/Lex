@@ -23,9 +23,11 @@ namespace Donya
 		class IConstantsPerMesh
 		{
 		public:
-			virtual bool CreateBuffer()	= 0;
-			virtual void Activate()		= 0;
-			virtual void Deactivate()	= 0;
+			sturct Vetex
+		public:
+			virtual bool CreateBuffer( ID3D11Device *pDevice ) = 0;
+			virtual void Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const = 0;
+			virtual void Deactivate( ID3D11DeviceContext *pImmediateContext ) const = 0;
 		};
 
 		class SkinnedConstantsPerMesh : public IConstantsPerMesh
@@ -40,12 +42,12 @@ namespace Donya
 				Donya::Vector4x4 adjustMatrix;		// Model space. This matrix contain a global-transform, and coordinate-conversion matrix.
 				BoneMatricesType boneTransforms;	// This matrix transforms to world space of game from bone space in initial-pose.
 			};
-		private:
-			Donya::CBuffer<Constants> cbuffer;
+		private: // This mutable specify is for specifying to const the Activate() method.
+			mutable Donya::CBuffer<Constants> cbuffer;
 		public:
-			bool CreateBuffer()	override;
-			void Activate()		override;
-			void Deactivate()	override;
+			bool CreateBuffer( ID3D11Device *pDevice ) override;
+			void Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const override;
+			void Deactivate( ID3D11DeviceContext *pImmediateContext ) const override;
 		};
 		class StaticConstantsPerMesh : public IConstantsPerMesh
 		{
@@ -54,12 +56,12 @@ namespace Donya
 			{
 				Donya::Vector4x4 adjustMatrix; // Model space. This matrix contain a global-transform, and coordinate-conversion matrix.
 			};
-		private:
-			Donya::CBuffer<Constants> cbuffer;
+		private:  // This mutable specify is for specifying to const the Activate() method.
+			mutable Donya::CBuffer<Constants> cbuffer;
 		public:
-			bool CreateBuffer()	override;
-			void Activate()		override;
-			void Deactivate()	override;
+			bool CreateBuffer( ID3D11Device *pDevice ) override;
+			void Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const override;
+			void Deactivate( ID3D11DeviceContext *pImmediateContext ) const override;
 		};
 	}
 
