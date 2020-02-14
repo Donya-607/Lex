@@ -23,32 +23,7 @@ namespace Donya
 		class IConstantsPerMesh
 		{
 		public:
-			/// <summary>
-			/// Create the class derived from me.<para></para>
-			/// Returns the pointer to derived class, or pointer to nullptr if failed the creation.
-			/// </summary>
-			template<class DerivedConstants>
-			static std::unique_ptr<IConstantsPerMesh> Create()
-			{
-				DerivedConstants  tmp{};
-				bool  succeeded = tmp.CreateBuffer();
-				if ( !succeeded )
-				{
-					_ASSERT_EXPR( 0, L"Failed : The creation of ModelRenderer's constant-buffer." );
-					return std::make_unique<IConstantsPerMesh>( nullptr );
-				}
-				// else
-
-				return std::make_unique<IConstantsPerMesh>( std::move( tmp ) );
-			}
-		protected:
-			IConstantsPerMesh() = default;
-			IConstantsPerMesh( const IConstantsPerMesh & ) = default;
-			IConstantsPerMesh &operator = ( const IConstantsPerMesh & ) = default;
-			IConstantsPerMesh( IConstantsPerMesh && ) = default;
-			IConstantsPerMesh &operator = ( IConstantsPerMesh && ) = default;
 			virtual bool CreateBuffer()	= 0;
-		public:
 			virtual void Activate()		= 0;
 			virtual void Deactivate()	= 0;
 		};
@@ -67,9 +42,8 @@ namespace Donya
 			};
 		private:
 			Donya::CBuffer<Constants> cbuffer;
-		private:
-			bool CreateBuffer()	override;
 		public:
+			bool CreateBuffer()	override;
 			void Activate()		override;
 			void Deactivate()	override;
 		};
@@ -82,9 +56,8 @@ namespace Donya
 			};
 		private:
 			Donya::CBuffer<Constants> cbuffer;
-		private:
-			bool CreateBuffer()	override;
 		public:
+			bool CreateBuffer()	override;
 			void Activate()		override;
 			void Deactivate()	override;
 		};
@@ -110,9 +83,10 @@ namespace Donya
 		};
 		struct DefaultStatus
 		{
-			int idDSState;
-			int idRSState;
-			int idPSSampler;
+			static constexpr int DEFAULT_ID = 0;
+			int idDSState	= DEFAULT_ID;
+			int idRSState	= DEFAULT_ID;
+			int idPSSampler	= DEFAULT_ID;
 			Donya::CBuffer<OtherConstants> CBForDefault;
 		};
 		static std::unique_ptr<DefaultStatus> pDefaultStatus;
@@ -124,7 +98,8 @@ namespace Donya
 		/// </summary>
 		static bool InitDefaultStatus( ID3D11Device *pDevice = nullptr );
 	private:
-		static void AssignStatusIdentifiers( DefaultStatus *pStatus );
+		static bool AssignStatusIdentifiers( DefaultStatus *pStatus );
+		static bool CreateRenderingStates( DefaultStatus *pStatus );
 	public:
 	// Instance members.
 	public:

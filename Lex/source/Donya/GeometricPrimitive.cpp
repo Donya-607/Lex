@@ -1441,7 +1441,7 @@ namespace Donya
 					// The internal object use minus value to identifier.
 					for ( int i = -1; -INT_MAX < i; --i )
 					{
-						if ( !Donya::DepthStencil::IsUsableIdentifier( i ) ) { continue; }
+						if ( Donya::DepthStencil::IsAlreadyExists( i ) ) { continue; }
 						// else
 						idDepthStencil = i;
 						break;
@@ -1464,7 +1464,7 @@ namespace Donya
 					// The internal object use minus value to identifier.
 					for ( int i = -1; -INT_MAX < i; --i )
 					{
-						if ( !Donya::Rasterizer::IsUsableIdentifier( i ) ) { continue; }
+						if ( Donya::Rasterizer::IsAlreadyExists( i ) ) { continue; }
 						// else
 						idRasterizer = i;
 						break;
