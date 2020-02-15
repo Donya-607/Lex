@@ -572,7 +572,65 @@ namespace Donya
 	}
 	bool ModelRenderer::CreateDefaultShaders   ( DefaultStatus *pStatus )
 	{
-		return false;
+		auto AssertFailedCreation	= []( const std::wstring &shaderName )
+		{
+			const std::wstring expression = L"Failed : Create a ModelRenderer's default-shader of ";
+			_ASSERT_EXPR( 0, ( expression + shaderName + L"." ).c_str() );
+		};
+
+		namespace Source = EmbeddedSourceCode;
+
+		bool result		= true;
+		bool succeeded	= true;
+
+		// For Skinned.
+		{
+			result = pStatus->shaderSkinned.VS.CreateByEmbededSourceCode
+			(
+				Source::SkinnedNameVS, Source::SkinnedCode(), Source::EntryPointVS,
+				GetInputElementDescs( Donya::ModelUsage::Skinned )
+			);
+			if ( !result )
+			{
+				AssertFailedCreation( L"Skinned_VS" );
+				succeeded = false;
+			}
+
+			succeeded = pStatus->shaderSkinned.PS.CreateByEmbededSourceCode
+			(
+				Source::SkinnedNamePS, Source::SkinnedCode(), Source::EntryPointPS
+			);
+			if ( !result )
+			{
+				AssertFailedCreation( L"Skinned_PS" );
+				succeeded = false;
+			}
+		}
+		// For Static.
+		{
+			result = pStatus->shaderStatic.VS.CreateByEmbededSourceCode
+			(
+				Source::StaticNameVS, Source::StaticCode(), Source::EntryPointVS,
+				GetInputElementDescs( Donya::ModelUsage::Static )
+			);
+			if ( !result )
+			{
+				AssertFailedCreation( L"Static_VS" );
+				succeeded = false;
+			}
+
+			succeeded = pStatus->shaderStatic.PS.CreateByEmbededSourceCode
+			(
+				Source::StaticNamePS, Source::StaticCode(), Source::EntryPointPS
+			);
+			if ( !result )
+			{
+				AssertFailedCreation( L"Static_PS" );
+				succeeded = false;
+			}
+		}
+
+		return succeeded;
 	}
 
 	ModelRenderer::ModelRenderer( Donya::ModelUsage usage, ID3D11Device *pDevice ) :
