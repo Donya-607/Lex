@@ -650,16 +650,17 @@ namespace Donya
 				throw std::runtime_error{ errMsg };
 			};
 
-			bool  succeeded = AssignSpecifiedCBuffer( usage, pDevice );
-			if ( !succeeded )
-			{
-				ThrowRuntimeError( "mesh" );
-			}
+			bool succeeded = true;
 
 			succeeded = CBPerModel.Create();
 			if ( !succeeded )
 			{
 				ThrowRuntimeError( "model" );
+			}
+			succeeded = AssignSpecifiedCBuffer( usage, pDevice );
+			if ( !succeeded )
+			{
+				ThrowRuntimeError( "mesh" );
 			}
 			succeeded = CBPerSubset.Create();
 			if ( !succeeded )

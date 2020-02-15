@@ -16,6 +16,7 @@
 #include "HighResolutionTimer.h"
 #include "Keyboard.h"
 #include "Mouse.h"
+#include "ModelRenderer.h"
 #include "Resource.h"
 #include "ScreenShake.h"
 #include "Sound.h"
@@ -1181,6 +1182,8 @@ namespace Donya
 		Donya::Sprite::Init();
 
 		Donya::ScreenShake::SetEnableState( true );
+
+		Donya::ModelRenderer::InitDefaultStatus( GetDevice() );
 
 		return true;
 	}
