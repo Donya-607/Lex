@@ -3,15 +3,36 @@
 #include <exception>
 #include <tuple>
 
-#include "Donya/RenderingStates.h" // For default shading.
+#include "Donya/Donya.h"			// GetDevice().
+#include "Donya/RenderingStates.h"	// For default shading.
 
 namespace Donya
 {
 	namespace Strategy
 	{
+		template<typename  SomeConstants>
+		void AssignCommon( SomeConstants *pDest, const CBStructPerMesh::Common &source )
+		{
+			pDest->common.adjustMatrix = source.adjustMatrix;
+		}
+		template<typename  SomeConstants>
+		void AssignBone(   SomeConstants *pDest, const CBStructPerMesh::Bone &source )
+		{
+			pDest->bone.boneTransforms = source.boneTransforms;
+		}
+
 		bool SkinnedConstantsPerMesh::CreateBuffer( ID3D11Device *pDevice )
 		{
 			return cbuffer.Create( pDevice );
+		}
+		void SkinnedConstantsPerMesh::Update( const CBStructPerMesh::Common &source )
+		{
+			AssignCommon( &cbuffer.data, source );
+		}
+		void SkinnedConstantsPerMesh::Update( const CBStructPerMesh::Common &srcCommon, const CBStructPerMesh::Bone &srcBone )
+		{
+			Update( srcCommon );
+			AssignBone( &cbuffer.data, srcBone );
 		}
 		void SkinnedConstantsPerMesh::Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const
 		{
@@ -26,6 +47,10 @@ namespace Donya
 		{
 			return cbuffer.Create( pDevice );
 		}
+		void StaticConstantsPerMesh::Update( const CBStructPerMesh::Common &source )
+		{
+			AssignCommon( &cbuffer.data, source );
+		}
 		void StaticConstantsPerMesh::Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const
 		{
 			cbuffer.Activate( setSlot, setVS, setPS, pImmediateContext );
@@ -35,7 +60,7 @@ namespace Donya
 			cbuffer.Deactivate( pImmediateContext );
 		}
 	}
-
+	
 	// TODO : To specifiable these configuration by arguments of render method.
 
 	D3D11_DEPTH_STENCIL_DESC	DefaultDepthStencilDesc()
@@ -226,6 +251,11 @@ namespace Donya
 	ModelRenderer::ModelRenderer( Donya::ModelUsage usage, ID3D11Device *pDevice ) :
 		pCBPerMesh( nullptr ), CBPerSubset()
 	{
+		if ( !pDevice )
+		{
+			pDevice = Donya::GetDevice();
+		}
+
 		try
 		{
 			auto ThrowRuntimeError = []( const std::string &constantsName )
@@ -235,7 +265,7 @@ namespace Donya
 				throw std::runtime_error{ errMsg };
 			};
 
-			bool  succeeded = AssignSpecifiedCBuffer( usage );
+			bool  succeeded = AssignSpecifiedCBuffer( usage, pDevice );
 			if ( !succeeded )
 			{
 				ThrowRuntimeError( "mesh" );
@@ -253,7 +283,7 @@ namespace Donya
 		}
 	}
 
-	bool ModelRenderer::AssignSpecifiedCBuffer( Donya::ModelUsage usage )
+	bool ModelRenderer::AssignSpecifiedCBuffer( Donya::ModelUsage usage, ID3D11Device *pDevice )
 	{
 		using namespace Strategy;
 
@@ -261,10 +291,10 @@ namespace Donya
 		{
 		case Donya::ModelUsage::Static:
 			pCBPerMesh = std::make_shared<StaticConstantsPerMesh>();
-			return pCBPerMesh->CreateBuffer();
+			return pCBPerMesh->CreateBuffer( pDevice );
 		case Donya::ModelUsage::Skinned:
 			pCBPerMesh = std::make_shared<SkinnedConstantsPerMesh>();
-			return pCBPerMesh->CreateBuffer();
+			return pCBPerMesh->CreateBuffer( pDevice );
 		default:
 			_ASSERT_EXPR( 0, L"Error : That model-usage is not supported!" );
 			return false;

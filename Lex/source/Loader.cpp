@@ -754,30 +754,29 @@ namespace Donya
 				int indexOffset	= scast<int>( subset.indexStart + subset.indexCount );
 
 				FBX::FbxVector4		fbxNormal{};
-				Donya::Vector3		position{};
-				Donya::Vector3		normal{};
-				Donya::Vector2		texCoord{};
-				ModelSource::Vertex	vertex{};
+				Donya::Vertex::Pos	pos{};
+				Donya::Vertex::Tex	tex{};
+				Donya::Vertex::Bone	infl{};
 
 				const int polygonSize = pFBXMesh->GetPolygonSize( polyIndex );
 				_ASSERT_EXPR( polygonSize == EXPECT_POLYGON_SIZE, L"Error : A mesh did not triangulated!" );
 
 				for ( int v = 0; v < EXPECT_POLYGON_SIZE; ++v )
 				{
-					pFBXMesh->GetPolygonVertexNormal( polyIndex, v, fbxNormal );
-					normal.x = scast<float>( fbxNormal[0] );
-					normal.y = scast<float>( fbxNormal[1] );
-					normal.z = scast<float>( fbxNormal[2] );
-
 					const int ctrlPointIndex = pFBXMesh->GetPolygonVertex( polyIndex, v );
-					position.x = scast<float>( pControlPointsArray[ctrlPointIndex][0] );
-					position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
-					position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
+					pos.position.x = scast<float>( pControlPointsArray[ctrlPointIndex][0] );
+					pos.position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
+					pos.position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
+
+					pFBXMesh->GetPolygonVertexNormal( polyIndex, v, fbxNormal );
+					pos.normal.x   = scast<float>( fbxNormal[0] );
+					pos.normal.y   = scast<float>( fbxNormal[1] );
+					pos.normal.z   = scast<float>( fbxNormal[2] );
 
 					const int uvCount = pFBXMesh->GetElementUVCount();
 					if ( !uvCount )
 					{
-						texCoord = Donya::Vector2::Zero();
+						tex.texCoord = Donya::Vector2::Zero();
 					}
 					else
 					{
@@ -785,39 +784,48 @@ namespace Donya
 						FbxVector2 uv{};
 						pFBXMesh->GetPolygonVertexUV( polyIndex, v, uvSetName[0], uv, ummappedUV );
 					
-						texCoord.x = scast<float>( uv[0] );
-						texCoord.y = 1.0f - scast<float>( uv[1] ); // For DirectX's uv space(the origin is left-top).
+						tex.texCoord.x = scast<float>( uv[0] );
+						tex.texCoord.y = 1.0f - scast<float>( uv[1] ); // For DirectX's uv space(the origin is left-top).
 					}
 
-					auto AssignInfluence = [&NormalizeBoneInfluence]( ModelSource::Vertex *pVertex, const BoneInfluence &source )
+					auto AssignInfluence = [&NormalizeBoneInfluence]( Donya::Vertex::Bone *pInfl, const BoneInfluence &source )
 					{
 						constexpr size_t MAX_INFLUENCE_COUNT = 4U; // Align as float4.
 						BoneInfluence infl = NormalizeBoneInfluence( source, MAX_INFLUENCE_COUNT );
 
-						pVertex->boneWeights.resize( MAX_INFLUENCE_COUNT );
-						pVertex->boneIndices.resize( MAX_INFLUENCE_COUNT );
+						auto At = []( auto &vec4, int index )->auto &
+						{
+							switch ( index )
+							{
+							case 0: return vec4.x;
+							case 1: return vec4.y;
+							case 2: return vec4.z;
+							case 3: return vec4.w;
+							default: break;
+							}
+							// Safety.
+							return vec4.x;
+						};
 
 						const size_t sourceCount	= infl.data.size();
 						const size_t firstLoopCount	= std::min( sourceCount, MAX_INFLUENCE_COUNT );
 						size_t  i = 0;
 						for ( ; i <  firstLoopCount; ++i )
 						{
-							pVertex->boneWeights[i] = infl.data[i].first;
-							pVertex->boneIndices[i] = infl.data[i].second;
+							At( pInfl->weights, i ) = infl.data[i].first;
+							At( pInfl->indices, i ) = infl.data[i].second;
 						}
 						for ( ; i <  MAX_INFLUENCE_COUNT; ++i )
 						{
-							pVertex->boneWeights[i] = ( i == 0 ) ? 1.0f : 0.0f;
-							pVertex->boneIndices[i] = NULL;
+							At( pInfl->weights, i ) = ( i == 0 ) ? 1.0f : 0.0f;
+							At( pInfl->indices, i ) = NULL;
 						}
 					};
 
-					vertex.position	= position;
-					vertex.normal	= normal;
-					vertex.texCoord	= texCoord;
-					AssignInfluence( &vertex, boneInfluences[ctrlPointIndex] );
+					pMesh->positions.emplace_back( pos );
+					pMesh->texCoords.emplace_back( tex );
+					pMesh->boneInfluences.emplace_back( infl );
 					
-					pMesh->vertices.emplace_back( vertex );
 					pMesh->indices[indexOffset + v] = vertexCount;
 					vertexCount++;
 				}
@@ -1568,17 +1576,24 @@ namespace Donya
 					{
 						if ( ImGui::TreeNode( "Vertex" ) )
 						{
-							auto &ref = mesh.vertices;
-
-							ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
-							size_t end = ref.size();
-							for ( size_t i = 0; i < end; ++i )
+							const auto &pos = mesh.positions;
+							const auto &tex = mesh.texCoords;
+							if ( pos.size() != tex.size() )
 							{
-								ImGui::Text( "Position:[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]",	i, ref[i].position.x,	ref[i].position.y,	ref[i].position.z	);
-								ImGui::Text( "Normal:[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]",	i, ref[i].normal.x,		ref[i].normal.y,	ref[i].normal.z		);
-								ImGui::Text( "TexCoord:[No:%d][X:%6.3f][Y:%6.3f]",			i, ref[i].texCoord.x,	ref[i].texCoord.y	);
+								ImGui::Text( "An error occured. So can't showing parameters." );
 							}
-							ImGui::EndChild();
+							else
+							{
+								ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
+								const size_t end = pos.size();
+								for ( size_t i = 0; i < end; ++i )
+								{
+									ImGui::Text( "Position:[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]",	i, pos[i].position.x,	pos[i].position.y,	pos[i].position.z	);
+									ImGui::Text( "Normal:[No:%d][X:%6.3f][Y:%6.3f][Z:%6.3f]",	i, pos[i].normal.x,		pos[i].normal.y,	pos[i].normal.z		);
+									ImGui::Text( "TexCoord:[No:%d][X:%6.3f][Y:%6.3f]",			i, tex[i].texCoord.x,	tex[i].texCoord.y	);
+								}
+								ImGui::EndChild();
+							}
 
 							ImGui::TreePop();
 						}

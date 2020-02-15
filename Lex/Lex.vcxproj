@@ -204,6 +204,7 @@
     <ClInclude Include="Source\Loader.h" />
     <ClInclude Include="Source\misc.h" />
     <ClInclude Include="Source\Model.h" />
+    <ClInclude Include="Source\ModelCommon.h" />
     <ClInclude Include="Source\ModelMaker.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
     <ClInclude Include="Source\ModelSource.h" />

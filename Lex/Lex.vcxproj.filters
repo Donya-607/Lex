@@ -204,6 +204,9 @@
     <ClInclude Include="Source\ModelRenderer.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="Source\ModelCommon.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">

@@ -15,6 +15,8 @@ namespace Donya
 
 	namespace Strategy
 	{
+		namespace CBStructPerMesh = Donya::Constants::PerMesh;
+
 		/// <summary>
 		/// Use for toggle a constant-buffer by the specification of vertex type.<para></para>
 		/// But this must update also a member of constants because the actual constant-buffer type is known only this.<para></para>
@@ -23,9 +25,11 @@ namespace Donya
 		class IConstantsPerMesh
 		{
 		public:
-			sturct Vetex
-		public:
 			virtual bool CreateBuffer( ID3D11Device *pDevice ) = 0;
+		public:
+			virtual void Update( const CBStructPerMesh::Common &source ) = 0;
+			virtual void Update( const CBStructPerMesh::Common &sourceCommon, const CBStructPerMesh::Bone &sourceBone ) {}
+		public:
 			virtual void Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const = 0;
 			virtual void Deactivate( ID3D11DeviceContext *pImmediateContext ) const = 0;
 		};
@@ -37,15 +41,17 @@ namespace Donya
 		public:
 			struct Constants
 			{
-				using BoneMatricesType = std::array<Donya::Vector4x4, MAX_BONE_COUNT>;
-
-				Donya::Vector4x4 adjustMatrix;		// Model space. This matrix contain a global-transform, and coordinate-conversion matrix.
-				BoneMatricesType boneTransforms;	// This matrix transforms to world space of game from bone space in initial-pose.
+				CBStructPerMesh::Common common;
+				CBStructPerMesh::Bone   bone;
 			};
-		private: // This mutable specify is for specifying to const the Activate() method.
-			mutable Donya::CBuffer<Constants> cbuffer;
+		private:
+			Donya::CBuffer<Constants> cbuffer;
 		public:
 			bool CreateBuffer( ID3D11Device *pDevice ) override;
+		public:
+			void Update( const CBStructPerMesh::Common &source ) override;
+			void Update( const CBStructPerMesh::Common &sourceCommon, const CBStructPerMesh::Bone &sourceBone ) override;
+		public:
 			void Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const override;
 			void Deactivate( ID3D11DeviceContext *pImmediateContext ) const override;
 		};
@@ -54,12 +60,15 @@ namespace Donya
 		public:
 			struct Constants
 			{
-				Donya::Vector4x4 adjustMatrix; // Model space. This matrix contain a global-transform, and coordinate-conversion matrix.
+				CBStructPerMesh::Common common;
 			};
-		private:  // This mutable specify is for specifying to const the Activate() method.
-			mutable Donya::CBuffer<Constants> cbuffer;
+		private:
+			Donya::CBuffer<Constants> cbuffer;
 		public:
 			bool CreateBuffer( ID3D11Device *pDevice ) override;
+		public:
+			void Update( const CBStructPerMesh::Common &source ) override;
+		public:
 			void Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const override;
 			void Deactivate( ID3D11DeviceContext *pImmediateContext ) const override;
 		};
@@ -122,6 +131,6 @@ namespace Donya
 		/// </summary>
 		ModelRenderer( Donya::ModelUsage usage, ID3D11Device *pDevice = nullptr );
 	private:
-		bool AssignSpecifiedCBuffer( Donya::ModelUsage usage );
+		bool AssignSpecifiedCBuffer( Donya::ModelUsage usage, ID3D11Device *pDevice );
 	};
 }

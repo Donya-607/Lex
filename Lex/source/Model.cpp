@@ -25,68 +25,110 @@ namespace Donya
 		constexpr D3D11_USAGE	BUFFER_USAGE		= D3D11_USAGE_IMMUTABLE;
 		constexpr UINT			CPU_ACCESS_FLAG		= NULL;
 
-		// HACK: A difference of these CreateVertexBuffer implements is the "Assign" lambda only.
-		// So maybe we can optimize more.
-
-		HRESULT VertexSkinned::CreateVertexBuffer( ID3D11Device *pDevice, const std::vector<ModelSource::Vertex> &source, ID3D11Buffer **bufferAddress ) const
+		HRESULT AssertNotAligned()
 		{
-			auto Assign = []( VertexSkinned::Vertex *pDest, const ModelSource::Vertex &source )->void
+			_ASSERT_EXPR( 0, L"Error : Passed model's data array sizes aren't aligned!" );
+			return E_INVALIDARG;
+		}
+
+		// HACK : Maybe we can optimize more these assign templates.
+		// Because a difference of these is the part of duck-typing only.
+
+		template<typename SomeVertex>
+		void AssignPositions( std::vector<SomeVertex> *pDestVertices, const std::vector<Donya::Vertex::Pos> &source )
+		{
+			if ( pDestVertices->size() != source.size() )
 			{
-				pDest->position		= source.position;
-				pDest->normal		= source.normal;
-				pDest->texCoord		= source.texCoord;
+				HRESULT hr = AssertNotAligned();
+				return;
+			}
+			// else
 
-				auto ToVec4  = []( const auto &vector )->Donya::Int4
-				{
-					return Donya::Int4{ vector[0], vector[1], vector[2], vector[3] };
-				};
-				auto ToVec4F = []( const auto &vector )->Donya::Vector4
-				{
-					return Donya::Vector4{ vector[0], vector[1], vector[2], vector[3] };
-				};
-				pDest->boneWeights	= ToVec4F( source.boneWeights );
-				pDest->boneIndices	= ToVec4 ( source.boneIndices );
-			};
+			const size_t size = source.size();
+			for ( size_t i = 0; i < size; ++i )
+			{
+				pDestVertices->at( i ).position	= source[i];
+			}
+		}
+		template<typename SomeVertex>
+		void AssignTexCoords( std::vector<SomeVertex> *pDestVertices, const std::vector<Donya::Vertex::Tex> &source )
+		{
+			if ( pDestVertices->size() != source.size() )
+			{
+				HRESULT hr = AssertNotAligned();
+				return;
+			}
+			// else
 
-			const size_t vertexCount = source.size();
+			const size_t size = source.size();
+			for ( size_t i = 0; i < size; ++i )
+			{
+				pDestVertices->at( i ).texCoord	= source[i];
+			}
+		}
+		template<typename SomeVertex>
+		void AssignBoneInfluences( std::vector<SomeVertex> *pDestVertices, const std::vector<Donya::Vertex::Bone> &source )
+		{
+			if ( pDestVertices->size() != source.size() )
+			{
+				HRESULT hr = AssertNotAligned();
+				return;
+			}
+			// else
+
+			const size_t size = source.size();
+			for ( size_t i = 0; i < size; ++i )
+			{
+				pDestVertices->at( i ).boneInfluence = source[i];
+			}
+		}
+
+		HRESULT VertexSkinned::CreateVertexBuffer( ID3D11Device *pDevice, const std::vector<Donya::Vertex::Pos> &srcPos, const std::vector<Donya::Vertex::Tex> &srcTex, const std::vector<Donya::Vertex::Bone> &srcInfl )
+		{
+			// I expect each source array sizes is the same.
+			if ( srcPos.size() != srcTex.size() || srcPos.size() != srcInfl.size() || srcTex.size() != srcInfl.size() )
+			{
+				return AssertNotAligned();
+			}
+			// else
+
+			const size_t vertexCount = srcPos.size();
 			std::vector<VertexSkinned::Vertex> dest{ vertexCount };
 
-			for ( size_t i = 0; i < vertexCount; ++i )
-			{
-				Assign( &dest[i], source[i] );
-			}
+			AssignPositions( &dest, srcPos );
+			AssignTexCoords( &dest, srcTex );
+			AssignBoneInfluences( &dest, srcInfl );
 
 			HRESULT hr = Donya::CreateVertexBuffer<VertexSkinned::Vertex>
 			(
 				pDevice, dest,
 				BUFFER_USAGE, CPU_ACCESS_FLAG,
-				bufferAddress
+				pBuffer.GetAddressOf()
 			);
 			return hr;
 		}
 		
-		HRESULT VertexStatic::CreateVertexBuffer( ID3D11Device *pDevice, const std::vector<ModelSource::Vertex> &source, ID3D11Buffer **bufferAddress ) const
+		HRESULT VertexStatic::CreateVertexBuffer( ID3D11Device *pDevice, const std::vector<Donya::Vertex::Pos> &srcPos, const std::vector<Donya::Vertex::Tex> &srcTex, const std::vector<Donya::Vertex::Bone> &srcInfl )
 		{
-			auto Assign = []( VertexStatic::Vertex *pDest, const ModelSource::Vertex &source )->void
+			// I expect each source array sizes is the same.
+			if ( srcPos.size() != srcTex.size() || srcPos.size() != srcInfl.size() || srcTex.size() != srcInfl.size() )
 			{
-				pDest->position		= source.position;
-				pDest->normal		= source.normal;
-				pDest->texCoord		= source.texCoord;
-			};
-
-			const size_t vertexCount = source.size();
-			std::vector<VertexStatic::Vertex> dest{};
-
-			for ( size_t i = 0; i < vertexCount; ++i )
-			{
-				Assign( &dest[i], source[i] );
+				return AssertNotAligned();
 			}
+			// else
+
+			const size_t vertexCount = srcPos.size();
+			std::vector<VertexStatic::Vertex> dest{ vertexCount };
+
+			AssignPositions( &dest, srcPos );
+			AssignTexCoords( &dest, srcTex );
+			// AssignBoneInfluences( &dest, srcInfl );
 
 			HRESULT hr = Donya::CreateVertexBuffer<VertexStatic::Vertex>
 			(
 				pDevice, dest,
 				BUFFER_USAGE, CPU_ACCESS_FLAG,
-				bufferAddress
+				pBuffer.GetAddressOf()
 			);
 			return hr;
 		}
@@ -166,8 +208,9 @@ namespace Donya
 		hr = pDest->pVertex->CreateVertexBuffer
 		(
 			pDevice,
-			source.vertices,
-			pDest->vertexBuffer.GetAddressOf()
+			source.positions,
+			source.texCoords,
+			source.boneInfluences
 		);
 		if ( FAILED( hr ) )
 		{

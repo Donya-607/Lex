@@ -8,62 +8,90 @@
 
 #include "Donya/Vector.h"
 
+#include "ModelCommon.h"
 #include "ModelSource.h"
-#include "ModelMaker.h"		// Use for ModelUsage.
 
 namespace Donya
 {
+	template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
+
 	namespace Strategy
 	{
 		/// <summary>
 		/// Use for toggle a Vertex structure by the specification.
 		/// </summary>
-		class IVertex
+		class VertexBase
 		{
+		protected:
+			ComPtr<ID3D11Buffer> pBuffer; // Internal vertex-buffer.
+		public:
+			ID3D11Buffer *Get() const
+			{
+				return pBuffer.Get();
+			}
+			ID3D11Buffer * const *GetAddressOf() const
+			{
+				return pBuffer.GetAddressOf();
+			}
 		public:
 			/// <summary>
 			/// Returns: sizeof(struct Vertex);
 			/// </summary>
-			virtual size_t SizeofVertex() const = 0;
+			virtual size_t  SizeofVertex() const = 0;
 			/// <summary>
-			/// Make a vertex-buffer by some Vertex struct.
+			/// Make an internal vertex-buffer.
 			/// </summary>
-			virtual HRESULT CreateVertexBuffer( ID3D11Device *pDevice, const std::vector<ModelSource::Vertex> &verticesSource, ID3D11Buffer **bufferAddress ) const = 0;
+			virtual HRESULT CreateVertexBuffer
+			(
+				ID3D11Device *pDevice,
+				const std::vector<Donya::Vertex::Pos>  &sourcePositions,
+				const std::vector<Donya::Vertex::Tex>  &sourceTexCoords,
+				const std::vector<Donya::Vertex::Bone> &sourceBoneInfluences
+			) = 0;
 		};
 
-		class VertexSkinned final : public IVertex
+		class VertexSkinned final : public VertexBase
 		{
 		public:
 			struct Vertex
 			{
-				Donya::Vector3	position;
-				Donya::Vector3	normal;
-				Donya::Vector2	texCoord;
-				Donya::Vector4	boneWeights; // Each element is used as like array(e.g. x:[0], y:[1], ...).
-				Donya::Int4		boneIndices; // Each element is used as like array(e.g. x:[0], y:[1], ...).
+				Donya::Vertex::Pos	position;
+				Donya::Vertex::Tex	texCoord;
+				Donya::Vertex::Bone	boneInfluence;
 			};
 		public:
-			size_t SizeofVertex() const override
+			size_t  SizeofVertex() const override
 			{
 				return sizeof( Vertex );
 			}
-			HRESULT CreateVertexBuffer( ID3D11Device *pDevice, const std::vector<ModelSource::Vertex> &verticesSource, ID3D11Buffer **bufferAddress ) const override;
+			HRESULT CreateVertexBuffer
+			(
+				ID3D11Device *pDevice,
+				const std::vector<Donya::Vertex::Pos>  &sourcePositions,
+				const std::vector<Donya::Vertex::Tex>  &sourceTexCoords,
+				const std::vector<Donya::Vertex::Bone> &sourceBoneInfluences
+			) override;
 		};
-		class VertexStatic final : public IVertex
+		class VertexStatic final : public VertexBase
 		{
 		public:
 			struct Vertex
 			{
-				Donya::Vector3	position;
-				Donya::Vector3	normal;
-				Donya::Vector2	texCoord;
+				Donya::Vertex::Pos	position;
+				Donya::Vertex::Tex	texCoord;
 			};
 		public:
 			size_t SizeofVertex() const override
 			{
 				return sizeof( Vertex );
 			}
-			HRESULT CreateVertexBuffer( ID3D11Device *pDevice, const std::vector<ModelSource::Vertex> &verticesSource, ID3D11Buffer **bufferAddress ) const override;
+			HRESULT CreateVertexBuffer
+			(
+				ID3D11Device *pDevice,
+				const std::vector<Donya::Vertex::Pos>  &sourcePositions,
+				const std::vector<Donya::Vertex::Tex>  &sourceTexCoords,
+				const std::vector<Donya::Vertex::Bone> &sourceBoneInfluences
+			) override;
 		};
 	}
 
@@ -72,7 +100,6 @@ namespace Donya
 	/// </summary>
 	class Model
 	{
-		template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 	public:
 		struct Material
 		{
@@ -96,11 +123,11 @@ namespace Donya
 		/// </summary>
 		struct Mesh
 		{
-			std::string							name;
+			std::string								name;
 
-			int									nodeIndex;		// The index of this mesh's node.
-			std::vector<int>					nodeIndices;	// The indices of associated nodes with this mesh and this mesh's node.
-			std::vector<Donya::Vector4x4>		boneOffsets;	// The bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
+			int										nodeIndex;		// The index of this mesh's node.
+			std::vector<int>						nodeIndices;	// The indices of associated nodes with this mesh and this mesh's node.
+			std::vector<Donya::Vector4x4>			boneOffsets;	// The bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
 			/*
 			Note:
 			The "boneOffsets" contain values are same as "ModelSource::Mesh::boneOffsets".
@@ -109,11 +136,10 @@ namespace Donya
 			Then rename to "useBoneOffsetIndices" from "boneOffsets", and store the index of the original array.
 			*/
 
-			std::shared_ptr<Strategy::IVertex>	pVertex;
-			std::vector<Subset>					subsets;
+			std::shared_ptr<Strategy::VertexBase>	pVertex;
+			std::vector<Subset>						subsets;
 
-			ComPtr<ID3D11Buffer>				vertexBuffer;	// Creates by "pVertex".
-			ComPtr<ID3D11Buffer>				indexBuffer;
+			ComPtr<ID3D11Buffer>					indexBuffer;
 		};
 	private:
 		std::shared_ptr<ModelSource>	pSource;

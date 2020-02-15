@@ -27,6 +27,8 @@
 #include "SkinnedMesh.h"
 
 #include "Model.h"
+#include "ModelCommon.h"
+#include "ModelMaker.h"
 namespace
 {
 	std::vector<Donya::Model> tmp{};

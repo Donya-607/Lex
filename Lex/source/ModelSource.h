@@ -11,6 +11,8 @@
 #include "Donya/Serializer.h"
 #include "Donya/Vector.h"
 
+#include "ModelCommon.h"
+
 namespace Donya
 {
 	/// <summary>
@@ -18,35 +20,6 @@ namespace Donya
 	/// </summary>
 	struct ModelSource
 	{
-		/// <summary>
-		/// The type to support skinning.
-		/// </summary>
-		struct Vertex
-		{
-			Donya::Vector3		position;
-			Donya::Vector3		normal;
-			Donya::Vector2		texCoord;
-			std::vector<float> 	boneWeights;
-			std::vector<int>	boneIndices;
-		private:
-			friend class cereal::access;
-			template<class Archive>
-			void serialize( Archive &archive, std::uint32_t version )
-			{
-				if ( version == 0 )
-				{
-					archive
-					(
-						CEREAL_NVP( position	),
-						CEREAL_NVP( normal		),
-						CEREAL_NVP( texCoord	),
-						CEREAL_NVP( boneWeights	),
-						CEREAL_NVP( boneIndices	)
-					);
-				}
-			}
-		};
-
 		struct Material
 		{
 			Donya::Vector4	color{ 1.0f, 1.0f, 1.0f, 1.0f };	// RGBA.
@@ -113,7 +86,9 @@ namespace Donya
 			std::vector<int>				nodeIndices;	// The indices of associated nodes with this mesh and this mesh's node.
 			std::vector<Donya::Vector4x4>	boneOffsets;	// The bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
 
-			std::vector<Vertex>				vertices;
+			std::vector<Vertex::Pos>		positions;
+			std::vector<Vertex::Tex>		texCoords;
+			std::vector<Vertex::Bone>		boneInfluences;
 			std::vector<unsigned int>		indices;		// A index list of vertices.
 			std::vector<Subset>				subsets;
 		private:
@@ -125,15 +100,17 @@ namespace Donya
 				{
 					archive
 					(
-						CEREAL_NVP(	name		),
+						CEREAL_NVP(	name			),
 						CEREAL_NVP(	coordinateConversion	),
 						CEREAL_NVP(	globalTransform			),
-						CEREAL_NVP(	nodeIndex	),
-						CEREAL_NVP(	nodeIndices	),
-						CEREAL_NVP(	boneOffsets	),
-						CEREAL_NVP(	vertices	),
-						CEREAL_NVP(	indices		),
-						CEREAL_NVP(	subsets		)
+						CEREAL_NVP(	nodeIndex		),
+						CEREAL_NVP(	nodeIndices		),
+						CEREAL_NVP(	boneOffsets		),
+						CEREAL_NVP(	positions		),
+						CEREAL_NVP(	texCoords		),
+						CEREAL_NVP(	boneInfluences	),
+						CEREAL_NVP(	indices			),
+						CEREAL_NVP(	subsets			)
 					);
 				}
 			}
@@ -253,22 +230,21 @@ namespace Donya
 		friend class cereal::access;
 		template<class Archive>
 		void serialize( Archive &archive, std::uint32_t version )
+		{
+			if ( version == 0 )
 			{
-				if ( version == 0 )
-				{
-					archive
-					(
-						CEREAL_NVP(	meshes		),
-						CEREAL_NVP(	skeletal	),
-						CEREAL_NVP(	animations	)
-					);
-				}
+				archive
+				(
+					CEREAL_NVP(	meshes		),
+					CEREAL_NVP(	skeletal	),
+					CEREAL_NVP(	animations	)
+				);
 			}
+		}
 	};
 }
 
 CEREAL_CLASS_VERSION( Donya::ModelSource,				0 )
-CEREAL_CLASS_VERSION( Donya::ModelSource::Vertex,		0 )
 CEREAL_CLASS_VERSION( Donya::ModelSource::Subset,		0 )
 CEREAL_CLASS_VERSION( Donya::ModelSource::Mesh,			0 )
 CEREAL_CLASS_VERSION( Donya::ModelSource::Material,		0 )
