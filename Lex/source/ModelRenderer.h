@@ -82,23 +82,13 @@ namespace Donya
 	private:
 		// Static members. Use for default shading.
 	private:
-		/// <summary>
-		/// This constants mainly contain scene info.
-		/// </summary>
-		struct OtherConstants
-		{
-			Donya::Vector4x4	matWVP;
-			Donya::Vector4		lightColor;
-			Donya::Vector4		lightDirection;
-			Donya::Vector4		drawColor;
-		};
 		struct DefaultStatus
 		{
 			static constexpr int DEFAULT_ID = 0;
 			int idDSState	= DEFAULT_ID;
 			int idRSState	= DEFAULT_ID;
 			int idPSSampler	= DEFAULT_ID;
-			Donya::CBuffer<OtherConstants> CBForDefault;
+			Donya::CBuffer<Constants::PerModel::Common> CBPerModel;
 		};
 		static std::unique_ptr<DefaultStatus> pDefaultStatus;
 	public:
@@ -113,16 +103,9 @@ namespace Donya
 		static bool CreateRenderingStates( DefaultStatus *pStatus );
 	public:
 	// Instance members.
-	public:
-		struct ConstantsPerSubset
-		{
-			Donya::Vector4 ambient;
-			Donya::Vector4 diffuse;
-			Donya::Vector4 specular;
-		};
 	private:
 		std::shared_ptr<Strategy::IConstantsPerMesh> pCBPerMesh;
-		Donya::CBuffer<ConstantsPerSubset> CBPerSubset;
+		Donya::CBuffer<Constants::PerSubset::Common> CBPerSubset;
 	private:
 		// This making function declared at "ModelMaker.h".
 		friend size_t MakeRenderer( ModelUsage usage, ID3D11Device *pDevice );

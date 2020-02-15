@@ -121,7 +121,7 @@ namespace Donya
 		result = CreateRenderingStates  ( &status );
 		if ( !result ) { succeeded = false; }
 
-		result = status.CBForDefault.Create();
+		result = status.CBPerModel.Create();
 		if ( !result ) { succeeded = false; }
 
 		if ( succeeded )
