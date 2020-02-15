@@ -116,9 +116,9 @@ namespace Donya
 	namespace Constants
 	{
 		/// <summary>
-		/// The constants that update per model.
+		/// The constants that update per need. This is not related to the model. Exists for default shading of ModelRenderer.
 		/// </summary>
-		namespace PerModel
+		namespace PerNeed
 		{
 			struct DirectionalLight
 			{
@@ -130,10 +130,23 @@ namespace Donya
 			/// </summary>
 			struct Common
 			{
-				Donya::Vector4   drawColor;
 				DirectionalLight directionalLight;
-				Donya::Vector4x4 worldMatrix;		// Model space -> World space
+				Donya::Vector4   eyePosition;
 				Donya::Vector4x4 viewProjMatrix;	// World space -> NDC(actually Clip space)
+			};
+		}
+		/// <summary>
+		/// The constants that update per model.
+		/// </summary>
+		namespace PerModel
+		{
+			/// <summary>
+			/// The everything model types is using this structure's member.
+			/// </summary>
+			struct Common
+			{
+				Donya::Vector4   drawColor;
+				Donya::Vector4x4 worldMatrix;	// Model space -> World space
 			};
 		}
 		/// <summary>

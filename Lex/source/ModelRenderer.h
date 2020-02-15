@@ -89,10 +89,17 @@ namespace Donya
 			int idDSState	= DEFAULT_ID;
 			int idRSState	= DEFAULT_ID;
 			int idPSSampler	= DEFAULT_ID;
-			Donya::CBuffer<Constants::PerModel::Common> CBPerModel;
-			Donya::VertexShader VS;
-			Donya::PixelShader  PS;
+			Donya::CBuffer<Constants::PerNeed::Common> CBPerScene;
+
+			struct Shader
+			{
+				Donya::VertexShader VS;
+				Donya::PixelShader  PS;
+			};
+			Shader shaderSkinned;
+			Shader shaderStatic;
 		};
+	private:
 		static std::unique_ptr<DefaultStatus> pDefaultStatus;
 	public:
 		/// <summary>
@@ -108,11 +115,13 @@ namespace Donya
 		static bool InitDefaultStatus( ID3D11Device *pDevice = nullptr );
 	private:
 		static bool AssignStatusIdentifiers( DefaultStatus *pStatus );
-		static bool CreateRenderingStates( DefaultStatus *pStatus );
+		static bool CreateRenderingStates  ( DefaultStatus *pStatus );
+		static bool CreateDefaultShaders   ( DefaultStatus *pStatus );
 	public:
 	// Instance members.
 	private:
 		std::shared_ptr<Strategy::IConstantsPerMesh> pCBPerMesh;
+		Donya::CBuffer<Constants::PerModel::Common>  CBPerModel;
 		Donya::CBuffer<Constants::PerSubset::Common> CBPerSubset;
 	private:
 		// This making function declared at "ModelMaker.h".

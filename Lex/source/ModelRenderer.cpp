@@ -61,6 +61,278 @@ namespace Donya
 		}
 	}
 	
+	namespace EmbeddedSourceCode
+	{
+		static constexpr const char *EntryPointVS	= "VSMain";
+		static constexpr const char *EntryPointPS	= "PSMain";
+		static constexpr const int   SlotSRV		= 0;
+		static constexpr const int   SlotSampler	= 0;
+
+		static constexpr const char *SkinnedCode()
+		{
+			return
+			"struct VS_IN\n"
+			"{\n"
+			"	float4		pos			: POSITION;\n"
+			"	float4		normal		: NORMAL;\n"
+			"	float2		texCoord	: TEXCOORD0;\n"
+			"	float4		weights		: WEIGHTS;\n"
+			"	uint4		bones		: BONES;\n"
+			"};\n"
+			"struct VS_OUT\n"
+			"{\n"
+			"	float4		pos			: SV_POSITION;\n"
+			"	float4		wsPos		: POSITION;\n"
+			"	float4		normal		: NORMAL;\n"
+			"	float2		texCoord	: TEXCOORD0;\n"
+			"};\n"
+			"struct DirectionalLight\n"
+			"{\n"
+			"	float4		color;\n"
+			"	float4		direction;\n"
+			"};\n"
+			"cbuffer CBPerScene : register( b0 )\n"
+			"{\n"
+			"	DirectionalLight cbDirLight;\n"
+			"	float4		cbEyePosition;\n"
+			"	row_major\n"
+			"	float4x4	cbViewProj;\n"
+			"};\n"
+			"cbuffer CBPerModel : register( b1 )\n"
+			"{\n"
+			"	float4		cbDrawColor;\n"
+			"	row_major\n"
+			"	float4x4	cbWorld;\n"
+			"};\n"
+			"static const uint MAX_BONE_COUNT = 64U;\n"
+			"cbuffer CBPerMesh : register( b2 )\n"
+			"{\n"
+			"	row_major\n"
+			"	float4x4	cbAdjustMatrix;\n"
+			"	row_major\n"
+			"	float4x4	cbBoneTransforms[MAX_BONE_COUNT];\n"
+			"};\n"
+			"cbuffer CBPerSubset : register( b3 )\n"
+			"{\n"
+			"	float4		cbAmbient;\n"
+			"	float4		cbDiffuse;\n"
+			"	float4		cbSpecular;\n"
+			"};\n"
+			"void ApplyBoneMatrices( float4 boneWeights, uint4 boneIndices, inout float4 inoutPosition, inout float4 inoutNormal )\n"
+			"{\n"
+			"	const float4 inPosition	= float4( inoutPosition.xyz, 1.0f );\n"
+			"	const float4 inNormal	= float4( inoutNormal.xyz,   0.0f );\n"
+			"	float3 resultPos		= { 0, 0, 0 };\n"
+			"	float3 resultNormal		= { 0, 0, 0 };\n"
+			"	float  weight			= 0;\n"
+			"	row_major float4x4 transform = 0;\n"
+			"	for ( int i = 0; i < 4/* float4 */; ++i )\n"
+			"	{\n"
+			"		weight			= boneWeights[i];\n"
+			"		transform		= cbBoneTransforms[boneIndices[i]];\n"
+			"		resultPos		+= ( weight * mul( inPosition,	transform ) ).xyz;\n"
+			"		resultNormal	+= ( weight * mul( inNormal,	transform ) ).xyz;\n"
+			"	}\n"
+			"	inoutPosition	= float4( resultPos,    1.0f );\n"
+			"	inoutNormal		= float4( resultNormal, 0.0f );\n"
+			"}\n"
+			"VS_OUT VSMain( VS_IN vin )\n"
+			"{\n"
+			"	ApplyBoneMatrices( vin.weights, vin.bones, vin.pos, vin.normal );\n"
+
+			"	row_major float4x4 W = mul( cbAdjustMatrix, cbWorld );\n"
+
+			"	VS_OUT vout		= ( VS_OUT )0;\n"
+			"	vout.pos		= mul( vin.pos, mul( cbWorld, cbViewProj ) );\n"
+			"	vout.wsPos		= mul( vin.pos, cbWorld );\n"
+			"	vout.normal		= normalize( mul( vin.normal, cbWorld ) );\n"
+			"	vout.texCoord	= vin.texCoord;\n"
+			"	return vout;\n"
+			"}\n"
+			// See https://tech.cygames.co.jp/archives/2339/
+			"float4 SRGBToLinear( float4 colorSRGB )\n"
+			"{\n"
+			"	return pow( colorSRGB, 2.2f );\n"
+			"}\n"
+			// See https://tech.cygames.co.jp/archives/2339/
+			"float4 LinearToSRGB( float4 colorLinear )\n"
+			"{\n"
+			"	return pow( colorLinear, 1.0f / 2.2f );\n"
+			"}\n"
+			"float HalfLambert( float3 nwsNormal, float3 nwsToLightVec )\n"
+			"{\n"
+			"	float lambert = dot( nwsNormal, nwsToLightVec );\n"
+			"	return ( lambert * 0.5f ) + 0.5f;\n"
+			"}\n"
+			"float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec )\n"
+			"{\n"
+			"	float3 nwsReflection  = normalize( reflect( -nwsToLightVec, nwsNormal ) );\n"
+			"	float  specularFactor = max( 0.0f, dot( nwsToEyeVec, nwsReflection ) );\n"
+			"	return specularFactor;\n"
+			"}\n"
+			"float3 CalcLightInfluence( float4 lightColor, float3 nwsPixelToLightVec, float3 nwsPixelNormal, float3 nwsEyeVector )\n"
+			"{\n"
+			"	float3	ambientColor	= cbAmbient.rgb;\n"
+			"	float	diffuseFactor	= HalfLambert( nwsPixelNormal, nwsPixelToLightVec );\n"
+			// "		diffuseFactor	= pow( diffuseFactor, 2.0f );\n"
+			"	float3	diffuseColor	= cbDiffuse.rgb * diffuseFactor;\n"
+			"	float	specularFactor	= Phong( nwsPixelNormal, nwsPixelToLightVec, nwsEyeVector );\n"
+			"	float3	specularColor	= cbSpecular.rgb * specularFactor * cbSpecular.w;\n"
+
+			"	float3	Ka				= ambientColor;\n"
+			"	float3	Kd				= diffuseColor;\n"
+			"	float3	Ks				= specularColor;\n"
+			"	float3	light			= lightColor.rgb * lightColor.w;\n"
+			"	return	Ka + ( ( Kd + Ks ) * light );\n"
+			"}\n"
+			"Texture2D		diffuseMap			: register( t0 );\n"
+			"SamplerState	diffuseMapSampler	: register( s0 );\n"
+			"float4 PSMain( VS_OUT pin ) : SV_TARGET\n"
+			"{\n"
+			"			pin.normal		= normalize( pin.normal );\n"
+			
+			"	float3	nLightVec		= normalize( -cbDirLight.direction.rgb );	// Vector from position.\n"
+			"	float4	nEyeVector		= cbEyePosition - pin.wsPos;				// Vector from position.\n"
+
+			"	float4	diffuseMapColor	= diffuseMap.Sample( diffuseMapSampler, pin.texCoord );\n"
+			"			diffuseMapColor	= SRGBToLinear( diffuseMapColor );\n"
+			"	float	diffuseMapAlpha	= diffuseMapColor.a;\n"
+
+			"	float3	totalLight		= CalcLightInfluence( cbDirLight.color, nLightVec, pin.normal.rgb, nEyeVector.rgb );\n"
+
+			"	float3	resultColor		= diffuseMapColor.rgb * totalLight;\n"
+			"	float4	outputColor		= float4( resultColor, diffuseMapAlpha );\n"
+			"			outputColor		= outputColor * cbDrawColor;\n"
+
+			"	return	LinearToSRGB( outputColor );\n"
+			"}\n"
+			;
+		}
+		static constexpr const char *SkinnedNameVS	= "Donya::DefaultModelSkinnedVS";
+		static constexpr const char *SkinnedNamePS	= "Donya::DefaultModelSkinnedPS";
+
+		static constexpr const char *StaticCode()
+		{
+			return
+			"struct VS_IN\n"
+			"{\n"
+			"	float4		pos			: POSITION;\n"
+			"	float4		normal		: NORMAL;\n"
+			"	float2		texCoord	: TEXCOORD0;\n"
+			"};\n"
+			"struct VS_OUT\n"
+			"{\n"
+			"	float4		pos			: SV_POSITION;\n"
+			"	float4		wsPos		: POSITION;\n"
+			"	float4		normal		: NORMAL;\n"
+			"	float2		texCoord	: TEXCOORD0;\n"
+			"};\n"
+			"struct DirectionalLight\n"
+			"{\n"
+			"	float4		color;\n"
+			"	float4		direction;\n"
+			"};\n"
+			"cbuffer CBPerScene : register( b0 )\n"
+			"{\n"
+			"	DirectionalLight cbDirLight;\n"
+			"	float4		cbEyePosition;\n"
+			"	row_major\n"
+			"	float4x4	cbViewProj;\n"
+			"};\n"
+			"cbuffer CBPerModel : register( b1 )\n"
+			"{\n"
+			"	float4		cbDrawColor;\n"
+			"	row_major\n"
+			"	float4x4	cbWorld;\n"
+			"};\n"
+			"cbuffer CBPerMesh : register( b2 )\n"
+			"{\n"
+			"	row_major\n"
+			"	float4x4	cbAdjustMatrix;\n"
+			"};\n"
+			"cbuffer CBPerSubset : register( b3 )\n"
+			"{\n"
+			"	float4		cbAmbient;\n"
+			"	float4		cbDiffuse;\n"
+			"	float4		cbSpecular;\n"
+			"};\n"
+			"VS_OUT VSMain( VS_IN vin )\n"
+			"{\n"
+			"	vin.pos.w		= 1.0f;\n"
+			"	vin.normal.w	= 0.0f;\n"
+
+			"	row_major float4x4 W = mul( cbAdjustMatrix, cbWorld );\n"
+
+			"	VS_OUT vout		= ( VS_OUT )0;\n"
+			"	vout.pos		= mul( vin.pos, mul( cbWorld, cbViewProj ) );\n"
+			"	vout.wsPos		= mul( vin.pos, cbWorld );\n"
+			"	vout.normal		= normalize( mul( vin.normal, cbWorld ) );\n"
+			"	vout.texCoord	= vin.texCoord;\n"
+			"	return vout;\n"
+			"}\n"
+			// See https://tech.cygames.co.jp/archives/2339/
+			"float4 SRGBToLinear( float4 colorSRGB )\n"
+			"{\n"
+			"	return pow( colorSRGB, 2.2f );\n"
+			"}\n"
+			// See https://tech.cygames.co.jp/archives/2339/
+			"float4 LinearToSRGB( float4 colorLinear )\n"
+			"{\n"
+			"	return pow( colorLinear, 1.0f / 2.2f );\n"
+			"}\n"
+			"float HalfLambert( float3 nwsNormal, float3 nwsToLightVec )\n"
+			"{\n"
+			"	float lambert = dot( nwsNormal, nwsToLightVec );\n"
+			"	return ( lambert * 0.5f ) + 0.5f;\n"
+			"}\n"
+			"float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec )\n"
+			"{\n"
+			"	float3 nwsReflection  = normalize( reflect( -nwsToLightVec, nwsNormal ) );\n"
+			"	float  specularFactor = max( 0.0f, dot( nwsToEyeVec, nwsReflection ) );\n"
+			"	return specularFactor;\n"
+			"}\n"
+			"float3 CalcLightInfluence( float4 lightColor, float3 nwsPixelToLightVec, float3 nwsPixelNormal, float3 nwsEyeVector )\n"
+			"{\n"
+			"	float3	ambientColor	= cbAmbient.rgb;\n"
+			"	float	diffuseFactor	= HalfLambert( nwsPixelNormal, nwsPixelToLightVec );\n"
+			// "		diffuseFactor	= pow( diffuseFactor, 2.0f );\n"
+			"	float3	diffuseColor	= cbDiffuse.rgb * diffuseFactor;\n"
+			"	float	specularFactor	= Phong( nwsPixelNormal, nwsPixelToLightVec, nwsEyeVector );\n"
+			"	float3	specularColor	= cbSpecular.rgb * specularFactor * cbSpecular.w;\n"
+
+			"	float3	Ka				= ambientColor;\n"
+			"	float3	Kd				= diffuseColor;\n"
+			"	float3	Ks				= specularColor;\n"
+			"	float3	light			= lightColor.rgb * lightColor.w;\n"
+			"	return	Ka + ( ( Kd + Ks ) * light );\n"
+			"}\n"
+			"Texture2D		diffuseMap			: register( t0 );\n"
+			"SamplerState	diffuseMapSampler	: register( s0 );\n"
+			"float4 PSMain( VS_OUT pin ) : SV_TARGET\n"
+			"{\n"
+			"			pin.normal		= normalize( pin.normal );\n"
+			
+			"	float3	nLightVec		= normalize( -cbDirLight.direction.rgb );	// Vector from position.\n"
+			"	float4	nEyeVector		= cbEyePosition - pin.wsPos;				// Vector from position.\n"
+
+			"	float4	diffuseMapColor	= diffuseMap.Sample( diffuseMapSampler, pin.texCoord );\n"
+			"			diffuseMapColor	= SRGBToLinear( diffuseMapColor );\n"
+			"	float	diffuseMapAlpha	= diffuseMapColor.a;\n"
+
+			"	float3	totalLight		= CalcLightInfluence( cbDirLight.color, nLightVec, pin.normal.rgb, nEyeVector.rgb );\n"
+
+			"	float3	resultColor		= diffuseMapColor.rgb * totalLight;\n"
+			"	float4	outputColor		= float4( resultColor, diffuseMapAlpha );\n"
+			"			outputColor		= outputColor * cbDrawColor;\n"
+
+			"	return	LinearToSRGB( outputColor );\n"
+			"}\n"
+			;
+		}
+		static constexpr const char *StaticNameVS	= "Donya::DefaultModelStaticVS";
+		static constexpr const char *StaticNamePS	= "Donya::DefaultModelStaticPS";
+	}
+
 	// TODO : To specifiable these configuration by arguments of render method.
 
 	static constexpr D3D11_DEPTH_STENCIL_DESC	DefaultDepthStencilDesc()
@@ -166,11 +438,13 @@ namespace Donya
 
 		result = AssignStatusIdentifiers( &status );
 		if ( !result ) { succeeded = false; }
-
 		result = CreateRenderingStates  ( &status );
 		if ( !result ) { succeeded = false; }
 
-		result = status.CBPerModel.Create();
+		result = status.CBPerScene.Create();
+		if ( !result ) { succeeded = false; }
+
+		result = CreateDefaultShaders   ( &status );
 		if ( !result ) { succeeded = false; }
 
 		if ( succeeded )
@@ -296,9 +570,13 @@ namespace Donya
 
 		return succeeded;
 	}
+	bool ModelRenderer::CreateDefaultShaders   ( DefaultStatus *pStatus )
+	{
+		return false;
+	}
 
 	ModelRenderer::ModelRenderer( Donya::ModelUsage usage, ID3D11Device *pDevice ) :
-		pCBPerMesh( nullptr ), CBPerSubset()
+		pCBPerMesh( nullptr ), CBPerModel(), CBPerSubset()
 	{
 		if ( !pDevice )
 		{
@@ -320,6 +598,11 @@ namespace Donya
 				ThrowRuntimeError( "mesh" );
 			}
 
+			succeeded = CBPerModel.Create();
+			if ( !succeeded )
+			{
+				ThrowRuntimeError( "model" );
+			}
 			succeeded = CBPerSubset.Create();
 			if ( !succeeded )
 			{
