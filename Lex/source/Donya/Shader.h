@@ -15,19 +15,13 @@ namespace Donya
 	class VertexShader
 	{
 	private:
-		bool wasCreated;	// If create failed, this will false.
+		bool wasCreated = false;	// If create failed, this will false.
 
 		template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 		mutable ComPtr<ID3D11InputLayout>	iInputLayout;
 		mutable ComPtr<ID3D11VertexShader>	iVertexShader;
 		mutable ComPtr<ID3D11InputLayout>	iDefaultInputLayout;
 		mutable ComPtr<ID3D11VertexShader>	iDefaultVertexShader;
-	public:
-		VertexShader();
-		virtual ~VertexShader();
-
-		VertexShader( const VertexShader & ) = delete;
-		const VertexShader &operator = ( const VertexShader & ) = delete;
 	public:
 		/// <summary>
 		/// Create vertex-shader and input-layout by compiled-shader-object file.<para></para>
@@ -61,17 +55,11 @@ namespace Donya
 	class PixelShader
 	{
 	private:
-		bool wasCreated;	// If create failed, this will false.
+		bool wasCreated = false;	// If create failed, this will false.
 
 		template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 		mutable ComPtr<ID3D11PixelShader>	iPixelShader;
 		mutable ComPtr<ID3D11PixelShader>	iDefaultPixelShader;
-	public:
-		PixelShader();
-		virtual ~PixelShader();
-
-		PixelShader( const PixelShader & ) = delete;
-		const PixelShader &operator = ( const PixelShader & ) = delete;
 	public:
 		/// <summary>
 		/// Create pixel-shader by compiled-shader-object file.<para></para>

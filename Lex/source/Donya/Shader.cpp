@@ -6,13 +6,6 @@
 
 namespace Donya
 {
-	VertexShader::VertexShader() :
-		wasCreated( false ),
-		iInputLayout(), iVertexShader(),
-		iDefaultInputLayout(), iDefaultVertexShader()
-	{}
-	VertexShader::~VertexShader() = default;
-
 	bool VertexShader::CreateByCSO( const std::string &filePath, const std::vector<D3D11_INPUT_ELEMENT_DESC> &inputElements, bool isEnableCache, ID3D11Device *pDevice )
 	{
 		if ( wasCreated ) { return true; }
@@ -112,12 +105,6 @@ namespace Donya
 		pContext->IASetInputLayout( iDefaultInputLayout.Get() );
 		pContext->VSSetShader( iDefaultVertexShader.Get(), 0, 0 );
 	}
-
-	PixelShader::PixelShader() :
-		wasCreated( false ),
-		iPixelShader(), iDefaultPixelShader()
-	{}
-	PixelShader::~PixelShader() = default;
 
 	bool PixelShader::CreateByCSO( const std::string &filePath, bool isEnableCache, ID3D11Device *pDevice )
 	{

@@ -63,7 +63,7 @@ namespace Donya
 	
 	// TODO : To specifiable these configuration by arguments of render method.
 
-	D3D11_DEPTH_STENCIL_DESC	DefaultDepthStencilDesc()
+	static constexpr D3D11_DEPTH_STENCIL_DESC	DefaultDepthStencilDesc()
 	{
 		D3D11_DEPTH_STENCIL_DESC standard{};
 		standard.DepthEnable		= TRUE;
@@ -72,7 +72,7 @@ namespace Donya
 		standard.StencilEnable		= FALSE;
 		return standard;
 	}
-	D3D11_RASTERIZER_DESC		DefaultRasterizerDesc()
+	static constexpr D3D11_RASTERIZER_DESC		DefaultRasterizerDesc()
 	{
 		D3D11_RASTERIZER_DESC standard{};
 		standard.FillMode				= D3D11_FILL_SOLID;
@@ -87,7 +87,7 @@ namespace Donya
 		standard.AntialiasedLineEnable	= TRUE;
 		return standard;
 	}
-	D3D11_SAMPLER_DESC			DefaultSamplerDesc()
+	static constexpr D3D11_SAMPLER_DESC			DefaultSamplerDesc()
 	{
 		D3D11_SAMPLER_DESC standard{};
 		/*
@@ -104,7 +104,56 @@ namespace Donya
 		return standard;
 	}
 
+	/*
+	Build input-element-descs are:
+	POSITION	:	DXGI_FORMAT_R32G32B32_FLOAT,
+	NORMAL		:	DXGI_FORMAT_R32G32B32_FLOAT,
+	TEXCOORD	:	DXGI_FORMAT_R32G32_FLOAT,
+	*/
+	static std::vector<D3D11_INPUT_ELEMENT_DESC> MakeInputElementsStatic()
+	{
+		const auto IEDescsPos = Donya::Vertex::Pos::InputElements();
+		const auto IEDescsTex = Donya::Vertex::Tex::InputElements();
+
+		std::vector<D3D11_INPUT_ELEMENT_DESC> wholeIEDescs{};
+		wholeIEDescs.insert( wholeIEDescs.end(), IEDescsPos.begin(), IEDescsPos.end() );
+		wholeIEDescs.insert( wholeIEDescs.end(), IEDescsTex.begin(), IEDescsTex.end() );
+		return wholeIEDescs;
+	}
+	/*
+	Build input-element-descs are:
+	POSITION	:	DXGI_FORMAT_R32G32B32_FLOAT,
+	NORMAL		:	DXGI_FORMAT_R32G32B32_FLOAT,
+	TEXCOORD	:	DXGI_FORMAT_R32G32_FLOAT,
+	WEIGHTS		:	DXGI_FORMAT_R32G32B32A32_FLOAT,
+	BONES		:	DXGI_FORMAT_R32G32B32A32_UINT,
+	*/
+	static std::vector<D3D11_INPUT_ELEMENT_DESC> MakeInputElementsSkinned()
+	{
+		const auto IEDescsBone = Donya::Vertex::Bone::InputElements();
+
+		std::vector<D3D11_INPUT_ELEMENT_DESC> wholeIEDescs = MakeInputElementsStatic();
+		wholeIEDescs.insert( wholeIEDescs.end(), IEDescsBone.begin(), IEDescsBone.end() );
+		return wholeIEDescs;
+	}
+
 	std::unique_ptr<ModelRenderer::DefaultStatus> ModelRenderer::pDefaultStatus = nullptr;
+
+	std::vector<D3D11_INPUT_ELEMENT_DESC> ModelRenderer::GetInputElementDescs( Donya::ModelUsage usage )
+	{
+		switch ( usage )
+		{
+		case Donya::ModelUsage::Static:
+			return MakeInputElementsStatic();
+		case Donya::ModelUsage::Skinned:
+			return MakeInputElementsSkinned();
+		default:
+			_ASSERT_EXPR( 0, L"Error : That model-usage is not supported!" );
+			break;
+		}
+		return std::vector<D3D11_INPUT_ELEMENT_DESC>{};
+	}
+
 	bool ModelRenderer::InitDefaultStatus( ID3D11Device *pDevice )
 	{
 		// Already initialized.

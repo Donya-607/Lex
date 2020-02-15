@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "Donya/CBuffer.h"
+#include "Donya/Shader.h"
 #include "Donya/Vector.h"
 
 #include "ModelMaker.h"		// Use for ModelUsage, and specify to friend to making function.
@@ -89,9 +90,16 @@ namespace Donya
 			int idRSState	= DEFAULT_ID;
 			int idPSSampler	= DEFAULT_ID;
 			Donya::CBuffer<Constants::PerModel::Common> CBPerModel;
+			Donya::VertexShader VS;
+			Donya::PixelShader  PS;
 		};
 		static std::unique_ptr<DefaultStatus> pDefaultStatus;
 	public:
+		/// <summary>
+		/// Returns input-element-descs that used for create a default vertex-shader.<para></para>
+		/// That is the synthesis of return value of the static method of some structure's that belongs to Donya::Vertex.
+		/// </summary>
+		static std::vector<D3D11_INPUT_ELEMENT_DESC> GetInputElementDescs( Donya::ModelUsage usage );
 		/// <summary>
 		/// Initialization of default shading statuses.<para></para>
 		/// Please call only once a time when the initialize of application(before a game-loop).<para></para>
