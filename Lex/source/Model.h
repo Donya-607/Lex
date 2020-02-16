@@ -179,7 +179,6 @@ namespace Donya
 		void InitSubset( ID3D11Device *pDevice, Model::Subset *pDestination, const ModelSource::Subset &source );
 		void CreateMaterial( Model::Material *pDestination, ID3D11Device *pDevice );
 
-		bool ShouldHaveSkeletal( Donya::ModelUsage usage ) const;
 		void InitSkeletal();
 	};
 }

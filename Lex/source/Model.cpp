@@ -312,18 +312,6 @@ namespace Donya
 		}
 	}
 
-	bool Model::ShouldHaveSkeletal( Donya::ModelUsage usage ) const
-	{
-		switch ( usage )
-		{
-		case ModelUsage::Static: return false;
-		case ModelUsage::Skinned: return true;
-		default:
-			_ASSERT_EXPR( 0, L"Error : That model-usage is not supported!" );
-			break;
-		}
-		return false;
-	}
 	void Model::InitSkeletal()
 	{
 		auto AssignBone = []( Model::Bone *pDest, const ModelSource::Bone &source )
