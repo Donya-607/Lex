@@ -10,6 +10,7 @@
 
 #include "ModelCommon.h"
 #include "ModelSource.h"
+#include "ModelRenderer.h" // For friend declaration.
 
 namespace Donya
 {
@@ -100,6 +101,7 @@ namespace Donya
 	/// </summary>
 	class Model
 	{
+		friend ModelRenderer; // To usable for render.
 	public:
 		struct Material
 		{
@@ -125,8 +127,11 @@ namespace Donya
 		{
 			std::string								name;
 
-			int										nodeIndex;		// The index of this mesh's node.
-			std::vector<int>						nodeIndices;	// The indices of associated nodes with this mesh and this mesh's node.
+			Donya::Vector4x4						coordinateConversion;
+			Donya::Vector4x4						globalTransform;
+
+			int										boneIndex;		// The index of this mesh's node.
+			std::vector<int>						boneIndices;	// The indices of associated nodes with this mesh and this mesh's node.
 			std::vector<Donya::Vector4x4>			boneOffsets;	// The bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
 			/*
 			Note:
@@ -141,10 +146,23 @@ namespace Donya
 
 			ComPtr<ID3D11Buffer>					indexBuffer;
 		};
+		/// <summary>
+		/// The stored transforming data are local space(Calculated in: ParentGlobal.Inverse * Global).<para></para>
+		/// The "parentIndex" is valid only if used as an index of the Bone's array(it means skeletal).
+		/// </summary>
+		struct Bone
+		{
+			std::string			name;
+			int					parentIndex = -1; // -1 is invalid.
+			Donya::Vector3		scale{ 1.0f, 1.0f, 1.0f };
+			Donya::Quaternion	rotation;
+			Donya::Vector3		translation;
+		};
 	private:
 		std::shared_ptr<ModelSource>	pSource;
 		std::string						fileDirectory;	// Use for making file path.
 		std::vector<Mesh>				meshes;
+		std::vector<Bone>				skeletal;		// Represent bones of initial pose(like T-pose).
 	public:
 		/// <summary>
 		/// If set nullptr to "pDevice", use default device.
@@ -160,5 +178,8 @@ namespace Donya
 		void InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDestination, const std::vector<ModelSource::Subset> &source );
 		void InitSubset( ID3D11Device *pDevice, Model::Subset *pDestination, const ModelSource::Subset &source );
 		void CreateMaterial( Model::Material *pDestination, ID3D11Device *pDevice );
+
+		bool ShouldHaveSkeletal( Donya::ModelUsage usage ) const;
+		void InitSkeletal();
 	};
 }

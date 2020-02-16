@@ -6,6 +6,8 @@
 #include "Donya/Donya.h"			// GetDevice().
 #include "Donya/RenderingStates.h"	// For default shading.
 
+#include "Model.h"
+
 namespace Donya
 {
 	namespace Strategy
@@ -634,7 +636,7 @@ namespace Donya
 	}
 
 	ModelRenderer::ModelRenderer( Donya::ModelUsage usage, ID3D11Device *pDevice ) :
-		pCBPerMesh( nullptr ), CBPerModel(), CBPerSubset()
+		inputUsage( usage ), CBPerModel(), pCBPerMesh( nullptr ), CBPerSubset()
 	{
 		if ( !pDevice )
 		{
@@ -691,5 +693,116 @@ namespace Donya
 			return false;
 		}
 		return false;
+	}
+
+	void ModelRenderer::ActivateModelConstants( const Constants::PerModel::Common &input, const Donya::ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
+	{
+		CBPerModel.data = input;
+		CBPerModel.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
+	}
+	void ModelRenderer::DeactivateModelConstants( ID3D11DeviceContext *pImmediateContext ) const
+	{
+		CBPerModel.Deactivate( pImmediateContext );
+	}
+
+	void ModelRenderer::Render( const Donya::Model &model, const Donya::ConstantDesc &descMesh, const Donya::ConstantDesc &descSubset, ID3D11DeviceContext *pImmediateContext )
+	{
+		if ( !pImmediateContext )
+		{
+			pImmediateContext = Donya::GetImmediateContext();
+		}
+
+		pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+
+		const size_t meshCount = model.meshes.size();
+		for ( size_t i = 0; i < meshCount; ++i )
+		{
+			if ( EnableSkinned() )
+			{
+				UpdateConstantsPerMeshSkinned( model, i, descMesh, pImmediateContext );
+			}
+			else
+			{
+				UpdateConstantsPerMeshStatic ( model, i, descMesh, pImmediateContext );
+			}
+
+
+		}
+	}
+
+	bool ModelRenderer::EnableSkinned()
+	{
+		switch ( inputUsage )
+		{
+		case ModelUsage::Static:  return false;
+		case ModelUsage::Skinned: return true;
+		default:
+			_ASSERT_EXPR( 0, L"Error : That model-usage is not supported!" );
+			break;
+		}
+		return false;
+	}
+
+	Constants::PerMesh::Common ModelRenderer::MakeConstantsCommon( const Donya::Model &model, size_t meshIndex ) const
+	{
+		const auto &mesh = model.meshes[meshIndex];
+		Constants::PerMesh::Common constants{};
+
+		constants.adjustMatrix = mesh.globalTransform * mesh.coordinateConversion;
+
+		return constants;
+	}
+	Constants::PerMesh::Bone   ModelRenderer::MakeConstantsBone  ( const Donya::Model &model, size_t meshIndex ) const
+	{
+		const auto &mesh = model.meshes[meshIndex];
+		Constants::PerMesh::Bone constants{};
+
+		Donya::Vector4x4 boneToLocal{};
+		auto MakeMatrix = []( const Donya::Model::Bone &bone )->Donya::Vector4x4
+		{
+			Donya::Vector4x4 m{};
+			m._11 = bone.scale.x;
+			m._22 = bone.scale.y;
+			m._33 = bone.scale.z;
+
+			m *= bone.rotation.RequireRotationMatrix();
+
+			m._41 = bone.translation.x;
+			m._42 = bone.translation.y;
+			m._43 = bone.translation.z;
+			return m;
+		};
+
+		const size_t boneCount = std::min( mesh.boneIndices.size(), scast<size_t>( Constants::PerMesh::Bone::MAX_BONE_COUNT ) );
+		for ( size_t i = 0; i < boneCount; ++i )
+		{
+			const Donya::Model::Bone &bone = model.skeletal[mesh.boneIndices[i]];
+			boneToLocal = MakeMatrix( bone );
+
+			constants.boneTransforms[i] = mesh.boneOffsets[i] * boneToLocal;
+		}
+
+		return constants;
+	}
+	void ModelRenderer::UpdateConstantsPerMeshSkinned( const Donya::Model &model, size_t meshIndex, const Donya::ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
+	{
+		Constants::PerMesh::Common constantsCommon = MakeConstantsCommon( model, meshIndex );
+		Constants::PerMesh::Bone   constantsBone   = MakeConstantsBone( model, meshIndex );
+
+		pCBPerMesh->Update( constantsCommon, constantsBone );
+
+		ActivateCBPerMesh( desc, pImmediateContext );
+	}
+	void ModelRenderer::UpdateConstantsPerMeshStatic ( const Donya::Model &model, size_t meshIndex, const Donya::ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
+	{
+		Constants::PerMesh::Common constantsCommon = MakeConstantsCommon( model, meshIndex );
+		
+		pCBPerMesh->Update( constantsCommon );
+
+		ActivateCBPerMesh( desc, pImmediateContext );
+	}
+	void ModelRenderer::ActivateCBPerMesh( const Donya::ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
+	{
+		pCBPerMesh->Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
 	}
 }

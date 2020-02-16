@@ -577,7 +577,7 @@ namespace Donya
 		const		int mtlCount			= pNode->GetMaterialCount();
 		const		int polygonCount		= pFBXMesh->GetPolygonCount();
 
-		pMesh->nodeIndex = FindBoneIndex( constructedSkeletal, pNode->GetName() );
+		pMesh->boneIndex = FindBoneIndex( constructedSkeletal, pNode->GetName() );
 		pMesh->indices.resize( polygonCount * EXPECT_POLYGON_SIZE );
 		pMesh->name = pNode->GetName();
 
@@ -654,8 +654,8 @@ namespace Donya
 					FetchInfluence ( pCluster, clusterIndex );
 					FetchBoneOffset( pCluster, pNode );
 
-					int nodeIndex = FindBoneIndex( constructedSkeletal, pCluster->GetLink()->GetName() );
-					pMesh->nodeIndices.emplace_back( nodeIndex );
+					int boneIndex = FindBoneIndex( constructedSkeletal, pCluster->GetLink()->GetName() );
+					pMesh->boneIndices.emplace_back( boneIndex );
 				}
 			}
 		}

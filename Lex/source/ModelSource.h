@@ -82,8 +82,8 @@ namespace Donya
 			Donya::Vector4x4				coordinateConversion;
 			Donya::Vector4x4				globalTransform;
 
-			int								nodeIndex;		// The index of this mesh's node.
-			std::vector<int>				nodeIndices;	// The indices of associated nodes with this mesh and this mesh's node.
+			int								boneIndex;		// The index of this mesh's node.
+			std::vector<int>				boneIndices;	// The indices of associated nodes with this mesh and this mesh's node.
 			std::vector<Donya::Vector4x4>	boneOffsets;	// The bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
 
 			std::vector<Vertex::Pos>		positions;
@@ -103,8 +103,8 @@ namespace Donya
 						CEREAL_NVP(	name			),
 						CEREAL_NVP(	coordinateConversion	),
 						CEREAL_NVP(	globalTransform			),
-						CEREAL_NVP(	nodeIndex		),
-						CEREAL_NVP(	nodeIndices		),
+						CEREAL_NVP(	boneIndex		),
+						CEREAL_NVP(	boneIndices		),
 						CEREAL_NVP(	boneOffsets		),
 						CEREAL_NVP(	positions		),
 						CEREAL_NVP(	texCoords		),

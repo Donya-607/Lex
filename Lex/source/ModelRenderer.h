@@ -75,6 +75,8 @@ namespace Donya
 		};
 	}
 
+	class Model; // Use for a reference at Render() method.
+	
 	/// <summary>
 	/// Render a 3D-model.
 	/// </summary>
@@ -120,17 +122,42 @@ namespace Donya
 	public:
 	// Instance members.
 	private:
-		std::shared_ptr<Strategy::IConstantsPerMesh> pCBPerMesh;
+		const ModelUsage inputUsage;
 		Donya::CBuffer<Constants::PerModel::Common>  CBPerModel;
+		std::shared_ptr<Strategy::IConstantsPerMesh> pCBPerMesh;
 		Donya::CBuffer<Constants::PerSubset::Common> CBPerSubset;
 	private:
 		// This making function declared at "ModelMaker.h".
 		friend size_t MakeRenderer( ModelUsage usage, ID3D11Device *pDevice );
+	private:
 		/// <summary>
 		/// If set nullptr to "pDevice", use default device.
 		/// </summary>
 		ModelRenderer( Donya::ModelUsage usage, ID3D11Device *pDevice = nullptr );
-	private:
 		bool AssignSpecifiedCBuffer( Donya::ModelUsage usage, ID3D11Device *pDevice );
+	public:
+		/// <summary>
+		/// Enable a configuration of drawing some model.<para></para>
+		/// If set nullptr to "pImmediateContext", use default device.
+		/// </summary>
+		void ActivateModelConstants( const Constants::PerModel::Common &enableData, const Donya::ConstantDesc &settingDesc, ID3D11DeviceContext *pImmediateContext = nullptr );
+		/// <summary>
+		/// Disable a configuration of drawing some model.<para></para>
+		/// If set nullptr to "pImmediateContext", use default device.
+		/// </summary>
+		void DeactivateModelConstants( ID3D11DeviceContext *pImmediateContext = nullptr ) const;
+		/// <summary>
+		/// Call a draw method by each subset of each mesh of the model.<para></para>
+		/// If set nullptr to "pImmediateContext", use default device.
+		/// </summary>
+		void Render( const Donya::Model &model, const Donya::ConstantDesc &meshSettings, const Donya::ConstantDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext = nullptr );
+	private:
+		bool EnableSkinned();
+
+		Constants::PerMesh::Common MakeConstantsCommon( const Donya::Model &model, size_t meshIndex ) const;
+		Constants::PerMesh::Bone   MakeConstantsBone  ( const Donya::Model &model, size_t meshIndex ) const;
+		void UpdateConstantsPerMeshSkinned( const Donya::Model &model, size_t meshIndex, const Donya::ConstantDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
+		void UpdateConstantsPerMeshStatic ( const Donya::Model &model, size_t meshIndex, const Donya::ConstantDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
+		void ActivateCBPerMesh( const Donya::ConstantDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
 	};
 }

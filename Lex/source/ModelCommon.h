@@ -189,6 +189,16 @@ namespace Donya
 			};
 		}
 	}
+
+	/// <summary>
+	/// The usage of constant-buffer.
+	/// </summary>
+	struct ConstantDesc
+	{
+		unsigned int setSlot = 0;
+		bool setVS = true;
+		bool setPS = true;
+	};
 }
 
 CEREAL_CLASS_VERSION( Donya::Vertex::Pos,  0 )

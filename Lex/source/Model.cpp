@@ -145,6 +145,8 @@ namespace Donya
 		}
 
 		InitMeshes( pDevice, usage );
+
+		InitSkeletal();
 	}
 
 	void Model::InitMeshes( ID3D11Device *pDevice, Donya::ModelUsage usage )
@@ -156,10 +158,12 @@ namespace Donya
 		{
 			auto Assign = []( Model::Mesh *pDest, const ModelSource::Mesh &source )
 			{
-				pDest->name			= source.name;
-				pDest->nodeIndex	= source.nodeIndex;
-				pDest->nodeIndices	= source.nodeIndices;
-				pDest->boneOffsets	= source.boneOffsets;
+				pDest->name					= source.name;
+				pDest->coordinateConversion	= source.coordinateConversion;
+				pDest->globalTransform		= source.globalTransform;
+				pDest->boneIndex			= source.boneIndex;
+				pDest->boneIndices			= source.boneIndices;
+				pDest->boneOffsets			= source.boneOffsets;
 			};
 
 			for ( size_t i = 0; i < meshCount; ++i )
@@ -305,6 +309,37 @@ namespace Donya
 		if ( !succeeded )
 		{
 			AssertCreation( "texture", fileDirectory + pDest->textureName );
+		}
+	}
+
+	bool Model::ShouldHaveSkeletal( Donya::ModelUsage usage ) const
+	{
+		switch ( usage )
+		{
+		case ModelUsage::Static: return false;
+		case ModelUsage::Skinned: return true;
+		default:
+			_ASSERT_EXPR( 0, L"Error : That model-usage is not supported!" );
+			break;
+		}
+		return false;
+	}
+	void Model::InitSkeletal()
+	{
+		auto AssignBone = []( Model::Bone *pDest, const ModelSource::Bone &source )
+		{
+			pDest->name			= source.name;
+			pDest->parentIndex	= source.parentIndex;
+			pDest->scale		= source.scale;
+			pDest->rotation		= source.rotation;
+			pDest->translation	= source.translation;
+		};
+
+		const size_t boneCount = pSource->skeletal.size();
+		skeletal.resize( ( boneCount ) );
+		for ( size_t i = 0; i < boneCount; ++i )
+		{
+			AssignBone( &skeletal[i], pSource->skeletal[i] );
 		}
 	}
 }
