@@ -291,7 +291,7 @@ namespace Donya
 		std::vector<Motion> motions;
 		std::vector<Face>	collisionFaces;
 
-		ModelSource			source;
+		Model::ModelSource	source;
 	private:
 		float				sampleFPS;		// Use to sampling-rate of an all motions. If set value of lower-equal than zero, use a model's sampling-rate.
 	public:
@@ -345,7 +345,7 @@ namespace Donya
 		/// </summary>
 		void SaveByCereal( const std::string &filePath ) const;
 	public:
-		ModelSource GetModelSource() const { return source; }
+		Model::ModelSource GetModelSource() const { return source; }
 
 		std::string GetAbsoluteFilePath()					const { return absFilePath;		}
 		std::string GetOnlyFileName()						const { return fileName;		}

@@ -705,8 +705,13 @@ namespace Donya
 		CBPerModel.Deactivate( pImmediateContext );
 	}
 
-	void ModelRenderer::Render( const Donya::Model &model, const Donya::ConstantDesc &descMesh, const Donya::ConstantDesc &descSubset, ID3D11DeviceContext *pImmediateContext )
+	// HACK : These render method can optimize. There is many copy-paste :(
+
+	bool ModelRenderer::RenderSkinned( const Donya::Model &model, const Animation::Motion &motion, const Donya::ConstantDesc &descMesh, const Donya::ConstantDesc &descSubset, ID3D11DeviceContext *pImmediateContext )
 	{
+		if ( !EnableSkinned() ) { return false; }
+		// else
+
 		if ( !pImmediateContext )
 		{
 			pImmediateContext = Donya::GetImmediateContext();
@@ -717,17 +722,34 @@ namespace Donya
 		const size_t meshCount = model.meshes.size();
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
-			if ( EnableSkinned() )
-			{
-				UpdateConstantsPerMeshSkinned( model, i, descMesh, pImmediateContext );
-			}
-			else
-			{
-				UpdateConstantsPerMeshStatic ( model, i, descMesh, pImmediateContext );
-			}
+			UpdateConstantsPerMeshSkinned( model, i, descMesh, pImmediateContext );
 
 
 		}
+
+		return true;
+	}
+	bool ModelRenderer::RenderStatic( const Donya::Model &model, const Donya::ConstantDesc &descMesh, const Donya::ConstantDesc &descSubset, ID3D11DeviceContext *pImmediateContext )
+	{
+		if ( EnableSkinned() ) { return false; }
+		// else
+
+		if ( !pImmediateContext )
+		{
+			pImmediateContext = Donya::GetImmediateContext();
+		}
+
+		pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+
+		const size_t meshCount = model.meshes.size();
+		for ( size_t i = 0; i < meshCount; ++i )
+		{
+			UpdateConstantsPerMeshStatic( model, i, descMesh, pImmediateContext );
+
+
+		}
+
+		return true;
 	}
 
 	bool ModelRenderer::EnableSkinned()
@@ -752,7 +774,7 @@ namespace Donya
 
 		return constants;
 	}
-	Constants::PerMesh::Bone   ModelRenderer::MakeConstantsBone  ( const Donya::Model &model, size_t meshIndex ) const
+	Constants::PerMesh::Bone   ModelRenderer::MakeConstantsBone  ( const Donya::Model &model, size_t meshIndex, const Animation::Motion &motion ) const
 	{
 		const auto &mesh = model.meshes[meshIndex];
 		Constants::PerMesh::Bone constants{};
@@ -784,10 +806,10 @@ namespace Donya
 
 		return constants;
 	}
-	void ModelRenderer::UpdateConstantsPerMeshSkinned( const Donya::Model &model, size_t meshIndex, const Donya::ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
+	void ModelRenderer::UpdateConstantsPerMeshSkinned( const Donya::Model &model, size_t meshIndex, const Animation::Motion &motion, const Donya::ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
 	{
 		Constants::PerMesh::Common constantsCommon = MakeConstantsCommon( model, meshIndex );
-		Constants::PerMesh::Bone   constantsBone   = MakeConstantsBone( model, meshIndex );
+		Constants::PerMesh::Bone   constantsBone   = MakeConstantsBone  ( model, meshIndex, motion );
 
 		pCBPerMesh->Update( constantsCommon, constantsBone );
 

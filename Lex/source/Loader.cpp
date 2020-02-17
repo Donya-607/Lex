@@ -332,7 +332,7 @@ namespace Donya
 		return true;
 	}
 
-	void BuildBone( Animation::Bone *pBone, FBX::FbxNode *pNode, int parentIndex, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
+	void BuildBone( Model::Animation::Bone *pBone, FBX::FbxNode *pNode, int parentIndex, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
 	{
 		auto ToVec3 = []( const Donya::Vector4 &v )
 		{
@@ -347,7 +347,7 @@ namespace Donya
 		pBone->rotation		= ToQuaternion( localTransform.GetQ() );
 		pBone->translation	= ToVec3( Convert( localTransform.GetT() ) );
 	}
-	void BuildSkeletalRecursively( std::vector<Animation::Bone> *pSkeletal, FBX::FbxNode *pCurrentNode, int parentIndex )
+	void BuildSkeletalRecursively( std::vector<Model::Animation::Bone> *pSkeletal, FBX::FbxNode *pCurrentNode, int parentIndex )
 	{
 	#if 0 // NOT_IMPLEMENTED_YET
 
@@ -385,7 +385,7 @@ namespace Donya
 
 	#endif // NOT_IMPLEMENTED_YET
 	}
-	void BuildSkeletal( std::vector<Animation::Bone> *pSkeletal, const std::vector<FBX::FbxNode *> &skeletalNodes, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
+	void BuildSkeletal( std::vector<Model::Animation::Bone> *pSkeletal, const std::vector<FBX::FbxNode *> &skeletalNodes, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
 	{
 		/*
 		This BuildSkeletal() function will build a skeletal by nodes that have skeletal.
@@ -395,7 +395,7 @@ namespace Donya
 
 		for ( auto &pNode : skeletalNodes )
 		{
-			Animation::Bone bone{};
+			Model::Animation::Bone bone{};
 			BuildBone( &bone, pNode, parentIndex, currentTime );
 			pSkeletal->emplace_back( std::move( bone ) );
 
@@ -429,7 +429,7 @@ namespace Donya
 
 		return -1;
 	}
-	int  FindBoneIndex( const std::vector<Animation::Bone> &skeletal, const std::string &keyName )
+	int  FindBoneIndex( const std::vector<Model::Animation::Bone> &skeletal, const std::string &keyName )
 	{
 		const size_t boneCount = skeletal.size();
 		for ( size_t i = 0; i < boneCount; ++i )
@@ -572,7 +572,7 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<Animation::Bone> &constructedSkeletal, const std::string &fileDirectory )
+	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<Model::Animation::Bone> &constructedSkeletal, const std::string &fileDirectory )
 	{
 		AttachGlobalTransform( pMesh, pFBXMesh );
 		AdjustCoordinate( pMesh );
@@ -837,7 +837,7 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMeshes( std::vector<ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<Animation::Bone> &constructedSkeletal, const std::string &fileDirectory )
+	void BuildMeshes( std::vector<ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<Model::Animation::Bone> &constructedSkeletal, const std::string &fileDirectory )
 	{
 		const size_t meshCount = meshNodes.size();
 		pMeshes->resize( meshCount );
@@ -850,7 +850,7 @@ namespace Donya
 		}
 	}
 
-	void BuildKeyFrame( Animation::KeyFrame *pKeyFrame, const std::vector<FBX::FbxNode *> &animNodes, const FBX::FbxTime &currentTime, float currentSeconds )
+	void BuildKeyFrame( Model::Animation::KeyFrame *pKeyFrame, const std::vector<FBX::FbxNode *> &animNodes, const FBX::FbxTime &currentTime, float currentSeconds )
 	{
 		const size_t nodeCount = animNodes.size();
 
@@ -859,7 +859,7 @@ namespace Donya
 
 		BuildSkeletal( &pKeyFrame->keyPose, animNodes, currentTime );
 	}
-	void BuildAnimations( std::vector<Animation::Motion> *pAnimations, float samplingFPS, FBX::FbxScene *pScene , const std::vector<FBX::FbxNode *> &animNodes )
+	void BuildAnimations( std::vector<Model::Animation::Motion> *pAnimations, float samplingFPS, FBX::FbxScene *pScene , const std::vector<FBX::FbxNode *> &animNodes )
 	{
 		// List of all the animation stack. 
 		FBX::FbxArray<FBX::FbxString *> animationStackNames;
@@ -911,7 +911,7 @@ namespace Donya
 			const int endFrame		= scast<int>( endTime.Get()   / samplingStep.Get() );
 			const int frameCount	= scast<int>( ( endTime.Get() - beginTime.Get() ) / samplingStep.Get() );
 
-			Animation::Motion motion{};
+			Model::Animation::Motion motion{};
 			motion.name				= std::string{ pAnimStackName->Buffer() };	
 			motion.samplingRate		= samplingRate;
 			motion.animSeconds		= samplingTime * frameCount;
