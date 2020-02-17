@@ -297,6 +297,15 @@ namespace Donya
 			bool setVS = true;
 			bool setPS = true;
 		};
+		/// <summary>
+		/// The usage of shader-resource view.
+		/// </summary>
+		struct TextureDesc
+		{
+			unsigned int setSlot = 0;
+			bool setVS = false;
+			bool setPS = true;
+		};
 	}
 }
 

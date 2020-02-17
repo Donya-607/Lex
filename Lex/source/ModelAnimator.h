@@ -9,6 +9,8 @@ namespace Donya
 {
 	namespace Model
 	{
+		// TODO : Have the FPS member to Animator.
+
 		/// <summary>
 		/// This class's role is calculation a motion frame.
 		/// </summary>

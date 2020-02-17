@@ -12,88 +12,91 @@
 
 namespace Donya
 {
-
-#pragma region Model
-
-	static std::unordered_map<size_t, std::unique_ptr<Model>> modelMap{};
-
-	size_t MakeHash( const Donya::Loader &loader, ModelUsage usage )
+	namespace Model
 	{
-		size_t first	= std::hash<std::string>{}( loader.GetAbsoluteFilePath() );
-		size_t second	= std::hash<ModelUsage> {}( usage );
 
-		return Donya::CombineHash( first, second );
-	}
+	#pragma region Model
 
-	size_t MakeModel( const Donya::Loader &loader, ModelUsage usage, ID3D11Device *pDevice )
-	{
-		if ( !pDevice )
+		static std::unordered_map<size_t, std::unique_ptr<Model>> modelMap{};
+
+		size_t MakeHash( const Donya::Loader &loader, ModelUsage usage )
 		{
-			pDevice = Donya::GetDevice();
+			size_t first	= std::hash<std::string>{}( loader.GetAbsoluteFilePath() );
+			size_t second	= std::hash<ModelUsage> {}( usage );
+
+			return Donya::CombineHash( first, second );
 		}
 
-		const size_t hash = MakeHash( loader, usage );
-
-		if ( modelMap.find( hash ) != modelMap.end() )
+		size_t MakeModel( const Donya::Loader &loader, ModelUsage usage, ID3D11Device *pDevice )
 		{
+			if ( !pDevice )
+			{
+				pDevice = Donya::GetDevice();
+			}
+
+			const size_t hash = MakeHash( loader, usage );
+
+			if ( modelMap.find( hash ) != modelMap.end() )
+			{
+				return hash;
+			}
+			// else
+
+			Model model{ loader.GetModelSource(), loader.GetFileDirectory(), usage, pDevice };
+			modelMap.insert
+			(
+				std::make_pair
+				(
+					hash,
+					std::make_unique<Model>( std::move( model ) )
+				)
+			);
+
 			return hash;
 		}
-		// else
 
-		Model model{ loader.GetModelSource(), loader.GetFileDirectory(), usage, pDevice };
-		modelMap.insert
-		(
-			std::make_pair
-			(
-				hash,
-				std::make_unique<Model>( std::move( model ) )
-			)
-		);
-
-		return hash;
-	}
-
-	const std::unique_ptr<Model> *AcquireRawModel( size_t id )
-	{
-		const auto found = modelMap.find( id );
-		if ( found == modelMap.end() )
+		const std::unique_ptr<Model> *AcquireRawModel( size_t id )
 		{
-			return nullptr;
+			const auto found = modelMap.find( id );
+			if ( found == modelMap.end() )
+			{
+				return nullptr;
+			}
+			// else
+
+			return &found->second;
 		}
-		// else
 
-		return &found->second;
-	}
-
-	bool RemoveModelCache( size_t id )
-	{
-		const auto found = modelMap.find( id );
-		if ( found == modelMap.end() )
+		bool RemoveModelCache( size_t id )
 		{
-			return false;
+			const auto found = modelMap.find( id );
+			if ( found == modelMap.end() )
+			{
+				return false;
+			}
+			// else
+
+			modelMap.erase( found );
+
+			return true;
 		}
-		// else
+		void ClearModelCache()
+		{
+			modelMap.clear();
+		}
 
-		modelMap.erase( found );
+	// region Model
+	#pragma endregion
 
-		return true;
+	#pragma region Renderer
+
+		size_t MakeRenderer( ModelUsage usage, ID3D11Device *pDevice )
+		{
+			return NULL;
+		}
+
+	// region Renderer
+	#pragma endregion
+
 	}
-	void ClearModelCache()
-	{
-		modelMap.clear();
-	}
-
-// region Model
-#pragma endregion
-
-#pragma region Renderer
-
-	size_t MakeRenderer( ModelUsage usage, ID3D11Device *pDevice )
-	{
-		return NULL;
-	}
-
-// region Renderer
-#pragma endregion
-
 }

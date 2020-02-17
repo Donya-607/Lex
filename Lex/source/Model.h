@@ -26,75 +26,39 @@ namespace Donya
 			class VertexBase
 			{
 			protected:
-				ComPtr<ID3D11Buffer> pBuffer; // Internal vertex-buffer.
+				ComPtr<ID3D11Buffer> pBufferPos;
 			public:
-				ID3D11Buffer *Get() const
-				{
-					return pBuffer.Get();
-				}
-				ID3D11Buffer * const *GetAddressOf() const
-				{
-					return pBuffer.GetAddressOf();
-				}
+				HRESULT CreateVertexBufferPos( ID3D11Device *pDevice, const std::vector<Vertex::Pos> &source );
+				virtual HRESULT CreateVertexBufferTex ( ID3D11Device *pDevice, const std::vector<Vertex::Tex>  &source ) { return S_OK; }
+				virtual HRESULT CreateVertexBufferBone( ID3D11Device *pDevice, const std::vector<Vertex::Bone> &source ) { return S_OK; }
 			public:
-				/// <summary>
-				/// Returns: sizeof(struct Vertex);
-				/// </summary>
-				virtual size_t  SizeofVertex() const = 0;
-				/// <summary>
-				/// Make an internal vertex-buffer.
-				/// </summary>
-				virtual HRESULT CreateVertexBuffer
-				(
-					ID3D11Device *pDevice,
-					const std::vector<Model::Vertex::Pos>  &sourcePositions,
-					const std::vector<Model::Vertex::Tex>  &sourceTexCoords,
-					const std::vector<Model::Vertex::Bone> &sourceBoneInfluences
-				) = 0;
+				virtual void SetVertexBuffers( ID3D11DeviceContext *pImmediateContext ) const = 0;
+				// virtual void ResetVertexBuffers( ID3D11DeviceContext *pImmediateContext ) const = 0;
 			};
 
 			class VertexSkinned final : public VertexBase
 			{
+			private:
+				static constexpr size_t BUFFER_COUNT = 3U;
+			private:
+				ComPtr<ID3D11Buffer> pBufferTex;
+				ComPtr<ID3D11Buffer> pBufferBone;
 			public:
-				struct Vertex
-				{
-					Model::Vertex::Pos	position;
-					Model::Vertex::Tex	texCoord;
-					Model::Vertex::Bone	boneInfluence;
-				};
+				HRESULT CreateVertexBufferTex ( ID3D11Device *pDevice, const std::vector<Vertex::Tex>  &source );
+				HRESULT CreateVertexBufferBone( ID3D11Device *pDevice, const std::vector<Vertex::Bone> &source );
 			public:
-				size_t  SizeofVertex() const override
-				{
-					return sizeof( Vertex );
-				}
-				HRESULT CreateVertexBuffer
-				(
-					ID3D11Device *pDevice,
-					const std::vector<Model::Vertex::Pos>  &sourcePositions,
-					const std::vector<Model::Vertex::Tex>  &sourceTexCoords,
-					const std::vector<Model::Vertex::Bone> &sourceBoneInfluences
-				) override;
+				void SetVertexBuffers( ID3D11DeviceContext *pImmediateContext ) const override;
 			};
 			class VertexStatic final : public VertexBase
 			{
+			private:
+				static constexpr size_t BUFFER_COUNT = 2U;
+			private:
+				ComPtr<ID3D11Buffer> pBufferTex;
 			public:
-				struct Vertex
-				{
-					Model::Vertex::Pos	position;
-					Model::Vertex::Tex	texCoord;
-				};
+				HRESULT CreateVertexBufferTex( ID3D11Device *pDevice, const std::vector<Vertex::Tex> &source );
 			public:
-				size_t SizeofVertex() const override
-				{
-					return sizeof( Vertex );
-				}
-				HRESULT CreateVertexBuffer
-				(
-					ID3D11Device *pDevice,
-					const std::vector<Model::Vertex::Pos>  &sourcePositions,
-					const std::vector<Model::Vertex::Tex>  &sourceTexCoords,
-					const std::vector<Model::Vertex::Bone> &sourceBoneInfluences
-				) override;
+				void SetVertexBuffers( ID3D11DeviceContext *pImmediateContext ) const override;
 			};
 		}
 
@@ -169,12 +133,12 @@ namespace Donya
 			/// <summary>
 			/// If set nullptr to "pDevice", use default device.
 			/// </summary>
-			Model( ModelSource &rvLoadedSource, const std::string &fileDirectory, Model::ModelUsage usage, ID3D11Device *pDevice = nullptr );
+			Model( ModelSource &rvLoadedSource, const std::string &fileDirectory, ModelUsage usage, ID3D11Device *pDevice = nullptr );
 		private:
 			// These initialize method are built by "pSource".
 
-			void InitMeshes( ID3D11Device *pDevice, Model::ModelUsage usage );
-			void AssignVertexStructure( Model::Mesh *pDestination, Model::ModelUsage usage );
+			void InitMeshes( ID3D11Device *pDevice, ModelUsage usage );
+			void AssignVertexStructure( Model::Mesh *pDestination, ModelUsage usage );
 			void CreateBuffers( ID3D11Device *pDevice, Model::Mesh *pDestination, const ModelSource::Mesh &source );
 
 			void InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDestination, const std::vector<ModelSource::Subset> &source );

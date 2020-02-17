@@ -405,12 +405,12 @@ namespace Donya
 		}
 	}
 
-	void AttachGlobalTransform( ModelSource::Mesh *pMesh, FBX::FbxMesh *pFBXMesh )
+	void AttachGlobalTransform( Model::ModelSource::Mesh *pMesh, FBX::FbxMesh *pFBXMesh )
 	{
 		FBX::FbxAMatrix globalTransform = pFBXMesh->GetNode()->EvaluateGlobalTransform( 0 );
 		pMesh->globalTransform = Convert( globalTransform );
 	}
-	void AdjustCoordinate( ModelSource::Mesh *pMesh )
+	void AdjustCoordinate( Model::ModelSource::Mesh *pMesh )
 	{
 		// Convert right-hand space to left-hand space.
 		pMesh->coordinateConversion._11 = -1.0f;
@@ -443,14 +443,14 @@ namespace Donya
 		return -1;
 	}
 
-	void BuildSubsets( std::vector<ModelSource::Subset> *pSubsets, FBX::FbxMesh *pMesh, const std::string &fileDirectory )
+	void BuildSubsets( std::vector<Model::ModelSource::Subset> *pSubsets, FBX::FbxMesh *pMesh, const std::string &fileDirectory )
 	{
 		FBX::FbxNode *pNode = pMesh->GetNode();
 
 		const int mtlCount = pNode->GetMaterialCount();
 		pSubsets->resize( ( !mtlCount ) ? 1 : mtlCount );
 
-		auto FetchMaterial = [&fileDirectory]( ModelSource::Material *pMaterial, const char *strProperty, const char *strFactor, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
+		auto FetchMaterial = [&fileDirectory]( Model::ModelSource::Material *pMaterial, const char *strProperty, const char *strFactor, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
 		{
 			const FBX::FbxProperty property	= pSurfaceMaterial->FindProperty( strProperty	);
 			const FBX::FbxProperty factor	= pSurfaceMaterial->FindProperty( strFactor		);
@@ -458,7 +458,7 @@ namespace Donya
 			if ( !property.IsValid() ) { return; }
 			// else
 
-			auto AssignColor	= [&property, &factor]( ModelSource::Material *pMaterial )
+			auto AssignColor	= [&property, &factor]( Model::ModelSource::Material *pMaterial )
 			{
 				Donya::Vector3	color	= Convert( property.Get<FBX::FbxDouble3>() );
 				float			bias	= scast<float>( factor.Get<FBX::FbxDouble>() );
@@ -572,7 +572,7 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<Model::Animation::Bone> &constructedSkeletal, const std::string &fileDirectory )
+	void BuildMesh( Model::ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<Model::Animation::Bone> &constructedSkeletal, const std::string &fileDirectory )
 	{
 		AttachGlobalTransform( pMesh, pFBXMesh );
 		AdjustCoordinate( pMesh );
@@ -758,9 +758,9 @@ namespace Donya
 				int indexOffset	= scast<int>( subset.indexStart + subset.indexCount );
 
 				FBX::FbxVector4		fbxNormal{};
-				Donya::Vertex::Pos	pos{};
-				Donya::Vertex::Tex	tex{};
-				Donya::Vertex::Bone	infl{};
+				Model::Vertex::Pos	pos{};
+				Model::Vertex::Tex	tex{};
+				Model::Vertex::Bone	infl{};
 
 				const int polygonSize = pFBXMesh->GetPolygonSize( polyIndex );
 				_ASSERT_EXPR( polygonSize == EXPECT_POLYGON_SIZE, L"Error : A mesh did not triangulated!" );
@@ -792,7 +792,7 @@ namespace Donya
 						tex.texCoord.y = 1.0f - scast<float>( uv[1] ); // For DirectX's uv space(the origin is left-top).
 					}
 
-					auto AssignInfluence = [&NormalizeBoneInfluence]( Donya::Vertex::Bone *pInfl, const BoneInfluence &source )
+					auto AssignInfluence = [&NormalizeBoneInfluence]( Model::Vertex::Bone *pInfl, const BoneInfluence &source )
 					{
 						constexpr size_t MAX_INFLUENCE_COUNT = 4U; // Align as float4.
 						BoneInfluence infl = NormalizeBoneInfluence( source, MAX_INFLUENCE_COUNT );
@@ -837,7 +837,7 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMeshes( std::vector<ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<Model::Animation::Bone> &constructedSkeletal, const std::string &fileDirectory )
+	void BuildMeshes( std::vector<Model::ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<Model::Animation::Bone> &constructedSkeletal, const std::string &fileDirectory )
 	{
 		const size_t meshCount = meshNodes.size();
 		pMeshes->resize( meshCount );
@@ -933,7 +933,7 @@ namespace Donya
 		ReleaseAnimationStackNames();
 	}
 
-	void BuildModelSource( ModelSource *pSource, FBX::FbxScene *pScene, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes, float animationSamplingFPS, const std::string &fileDirectory )
+	void BuildModelSource( Model::ModelSource *pSource, FBX::FbxScene *pScene, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes, float animationSamplingFPS, const std::string &fileDirectory )
 	{
 		BuildSkeletal( &pSource->skeletal, motionNodes );
 
@@ -1612,7 +1612,7 @@ namespace Donya
 							std::string subsetCaption = "Subset[" + std::to_string( j ) + "]";
 							if ( ImGui::TreeNode( subsetCaption.c_str() ) )
 							{
-								auto ShowMaterialContain = [this]( const ModelSource::Material &mtl )
+								auto ShowMaterialContain = [this]( const Model::ModelSource::Material &mtl )
 								{
 									ImGui::Text
 									(

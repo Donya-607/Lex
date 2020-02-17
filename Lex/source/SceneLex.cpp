@@ -31,14 +31,14 @@
 #include "ModelMaker.h"
 namespace
 {
-	std::vector<Donya::Model> tmp{};
+	std::vector<Donya::Model::Model> tmp{};
 	void Test()
 	{
-		Donya::ModelSource src{};
-		tmp.emplace_back( src, "Test/Directory/", Donya::ModelUsage::Skinned );
+		Donya::Model::ModelSource src{};
+		tmp.emplace_back( src, "Test/Directory/", Donya::Model::ModelUsage::Skinned );
 
-		Donya::Model lhs{ src, "Test/Directory/", Donya::ModelUsage::Static };
-		Donya::Model rhs{ std::move( lhs ) };
+		Donya::Model::Model lhs{ src, "Test/Directory/", Donya::Model::ModelUsage::Static };
+		Donya::Model::Model rhs{ std::move( lhs ) };
 		rhs = lhs;
 		rhs = std::move( lhs );
 		
@@ -86,7 +86,7 @@ public:
 			result = Donya::SkinnedMesh::Create( loader, &mesh );
 			if ( !result ) { succeeded = false; }
 			
-			modelID = Donya::MakeModel( loader, Donya::ModelUsage::Skinned );
+			modelID = Donya::Model::MakeModel( loader, Donya::Model::ModelUsage::Skinned );
 			if ( !modelID ) { succeeded = false; }
 
 			result = Donya::MotionChunk::Create( loader, &motions );
