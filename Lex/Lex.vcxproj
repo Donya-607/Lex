@@ -204,6 +204,7 @@
     <ClInclude Include="Source\Loader.h" />
     <ClInclude Include="Source\misc.h" />
     <ClInclude Include="Source\Model.h" />
+    <ClInclude Include="Source\ModelAnimator.h" />
     <ClInclude Include="Source\ModelCommon.h" />
     <ClInclude Include="Source\ModelMaker.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
@@ -255,6 +256,7 @@
     <ClCompile Include="Source\Loader.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\Model.cpp" />
+    <ClCompile Include="Source\ModelAnimator.cpp" />
     <ClCompile Include="Source\ModelMaker.cpp" />
     <ClCompile Include="Source\ModelRenderer.cpp" />
     <ClCompile Include="Source\Motion.cpp" />

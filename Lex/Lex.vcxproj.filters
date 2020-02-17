@@ -207,6 +207,9 @@
     <ClInclude Include="Source\ModelCommon.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="Source\ModelAnimator.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -342,6 +345,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\ModelRenderer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ModelAnimator.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

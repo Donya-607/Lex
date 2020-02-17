@@ -314,7 +314,7 @@ namespace Donya
 
 	void Model::InitSkeletal()
 	{
-		auto AssignBone = []( Model::Bone *pDest, const ModelSource::Bone &source )
+		auto AssignBone = []( Model::Bone *pDest, const Animation::Bone &source )
 		{
 			pDest->name			= source.name;
 			pDest->parentIndex	= source.parentIndex;

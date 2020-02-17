@@ -1,8 +1,16 @@
 #pragma once
 
+// "ModelCommon.h" provides mainly a shared structures.
+
 #include <array>
 #include <d3d11.h>				// Use for implement the method of returns input-element-descs on each vertex struct.
+#include <vector>
 
+#undef max
+#undef min
+#include <cereal/types/vector.hpp>
+
+#include "Donya/Quaternion.h"
 #include "Donya/Serializer.h"	// Use for impl a serialize method.
 #include "Donya/Vector.h"
 
@@ -111,6 +119,94 @@ namespace Donya
 	}
 
 	/// <summary>
+	/// The structures related to animation.
+	/// </summary>
+	namespace Animation
+	{
+		/// <summary>
+		/// Represent a transforming data of an associated bone(you may call it Rig or Node), at some timing.<para></para>
+		/// The stored transforming data are local space(Calculated in: ParentGlobal.Inverse * Global).
+		/// </summary>
+		struct Bone
+		{
+			std::string			name;
+			int					parentIndex = -1; // -1 is invalid.
+			Donya::Vector3		scale{ 1.0f, 1.0f, 1.0f };
+			Donya::Quaternion	rotation;
+			Donya::Vector3		translation;
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				if ( version == 0 )
+				{
+					archive
+					(
+						CEREAL_NVP(	name		),
+						CEREAL_NVP(	parentIndex	),
+						CEREAL_NVP(	scale		),
+						CEREAL_NVP(	rotation	),
+						CEREAL_NVP(	translation	)
+					);
+				}
+			}
+		};
+
+		/// <summary>
+		/// A transforming data of an associated skeletal, at some timing.
+		/// </summary>
+		struct KeyFrame
+		{
+			float				seconds;
+			std::vector<Bone>	keyPose; // A skeletal at that timing.
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				if ( version == 0 )
+				{
+					archive
+					(
+						CEREAL_NVP(	seconds	),
+						CEREAL_NVP( keyPose	)
+					);
+				}
+			}
+		};
+		/// <summary>
+		/// A gathering of an associated key-frame. Store some snap-shots of skeletal per sampling-rate.
+		/// </summary>
+		struct Motion
+		{
+			static constexpr float	DEFAULT_SAMPLING_RATE = 1.0f / 24.0f;
+		public:
+			std::string				name;
+			float					samplingRate{ DEFAULT_SAMPLING_RATE };
+			float					animSeconds;
+			std::vector<KeyFrame>	keyFrames;
+		private:
+			friend class cereal::access;
+			template<class Archive>
+			void serialize( Archive &archive, std::uint32_t version )
+			{
+				if ( version == 0 )
+				{
+					archive
+					(
+						CEREAL_NVP(	name			),
+						CEREAL_NVP(	samplingRate	),
+						CEREAL_NVP(	animSeconds		),
+						CEREAL_NVP(	animSeconds		),
+						CEREAL_NVP(	keyFrames		)
+					);
+				}
+			}
+		};
+	}
+
+	/// <summary>
 	/// The members of constant-buffer by model type.
 	/// </summary>
 	namespace Constants
@@ -204,3 +300,7 @@ namespace Donya
 CEREAL_CLASS_VERSION( Donya::Vertex::Pos,  0 )
 CEREAL_CLASS_VERSION( Donya::Vertex::Tex,  0 )
 CEREAL_CLASS_VERSION( Donya::Vertex::Bone, 0 )
+
+CEREAL_CLASS_VERSION( Donya::Animation::Bone,		0 )
+CEREAL_CLASS_VERSION( Donya::Animation::KeyFrame,	0 )
+CEREAL_CLASS_VERSION( Donya::Animation::Motion,		0 )

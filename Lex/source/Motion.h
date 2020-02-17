@@ -5,7 +5,7 @@
 
 #include "Donya/Vector.h"
 
-// Program version : 0
+// Program version : 1
 
 namespace Donya
 {

@@ -332,23 +332,25 @@ namespace Donya
 		return true;
 	}
 
-	void BuildBone( ModelSource::Bone *pBone, FBX::FbxNode *pNode, int parentIndex )
+	void BuildBone( Animation::Bone *pBone, FBX::FbxNode *pNode, int parentIndex, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
 	{
 		auto ToVec3 = []( const Donya::Vector4 &v )
 		{
 			return Donya::Vector3{ v.x, v.y, v.z };
 		};
 
-		const FbxAMatrix &localTransform = pNode->EvaluateLocalTransform();
+		const FbxAMatrix &localTransform = pNode->EvaluateLocalTransform( currentTime );
 
+		pBone->name			= pNode->GetName();
 		pBone->parentIndex	= parentIndex;
 		pBone->scale		= ToVec3( Convert( localTransform.GetS() ) );
 		pBone->rotation		= ToQuaternion( localTransform.GetQ() );
 		pBone->translation	= ToVec3( Convert( localTransform.GetT() ) );
-		pBone->name			= pNode->GetName();
 	}
-	void BuildSkeletalRecursively( std::vector<ModelSource::Bone> *pSkeletal, FBX::FbxNode *pCurrentNode, int parentIndex )
+	void BuildSkeletalRecursively( std::vector<Animation::Bone> *pSkeletal, FBX::FbxNode *pCurrentNode, int parentIndex )
 	{
+	#if 0 // NOT_IMPLEMENTED_YET
+
 		/*
 		This BuildSkeletalRecursively() function will build a skeletal by brute-forced.
 		(traverse on all nodes, then fetch some data if the node has skeletal)
@@ -362,7 +364,7 @@ namespace Donya
 
 		if ( HasSkeletal( pCurrentNode ) )
 		{
-			ModelSource::Bone bone{};
+			Animation::Bone bone{};
 			BuildBone( &bone, pCurrentNode, parentIndex );
 
 			pSkeletal->emplace_back( std::move( bone ) );
@@ -380,8 +382,10 @@ namespace Donya
 		{
 			BuildSkeletalRecursively( pSkeletal, pCurrentNode->GetChild( i ), parentIndex );
 		}
+
+	#endif // NOT_IMPLEMENTED_YET
 	}
-	void BuildSkeletal( std::vector<ModelSource::Bone> *pSkeletal, const std::vector<FBX::FbxNode *> &skeletalNodes )
+	void BuildSkeletal( std::vector<Animation::Bone> *pSkeletal, const std::vector<FBX::FbxNode *> &skeletalNodes, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
 	{
 		/*
 		This BuildSkeletal() function will build a skeletal by nodes that have skeletal.
@@ -391,8 +395,8 @@ namespace Donya
 
 		for ( auto &pNode : skeletalNodes )
 		{
-			ModelSource::Bone bone{};
-			BuildBone( &bone, pNode, parentIndex );
+			Animation::Bone bone{};
+			BuildBone( &bone, pNode, parentIndex, currentTime );
 			pSkeletal->emplace_back( std::move( bone ) );
 
 			// When first loop, the bone has no parent(-1).
@@ -425,7 +429,7 @@ namespace Donya
 
 		return -1;
 	}
-	int  FindBoneIndex( const std::vector<ModelSource::Bone> &skeletal, const std::string &keyName )
+	int  FindBoneIndex( const std::vector<Animation::Bone> &skeletal, const std::string &keyName )
 	{
 		const size_t boneCount = skeletal.size();
 		for ( size_t i = 0; i < boneCount; ++i )
@@ -568,7 +572,7 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<ModelSource::Bone> &constructedSkeletal, const std::string &fileDirectory )
+	void BuildMesh( ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, const std::vector<Animation::Bone> &constructedSkeletal, const std::string &fileDirectory )
 	{
 		AttachGlobalTransform( pMesh, pFBXMesh );
 		AdjustCoordinate( pMesh );
@@ -833,7 +837,7 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMeshes( std::vector<ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<ModelSource::Bone> &constructedSkeletal, const std::string &fileDirectory )
+	void BuildMeshes( std::vector<ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<Animation::Bone> &constructedSkeletal, const std::string &fileDirectory )
 	{
 		const size_t meshCount = meshNodes.size();
 		pMeshes->resize( meshCount );
@@ -846,31 +850,16 @@ namespace Donya
 		}
 	}
 
-	void BuildKeyFrame( ModelSource::KeyFrame *pKeyFrame, const std::vector<FBX::FbxNode *> &animNodes, const FBX::FbxTime &currentTime, float currentSeconds )
+	void BuildKeyFrame( Animation::KeyFrame *pKeyFrame, const std::vector<FBX::FbxNode *> &animNodes, const FBX::FbxTime &currentTime, float currentSeconds )
 	{
 		const size_t nodeCount = animNodes.size();
 
 		pKeyFrame->seconds = currentSeconds;
-		pKeyFrame->keyData.resize( nodeCount );
+		pKeyFrame->keyPose.clear();
 
-		auto ToVec3 = []( const Donya::Vector4 &v )
-		{
-			return Donya::Vector3{ v.x, v.y, v.z };
-		};
-
-		FBX::FbxAMatrix localTransform{};
-		for ( size_t i = 0; i < nodeCount; ++i )
-		{
-			FBX::FbxNode *pNode = animNodes[i];
-			ModelSource::KeyBone &bone = pKeyFrame->keyData[i];
-
-			localTransform		= pNode->EvaluateLocalTransform( currentTime );
-			bone.scale			= ToVec3( Convert( localTransform.GetS() ) );
-			bone.rotation		= ToQuaternion( localTransform.GetQ() );
-			bone.translation	= ToVec3( Convert( localTransform.GetT() ) );
-		}
+		BuildSkeletal( &pKeyFrame->keyPose, animNodes, currentTime );
 	}
-	void BuildAnimations( std::vector<ModelSource::Animation> *pAnimations, float samplingFPS, FBX::FbxScene *pScene , const std::vector<FBX::FbxNode *> &animNodes )
+	void BuildAnimations( std::vector<Animation::Motion> *pAnimations, float samplingFPS, FBX::FbxScene *pScene , const std::vector<FBX::FbxNode *> &animNodes )
 	{
 		// List of all the animation stack. 
 		FBX::FbxArray<FBX::FbxString *> animationStackNames;
@@ -922,23 +911,23 @@ namespace Donya
 			const int endFrame		= scast<int>( endTime.Get()   / samplingStep.Get() );
 			const int frameCount	= scast<int>( ( endTime.Get() - beginTime.Get() ) / samplingStep.Get() );
 
-			ModelSource::Animation animation{};
-			animation.samplingRate	= samplingRate;
-			animation.animSeconds	= samplingTime * frameCount;
-			animation.keyFrames.resize( scast<size_t>( frameCount + 1 ) );
-			animation.name			= std::string{ pAnimStackName->Buffer() };	
+			Animation::Motion motion{};
+			motion.name				= std::string{ pAnimStackName->Buffer() };	
+			motion.samplingRate		= samplingRate;
+			motion.animSeconds		= samplingTime * frameCount;
+			motion.keyFrames.resize( scast<size_t>( frameCount + 1 ) );
 
-			float	seconds	= 0.0f;
-			size_t	index	= 0;
-			for (	FBX::FbxTime currentTime = beginTime; currentTime < endTime; currentTime += samplingStep )
+			float  seconds	= 0.0f;
+			size_t index	= 0;
+			for (  FBX::FbxTime currentTime = beginTime; currentTime < endTime; currentTime += samplingStep )
 			{
-				BuildKeyFrame( &animation.keyFrames[index], animNodes, currentTime, seconds );
+				BuildKeyFrame( &motion.keyFrames[index], animNodes, currentTime, seconds );
 
 				seconds	+= samplingTime;
 				index	+= 1U;
 			}
 
-			pAnimations->emplace_back( std::move( animation ) );
+			pAnimations->emplace_back( std::move( motion ) );
 		}
 		
 		ReleaseAnimationStackNames();

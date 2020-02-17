@@ -115,117 +115,10 @@ namespace Donya
 				}
 			}
 		};
-
-		/// <summary>
-		/// Represent a Bone(you may call it Rig or Node).<para></para>
-		/// The stored transforming data are local space(Calculated in: ParentGlobal.Inverse * Global).
-		/// </summary>
-		struct Bone
-		{
-			std::string			name;
-			int					parentIndex = -1; // -1 is invalid.
-			Donya::Vector3		scale{ 1.0f, 1.0f, 1.0f };
-			Donya::Quaternion	rotation;
-			Donya::Vector3		translation;
-		private:
-			friend class cereal::access;
-			template<class Archive>
-			void serialize( Archive &archive, std::uint32_t version )
-			{
-				if ( version == 0 )
-				{
-					archive
-					(
-						CEREAL_NVP(	name		),
-						CEREAL_NVP(	parentIndex	),
-						CEREAL_NVP(	scale		),
-						CEREAL_NVP(	rotation	),
-						CEREAL_NVP(	translation	)
-					);
-				}
-			}
-		};
-
-		/// <summary>
-		/// A transforming data of an associated bone, at some timing.<para></para>
-		/// The stored transforming data are local space(Calculated in: ParentGlobal.Inverse * Global).
-		/// </summary>
-		struct KeyBone
-		{
-			Donya::Vector3			scale{ 1.0f, 1.0f, 1.0f };
-			Donya::Quaternion		rotation;
-			Donya::Vector3			translation;
-		private:
-			friend class cereal::access;
-			template<class Archive>
-			void serialize( Archive &archive, std::uint32_t version )
-			{
-				if ( version == 0 )
-				{
-					archive
-					(
-						CEREAL_NVP(	scale		),
-						CEREAL_NVP(	rotation	),
-						CEREAL_NVP(	translation	)
-					);
-				}
-			}
-		};
-		/// <summary>
-		/// A transforming data of an associated skeletal, at some timing.
-		/// </summary>
-		struct KeyFrame
-		{
-			float					seconds;
-			std::vector<KeyBone>	keyData;
-		private:
-			friend class cereal::access;
-			template<class Archive>
-			void serialize( Archive &archive, std::uint32_t version )
-			{
-				if ( version == 0 )
-				{
-					archive
-					(
-						CEREAL_NVP(	seconds	),
-						CEREAL_NVP(	keyData	)
-					);
-				}
-			}
-		};
-		/// <summary>
-		/// A gathering of an associated key-frame.
-		/// </summary>
-		struct Animation
-		{
-			static constexpr float	DEFAULT_SAMPLING_RATE = 1.0f / 24.0f;
-		public:
-			std::string				name;
-			float					samplingRate{ DEFAULT_SAMPLING_RATE };
-			float					animSeconds;
-			std::vector<KeyFrame>	keyFrames;
-		private:
-			friend class cereal::access;
-			template<class Archive>
-			void serialize( Archive &archive, std::uint32_t version )
-			{
-				if ( version == 0 )
-				{
-					archive
-					(
-						CEREAL_NVP(	name			),
-						CEREAL_NVP(	samplingRate	),
-						CEREAL_NVP(	animSeconds		),
-						CEREAL_NVP(	animSeconds		),
-						CEREAL_NVP(	keyFrames		)
-					);
-				}
-			}
-		};
-
-		std::vector<Mesh>		meshes;
-		std::vector<Bone>		skeletal;	// Represent bones of initial pose(like T-pose).
-		std::vector<Animation>	animations;	// Represent animations. The animations contain only animation(i.e. The animation provides a matrix of from mesh space to local(current pose) space).
+	public:
+		std::vector<Mesh>				meshes;
+		std::vector<Animation::Bone>	skeletal;	// Represent bones of initial pose(like T-pose).
+		std::vector<Animation::Motion>	animations;	// Represent animations. The animations contain only animation(i.e. The animation provides a matrix of from mesh space to local(current pose) space).
 	private:
 		friend class cereal::access;
 		template<class Archive>
@@ -248,7 +141,3 @@ CEREAL_CLASS_VERSION( Donya::ModelSource,				0 )
 CEREAL_CLASS_VERSION( Donya::ModelSource::Subset,		0 )
 CEREAL_CLASS_VERSION( Donya::ModelSource::Mesh,			0 )
 CEREAL_CLASS_VERSION( Donya::ModelSource::Material,		0 )
-CEREAL_CLASS_VERSION( Donya::ModelSource::Bone,			0 )
-CEREAL_CLASS_VERSION( Donya::ModelSource::KeyBone,		0 )
-CEREAL_CLASS_VERSION( Donya::ModelSource::KeyFrame,		0 )
-CEREAL_CLASS_VERSION( Donya::ModelSource::Animation,	0 )
