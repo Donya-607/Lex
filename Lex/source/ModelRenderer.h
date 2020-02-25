@@ -117,11 +117,63 @@ namespace Donya
 			/// Please call only once a time when the initialize of application(before a game-loop).<para></para>
 			/// If set nullptr to "pDevice", use default device.
 			/// </summary>
-			static bool InitDefaultStatus( ID3D11Device *pDevice = nullptr );
+			static bool InitDefaultStatus( ID3D11Device *pDevice = nullptr );			
 		private:
 			static bool AssignStatusIdentifiers( DefaultStatus *pStatus );
 			static bool CreateRenderingStates  ( DefaultStatus *pStatus );
 			static bool CreateDefaultShaders   ( DefaultStatus *pStatus );
+		public:
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static bool ActivateDefaultStateDepthStencil( ID3D11DeviceContext *pImmediateContext = nullptr );
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static void DeactivateDefaultStateDepthStencil( ID3D11DeviceContext *pImmediateContext = nullptr );
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static bool ActivateDefaultStateRasterizer( ID3D11DeviceContext *pImmediateContext = nullptr );
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static void DeactivateDefaultStateRasterizer( ID3D11DeviceContext *pImmediateContext = nullptr );
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static bool ActivateDefaultStateSampler( const TextureDesc &setting, ID3D11DeviceContext *pImmediateContext = nullptr );
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static void DeactivateDefaultStateSampler( ID3D11DeviceContext *pImmediateContext = nullptr );
+		public:
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static void ActivateDefaultVertexShaderSkinned( ID3D11DeviceContext *pImmediateContext = nullptr );
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static void DeactivateDefaultVertexShaderSkinned( ID3D11DeviceContext *pImmediateContext = nullptr );
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static void ActivateDefaultPixelShaderSkinned( ID3D11DeviceContext *pImmediateContext = nullptr );
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static void DeactivateDefaultPixelShaderSkinned( ID3D11DeviceContext *pImmediateContext = nullptr );
+		public:
+			static void UpdateDefaultConstants( const Constants::PerNeed::Common &assignParameter );
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static void ActivateDefaultConstants( const ConstantDesc &settings, ID3D11DeviceContext *pImmediateContext = nullptr );
+			/// <summary>
+			/// If set nullptr to "pImmediateContext", use default device.
+			/// </summary>
+			static void DeactivateDefaultConstants( ID3D11DeviceContext *pImmediateContext = nullptr );
 		public:
 		// Instance members.
 		private:

@@ -68,6 +68,8 @@ public:
 		Donya::Loader		loader{};
 		Donya::SkinnedMesh	mesh{};
 		size_t				modelID{ NULL };
+		size_t				rendererID{ NULL };
+		Donya::Model::Animator mAnimator{};
 		Donya::MotionChunk	motions{};
 		Donya::Animator		animator{};
 		Donya::Vector3		scale		{ 1.0f, 1.0f, 1.0f };
@@ -86,8 +88,10 @@ public:
 			result = Donya::SkinnedMesh::Create( loader, &mesh );
 			if ( !result ) { succeeded = false; }
 			
-			modelID = Donya::Model::MakeModel( loader, Donya::Model::ModelUsage::Skinned );
+			modelID		= Donya::Model::MakeModel( loader, Donya::Model::ModelUsage::Skinned );
 			if ( !modelID ) { succeeded = false; }
+			rendererID	= Donya::Model::MakeRenderer( Donya::Model::ModelUsage::Skinned );
+			if ( !rendererID ) { succeeded = false; }
 
 			result = Donya::MotionChunk::Create( loader, &motions );
 			if ( !result ) { succeeded = false; }
@@ -149,6 +153,7 @@ public:
 
 	GridLine						grid;
 
+	Donya::CBuffer<Donya::Model::Constants::PerModel::Common>	mcbPerModel{};
 	Donya::CBuffer<CBufferPerFrame>	cbPerFrame;
 	Donya::CBuffer<CBufferPerModel>	cbPerModel;
 	Donya::VertexShader				VSSkinnedMesh;
@@ -268,10 +273,7 @@ public:
 
 	void Draw( float elapsedTime )
 	{
-		{
-			const FLOAT colors[4]{ bgColor.x, bgColor.y, bgColor.z, bgColor.w };
-			Donya::ClearViews( colors );
-		}
+		ClearBackGround();
 
 		const Donya::Vector4x4 V   = iCamera.CalcViewMatrix();
 		const Donya::Vector4x4 P   = iCamera.GetProjectionMatrix();
@@ -331,6 +333,8 @@ public:
 				/* psSetDiffuseMapSlot = */ 0,
 				( drawWireFrame ) ? false : true
 			);
+
+			DrawModelSoucre( it );
 		}
 
 		PSSkinnedMesh.Deactivate();
@@ -339,14 +343,124 @@ public:
 		cbPerFrame.Deactivate();
 		cbPerModel.Deactivate();
 
-		// Show a cube to origin with unit scale.
-		if ( drawOriginCube )
-		{
-			static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
+		DrawOriginCube( W, V * P );
+	}
+private:
+	void ClearBackGround() const
+	{
+		const FLOAT colors[4]{ bgColor.x, bgColor.y, bgColor.z, bgColor.w };
+		Donya::ClearViews( colors );
+	}
 
-			constexpr Donya::Vector4 COLOR{ 0.8f, 1.0f, 0.9f, 0.6f };
-			cube.Render( nullptr, true, true, WVP, W, directionalLight.direction, COLOR );
+	void DrawModelSoucre( const MeshAndInfo &data )
+	{
+		auto  ppModel = Donya::Model::AcquireRawModel( data.modelID );
+		if ( !ppModel ) { return; }
+		// else
+		auto &pModel = *ppModel;
+
+		auto  ppRenderer = Donya::Model::AcquireRawRenderer( data.rendererID );
+		if ( !ppRenderer ) { return; }
+		// else
+		auto &pRenderer = *ppRenderer;
+
+		const Donya::Vector4x4 V = iCamera.CalcViewMatrix();
+		const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
+		const Donya::Vector4   cameraPos{ iCamera.GetPosition(), 1.0f };
+
+		// Activate CB.
+		{
+			Donya::Model::Constants::PerNeed::Common constants{};
+			constants.directionalLight.direction	= directionalLight.direction;
+			constants.directionalLight.color		= directionalLight.color;
+			constants.eyePosition = cameraPos;
+			constants.viewProjMatrix = V * P;
+			Donya::Model::ModelRenderer::UpdateDefaultConstants( constants );
+
+			Donya::Model::ConstantDesc desc{};
+			desc.setSlot = 0;
+			desc.setVS = desc.setPS = true;
+			Donya::Model::ModelRenderer::ActivateDefaultConstants( desc );
 		}
+
+		// Activate rendering states.
+		{
+			Donya::Model::ModelRenderer::ActivateDefaultStateDepthStencil();
+			Donya::Model::ModelRenderer::ActivateDefaultStateRasterizer();
+
+			Donya::Model::TextureDesc desc{};
+			desc.setSlot = 0;
+			desc.setVS = true;
+			desc.setPS = true;
+			Donya::Model::ModelRenderer::ActivateDefaultStateSampler( desc );
+		}
+
+		// Activate shaders.
+		{
+			Donya::Model::ModelRenderer::ActivateDefaultVertexShaderSkinned();
+			Donya::Model::ModelRenderer::ActivateDefaultPixelShaderSkinned();
+		}
+
+		auto pSource = pModel->AcquireModelSource();
+		
+		const Donya::Vector3 eulerRadians
+		{
+			ToRadian( data.rotation.x ),
+			ToRadian( data.rotation.y ),
+			ToRadian( data.rotation.z ),
+		};
+		mcbPerModel.data.drawColor = Donya::Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
+		mcbPerModel.data.worldMatrix =
+			Donya::Vector4x4::MakeScaling( data.scale ) *
+			Donya::Vector4x4::MakeRotationEuler( eulerRadians ) *
+			Donya::Vector4x4::MakeTranslation( -data.translation );
+		
+		mcbPerModel.Activate( 1, true, true );
+		Donya::Model::ConstantDesc descMesh{};
+		descMesh.setSlot = 2;
+		descMesh.setVS = descMesh.setPS = true;
+		Donya::Model::ConstantDesc descSubset{};
+		descSubset.setSlot = 3;
+		descSubset.setVS = descMesh.setPS = true;
+		Donya::Model::TextureDesc descDiffuse{};
+		descDiffuse.setSlot = 0;
+		descDiffuse.setVS = descMesh.setPS = true;
+		pRenderer->RenderSkinned
+		(
+			*pModel,
+			pSource->animations.front(), data.mAnimator,
+			descMesh, descSubset, descDiffuse
+		);
+		mcbPerModel.Deactivate();
+
+		// Deactivate shaders.
+		{
+			Donya::Model::ModelRenderer::DeactivateDefaultVertexShaderSkinned();
+			Donya::Model::ModelRenderer::DeactivateDefaultPixelShaderSkinned();
+		}
+		// Deactivate rendering states.
+		{
+			Donya::Model::ModelRenderer::DeactivateDefaultStateDepthStencil();
+			Donya::Model::ModelRenderer::DeactivateDefaultStateRasterizer();
+			Donya::Model::ModelRenderer::DeactivateDefaultStateSampler();
+		}
+		// Deactivate CB.
+		{
+			Donya::Model::ModelRenderer::DeactivateDefaultConstants();
+		}
+	}
+
+	void DrawOriginCube( const Donya::Vector4x4 &matW, const Donya::Vector4x4 &matVP ) const
+	{
+		if ( !drawOriginCube ) { return; }
+		// else
+		
+		// Show a cube to origin with unit scale.
+
+		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
+
+		constexpr Donya::Vector4 COLOR{ 0.8f, 1.0f, 0.9f, 0.6f };
+		cube.Render( nullptr, true, true, matW * matVP, matW, directionalLight.direction, COLOR );
 	}
 private:
 	bool ShaderInit()
@@ -354,6 +468,8 @@ private:
 		bool succeeded = true;
 		bool result{};
 
+		result = mcbPerModel.Create();
+		if ( !result ) { succeeded = false; }
 		result = cbPerFrame.Create();
 		if ( !result ) { succeeded = false; }
 		result = cbPerModel.Create();
@@ -759,6 +875,7 @@ private:
 		for ( auto &it : models )
 		{
 			it.animator.Update( elapsedTime * it.motionAccelPercent );
+			it.mAnimator.Update( elapsedTime * it.motionAccelPercent );
 			it.currentElapsedTime = it.animator.GetCurrentElapsedTime();
 		}
 	}

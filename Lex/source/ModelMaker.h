@@ -43,12 +43,28 @@ namespace Donya
 
 	#pragma region Renderer
 
+		class ModelRenderer;
+
 		/// <summary>
 		/// Returns an identifier of the made renderer, or NULL when failed making.<para></para>
 		/// The made renderer will be cached.<para></para>
 		/// If set nullptr to "pDevice", use default device.
 		/// </summary>
 		size_t MakeRenderer( ModelUsage usage, ID3D11Device *pDevice = nullptr );
+		/// <summary>
+		/// Returns pointer that point to internal cache directly, or nullptr when passed identifier is not valid.<para></para>
+		/// You must not delete the renderer by it!
+		/// </summary>
+		const std::unique_ptr<ModelRenderer> *AcquireRawRenderer( size_t modelIdentifier );
+		/// <summary>
+		/// Remove the internally cache of a renderer.<para></para>
+		/// Returns false if passed identifier is not valid.
+		/// </summary>
+		bool RemoveRendererCache( size_t modelidentifier );
+		/// <summary>
+		/// Remove the all internally caches of renderer.
+		/// </summary>
+		void ClearRendererCache();
 
 	// region Renderer
 	#pragma endregion

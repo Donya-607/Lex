@@ -637,6 +637,61 @@ namespace Donya
 			return succeeded;
 		}
 
+		bool ModelRenderer::ActivateDefaultStateDepthStencil( ID3D11DeviceContext *pImmediateContext )
+		{
+			return Donya::DepthStencil::Activate( pDefaultStatus->idDSState, pImmediateContext );
+		}
+		void ModelRenderer::DeactivateDefaultStateDepthStencil( ID3D11DeviceContext *pImmediateContext )
+		{
+			Donya::DepthStencil::Deactivate( pImmediateContext );
+		}
+		bool ModelRenderer::ActivateDefaultStateRasterizer( ID3D11DeviceContext *pImmediateContext )
+		{
+			return Donya::Rasterizer::Activate( pDefaultStatus->idRSState, pImmediateContext );
+		}
+		void ModelRenderer::DeactivateDefaultStateRasterizer( ID3D11DeviceContext *pImmediateContext )
+		{
+			Donya::Rasterizer::Deactivate( pImmediateContext );
+		}
+		bool ModelRenderer::ActivateDefaultStateSampler( const TextureDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		{
+			return Donya::Sampler::Activate( pDefaultStatus->idPSSampler, desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
+		}
+		void ModelRenderer::DeactivateDefaultStateSampler( ID3D11DeviceContext *pImmediateContext )
+		{
+			Donya::Sampler::Deactivate( pImmediateContext );
+		}
+
+		void ModelRenderer::ActivateDefaultVertexShaderSkinned( ID3D11DeviceContext *pImmediateContext )
+		{
+			pDefaultStatus->shaderSkinned.VS.Activate( pImmediateContext );
+		}
+		void ModelRenderer::DeactivateDefaultVertexShaderSkinned( ID3D11DeviceContext *pImmediateContext )
+		{
+			pDefaultStatus->shaderSkinned.VS.Deactivate( pImmediateContext );
+		}
+		void ModelRenderer::ActivateDefaultPixelShaderSkinned( ID3D11DeviceContext *pImmediateContext )
+		{
+			pDefaultStatus->shaderSkinned.PS.Activate( pImmediateContext );
+		}
+		void ModelRenderer::DeactivateDefaultPixelShaderSkinned( ID3D11DeviceContext *pImmediateContext )
+		{
+			pDefaultStatus->shaderSkinned.PS.Deactivate( pImmediateContext );
+		}
+
+		void ModelRenderer::UpdateDefaultConstants( const Constants::PerNeed::Common &param )
+		{
+			pDefaultStatus->CBPerScene.data = param;
+		}
+		void ModelRenderer::ActivateDefaultConstants( const ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		{
+			pDefaultStatus->CBPerScene.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
+		}
+		void ModelRenderer::DeactivateDefaultConstants( ID3D11DeviceContext *pImmediateContext )
+		{
+			pDefaultStatus->CBPerScene.Deactivate( pImmediateContext );
+		}
+
 		ModelRenderer::ModelRenderer( ModelUsage usage, ID3D11Device *pDevice ) :
 			inputUsage( usage ), CBPerModel(), pCBPerMesh( nullptr ), CBPerSubset()
 		{

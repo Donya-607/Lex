@@ -146,6 +146,11 @@ namespace Donya
 			void CreateMaterial( Model::Material *pDestination, ID3D11Device *pDevice );
 
 			void InitSkeletal();
+		public:
+			std::shared_ptr<ModelSource> AcquireModelSource() const
+			{
+				return pSource;
+			}
 		};
 	}
 }
