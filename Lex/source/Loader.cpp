@@ -500,9 +500,9 @@ namespace Donya
 			influencesPerCtrlPoints.clear();
 			FetchBoneInfluences( pMesh, influencesPerCtrlPoints );
 
-			FetchVertices( i, pMesh, influencesPerCtrlPoints );
-			FetchMaterial( i, pMesh );
 			FetchGlobalTransform( i, pMesh );
+			FetchVertices( i, pMesh, influencesPerCtrlPoints, meshes[i].globalTransform );
+			FetchMaterial( i, pMesh );
 
 			// Convert right-hand space to left-hand space.
 			{
@@ -563,7 +563,7 @@ namespace Donya
 		absFilePath = GetUTF8FullPath( filePath, FILE_PATH_LENGTH );
 	}
 
-	void Loader::FetchVertices( size_t meshIndex, const FBX::FbxMesh *pMesh, const std::vector<BoneInfluencesPerControlPoint> &fetchedInfluences )
+	void Loader::FetchVertices( size_t meshIndex, const FBX::FbxMesh *pMesh, const std::vector<BoneInfluencesPerControlPoint> &fetchedInfluences, const Donya::Vector4x4 &globalTransform )
 	{
 		const FBX::FbxVector4 *pControlPointsArray = pMesh->GetControlPoints();
 		const int mtlCount = pMesh->GetNode()->GetMaterialCount();
@@ -635,7 +635,10 @@ namespace Donya
 
 				if ( v < colFace.points.size() )
 				{
-					colFace.points[v] = position;
+					Donya::Vector4 transformedPos = globalTransform.Mul( position, 1.0f );
+					colFace.points[v].x = transformedPos.x;
+					colFace.points[v].y = transformedPos.y;
+					colFace.points[v].z = transformedPos.z;
 				}
 
 				mesh.indices[indexOffset + v] = vertexCount;
