@@ -142,13 +142,15 @@ namespace Donya
 				"}\n"
 				"VS_OUT VSMain( VS_IN vin )\n"
 				"{\n"
+				"	vin.pos.w		= 1.0f;\n"
+				"	vin.normal.w	= 0.0f;\n"
 				"	ApplyBoneMatrices( vin.weights, vin.bones, vin.pos, vin.normal );\n"
 
 				"	row_major float4x4 W = mul( cbAdjustMatrix, cbWorld );\n"
 
 				"	VS_OUT vout		= ( VS_OUT )0;\n"
-				"	vout.pos		= mul( vin.pos, mul( cbWorld, cbViewProj ) );\n"
 				"	vout.wsPos		= mul( vin.pos, cbWorld );\n"
+				"	vout.pos		= mul( vin.pos, mul( cbWorld, cbViewProj ) );\n"
 				"	vout.normal		= normalize( mul( vin.normal, cbWorld ) );\n"
 				"	vout.texCoord	= vin.texCoord;\n"
 				"	return vout;\n"
@@ -388,8 +390,8 @@ namespace Donya
 		*/
 		static std::vector<D3D11_INPUT_ELEMENT_DESC> MakeInputElementsStatic()
 		{
-			const auto IEDescsPos = Vertex::Pos::InputElements();
-			const auto IEDescsTex = Vertex::Tex::InputElements();
+			const auto IEDescsPos = Vertex::Pos::GenerateInputElements( 0 );
+			const auto IEDescsTex = Vertex::Tex::GenerateInputElements( 1 );
 
 			std::vector<D3D11_INPUT_ELEMENT_DESC> wholeIEDescs{};
 			wholeIEDescs.insert( wholeIEDescs.end(), IEDescsPos.begin(), IEDescsPos.end() );
@@ -406,7 +408,7 @@ namespace Donya
 		*/
 		static std::vector<D3D11_INPUT_ELEMENT_DESC> MakeInputElementsSkinned()
 		{
-			const auto IEDescsBone = Vertex::Bone::InputElements();
+			const auto IEDescsBone = Vertex::Bone::GenerateInputElements( 2 );
 
 			std::vector<D3D11_INPUT_ELEMENT_DESC> wholeIEDescs = MakeInputElementsStatic();
 			wholeIEDescs.insert( wholeIEDescs.end(), IEDescsBone.begin(), IEDescsBone.end() );

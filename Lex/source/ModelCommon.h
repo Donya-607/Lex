@@ -40,12 +40,12 @@ namespace Donya
 				Donya::Vector3	position;
 				Donya::Vector3	normal;
 			public:
-				static constexpr const auto InputElements()
+				static constexpr const auto GenerateInputElements( UINT inputSlot )
 				{
 					return std::array<D3D11_INPUT_ELEMENT_DESC, 2>
 					{
-						D3D11_INPUT_ELEMENT_DESC{ "POSITION"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-						D3D11_INPUT_ELEMENT_DESC{ "NORMAL"		, 0, DXGI_FORMAT_R32G32B32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+						D3D11_INPUT_ELEMENT_DESC{ "POSITION"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,	inputSlot, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+						D3D11_INPUT_ELEMENT_DESC{ "NORMAL"		, 0, DXGI_FORMAT_R32G32B32_FLOAT,	inputSlot, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
 					};
 				}
 			private:
@@ -68,11 +68,11 @@ namespace Donya
 			{
 				Donya::Vector2	texCoord; // Origin is left-top.
 			public:
-				static constexpr const auto InputElements()
+				static constexpr const auto GenerateInputElements( UINT inputSlot )
 				{
 					return std::array<D3D11_INPUT_ELEMENT_DESC, 1>
 					{
-						D3D11_INPUT_ELEMENT_DESC{ "TEXCOORD"	, 0, DXGI_FORMAT_R32G32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+						D3D11_INPUT_ELEMENT_DESC{ "TEXCOORD"	, 0, DXGI_FORMAT_R32G32_FLOAT,	inputSlot, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
 					};
 				}
 			private:
@@ -95,12 +95,12 @@ namespace Donya
 				Donya::Vector4 	weights; // Each element is used as like array(e.g. x:[0], y:[1], ...).
 				Donya::Int4		indices; // Each element is used as like array(e.g. x:[0], y:[1], ...).
 			public:
-				static constexpr const auto InputElements()
+				static constexpr const auto GenerateInputElements( UINT inputSlot )
 				{
 					return std::array<D3D11_INPUT_ELEMENT_DESC, 2>
 					{
-						D3D11_INPUT_ELEMENT_DESC{ "WEIGHTS"		, 0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-						D3D11_INPUT_ELEMENT_DESC{ "BONES"		, 0, DXGI_FORMAT_R32G32B32A32_UINT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+						D3D11_INPUT_ELEMENT_DESC{ "WEIGHTS"		, 0, DXGI_FORMAT_R32G32B32A32_FLOAT,	inputSlot, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+						D3D11_INPUT_ELEMENT_DESC{ "BONES"		, 0, DXGI_FORMAT_R32G32B32A32_UINT,		inputSlot, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
 					};
 				}
 			private:

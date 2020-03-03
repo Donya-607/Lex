@@ -28,26 +28,11 @@ namespace Donya
 			constexpr UINT			CPU_ACCESS_FLAG		= NULL;
 
 			template<typename Struct>
-			std::vector<Struct> MakeVector( const std::vector<Struct> &source )
-			{
-				const size_t sourceSize = source.size();
-				std::vector<Struct> dest{ sourceSize };
-
-				for ( size_t i = 0; i < sourceSize; ++i )
-				{
-					dest[i] = source[i];
-				}
-
-				return std::move( dest );
-			}
-			template<typename Struct>
 			HRESULT	MakeBuffer( const std::vector<Struct> &source, ComPtr<ID3D11Buffer> *pComBuffer, ID3D11Device *pDevice )
 			{
-				const auto dest = MakeVector<Struct>( source );
-
 				return Donya::CreateVertexBuffer<Struct>
 				(
-					pDevice, dest,
+					pDevice, source,
 					BUFFER_USAGE, CPU_ACCESS_FLAG,
 					pComBuffer->GetAddressOf()
 				);
