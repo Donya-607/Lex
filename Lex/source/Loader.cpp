@@ -828,6 +828,8 @@ namespace Donya
 
 					pMesh->positions.emplace_back( pos );
 					pMesh->texCoords.emplace_back( tex );
+
+					AssignInfluence( &infl, boneInfluences[ctrlPointIndex] );
 					pMesh->boneInfluences.emplace_back( infl );
 					
 					pMesh->indices[indexOffset + v] = vertexCount;

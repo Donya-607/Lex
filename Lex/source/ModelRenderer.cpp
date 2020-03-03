@@ -146,12 +146,13 @@ namespace Donya
 				"	vin.normal.w	= 0.0f;\n"
 				"	ApplyBoneMatrices( vin.weights, vin.bones, vin.pos, vin.normal );\n"
 
-				"	row_major float4x4 W = mul( cbAdjustMatrix, cbWorld );\n"
+				"	float4x4 W		= mul( cbAdjustMatrix, cbWorld );\n"
+				"	float4x4 WVP	= mul( W, cbViewProj );\n"
 
 				"	VS_OUT vout		= ( VS_OUT )0;\n"
-				"	vout.wsPos		= mul( vin.pos, cbWorld );\n"
-				"	vout.pos		= mul( vin.pos, mul( cbWorld, cbViewProj ) );\n"
-				"	vout.normal		= normalize( mul( vin.normal, cbWorld ) );\n"
+				"	vout.wsPos		= mul( vin.pos, W );\n"
+				"	vout.pos		= mul( vin.pos, WVP );\n"
+				"	vout.normal		= normalize( mul( vin.normal, W ) );\n"
 				"	vout.texCoord	= vin.texCoord;\n"
 				"	return vout;\n"
 				"}\n"
@@ -195,6 +196,8 @@ namespace Donya
 				"SamplerState	diffuseMapSampler	: register( s0 );\n"
 				"float4 PSMain( VS_OUT pin ) : SV_TARGET\n"
 				"{\n"
+				"	return 1;\n"
+				"	if( isnan( pin.normal.x ) ) { return float4(0.0f, 1.0f, 0.0f, 1.0f); }\n"
 				"			pin.normal		= normalize( pin.normal );\n"
 			
 				"	float3	nLightVec		= normalize( -cbDirLight.direction.rgb );	// Vector from position.\n"
@@ -591,21 +594,34 @@ namespace Donya
 
 			// For Skinned.
 			{
+				result = pStatus->shaderSkinned.VS.CreateByCSO
+				(
+					"./Data/Shader/SourceSkinnedMeshVS.cso",
+					GetInputElementDescs( ModelUsage::Skinned )
+				);
+				/*
 				result = pStatus->shaderSkinned.VS.CreateByEmbededSourceCode
 				(
 					Source::SkinnedNameVS, Source::SkinnedCode(), Source::EntryPointVS,
 					GetInputElementDescs( ModelUsage::Skinned )
 				);
+				*/
 				if ( !result )
 				{
 					AssertFailedCreation( L"Skinned_VS" );
 					succeeded = false;
 				}
 
-				succeeded = pStatus->shaderSkinned.PS.CreateByEmbededSourceCode
+				result = pStatus->shaderSkinned.PS.CreateByCSO
+				(
+					"./Data/Shader/SourceSkinnedMeshPS.cso"
+				);
+				/*
+				result = pStatus->shaderSkinned.PS.CreateByEmbededSourceCode
 				(
 					Source::SkinnedNamePS, Source::SkinnedCode(), Source::EntryPointPS
 				);
+				*/
 				if ( !result )
 				{
 					AssertFailedCreation( L"Skinned_PS" );
