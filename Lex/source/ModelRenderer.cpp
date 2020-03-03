@@ -781,6 +781,7 @@ namespace Donya
 			{
 				const auto &mesh = model.meshes[i];
 				UpdateConstantsPerMeshSkinned( model, i, CalcCurrentPose( motion.keyFrames, animator ), descMesh, pImmediateContext );
+				ActivateCBPerMesh( descMesh, pImmediateContext );
 
 				mesh.pVertex->SetVertexBuffers( pImmediateContext );
 				pImmediateContext->IASetIndexBuffer( mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
@@ -790,13 +791,17 @@ namespace Donya
 				{
 					const auto &subset = mesh.subsets[j];
 					UpdateConstantsPerSubset( model, i, j, descSubset, pImmediateContext );
+					ActivateCBPerSubset( descSubset, pImmediateContext );
 
 					SetTexture( descDiffuse, subset.diffuse.pSRV.GetAddressOf(), pImmediateContext );
 
 					pImmediateContext->DrawIndexed( subset.indexCount, subset.indexStart, 0 );
 
 					ResetTexture( descDiffuse, pImmediateContext );
+					DeactivateCBPerSubset( pImmediateContext );
 				}
+
+				DeactivateCBPerMesh( pImmediateContext );
 			}
 
 			return true;
@@ -818,6 +823,7 @@ namespace Donya
 			{
 				const auto &mesh = model.meshes[i];
 				UpdateConstantsPerMeshStatic( model, i, descMesh, pImmediateContext );
+				ActivateCBPerMesh( descMesh, pImmediateContext );
 
 				mesh.pVertex->SetVertexBuffers( pImmediateContext );
 				pImmediateContext->IASetIndexBuffer( mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
@@ -899,20 +905,20 @@ namespace Donya
 			Constants::PerMesh::Bone   constantsBone   = MakeConstantsBone  ( model, meshIndex, currentPose );
 
 			pCBPerMesh->Update( constantsCommon, constantsBone );
-
-			ActivateCBPerMesh( desc, pImmediateContext );
 		}
 		void ModelRenderer::UpdateConstantsPerMeshStatic ( const Model &model, size_t meshIndex, const ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
 			Constants::PerMesh::Common constantsCommon = MakeConstantsCommon( model, meshIndex );
 		
 			pCBPerMesh->Update( constantsCommon );
-
-			ActivateCBPerMesh( desc, pImmediateContext );
 		}
 		void ModelRenderer::ActivateCBPerMesh( const ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
 			pCBPerMesh->Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
+		}
+		void ModelRenderer::DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext )
+		{
+			pCBPerMesh->Deactivate( pImmediateContext );
 		}
 
 		void ModelRenderer::UpdateConstantsPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
@@ -926,6 +932,14 @@ namespace Donya
 			constants.specular = subset.specular.color;
 			
 			CBPerSubset.data   = constants;
+		}
+		void ModelRenderer::ActivateCBPerSubset( const ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		{
+			CBPerSubset.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
+		}
+		void ModelRenderer::DeactivateCBPerSubset( ID3D11DeviceContext *pImmediateContext )
+		{
+			CBPerSubset.Deactivate( pImmediateContext );
 		}
 
 		void ModelRenderer::SetTexture( const TextureDesc &descDiffuse, SRVType diffuseSRV, ID3D11DeviceContext *pImmediateContext ) const

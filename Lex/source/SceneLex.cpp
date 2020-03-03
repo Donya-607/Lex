@@ -333,8 +333,6 @@ public:
 				/* psSetDiffuseMapSlot = */ 0,
 				( drawWireFrame ) ? false : true
 			);
-
-			DrawModelSoucre( it );
 		}
 
 		PSSkinnedMesh.Deactivate();
@@ -343,7 +341,15 @@ public:
 		cbPerFrame.Deactivate();
 		cbPerModel.Deactivate();
 
-		DrawOriginCube( W, V * P );
+		for ( const auto &it : models )
+		{
+			if ( it.dontWannaDraw ) { continue; }
+			// else
+
+			DrawModelSource( it );
+		}
+
+		DrawOriginCube( V * P );
 	}
 private:
 	void ClearBackGround() const
@@ -352,7 +358,7 @@ private:
 		Donya::ClearViews( colors );
 	}
 
-	void DrawModelSoucre( const MeshAndInfo &data )
+	void DrawModelSource( const MeshAndInfo &data )
 	{
 		auto  ppModel = Donya::Model::AcquireRawModel( data.modelID );
 		if ( !ppModel ) { return; }
@@ -368,7 +374,7 @@ private:
 		const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 		const Donya::Vector4   cameraPos{ iCamera.GetPosition(), 1.0f };
 
-		// Activate CB.
+		// Activate CB per frame to slot 0.
 		{
 			Donya::Model::Constants::PerNeed::Common constants{};
 			constants.directionalLight.direction	= directionalLight.direction;
@@ -382,19 +388,17 @@ private:
 			desc.setVS = desc.setPS = true;
 			Donya::Model::ModelRenderer::ActivateDefaultConstants( desc );
 		}
-
 		// Activate rendering states.
 		{
 			Donya::Model::ModelRenderer::ActivateDefaultStateDepthStencil();
 			Donya::Model::ModelRenderer::ActivateDefaultStateRasterizer();
-
+			
 			Donya::Model::TextureDesc desc{};
 			desc.setSlot = 0;
 			desc.setVS = true;
 			desc.setPS = true;
 			Donya::Model::ModelRenderer::ActivateDefaultStateSampler( desc );
 		}
-
 		// Activate shaders.
 		{
 			Donya::Model::ModelRenderer::ActivateDefaultVertexShaderSkinned();
@@ -421,10 +425,10 @@ private:
 		descMesh.setVS = descMesh.setPS = true;
 		Donya::Model::ConstantDesc descSubset{};
 		descSubset.setSlot = 3;
-		descSubset.setVS = descMesh.setPS = true;
+		descSubset.setVS = descSubset.setPS = true;
 		Donya::Model::TextureDesc descDiffuse{};
 		descDiffuse.setSlot = 0;
-		descDiffuse.setVS = descMesh.setPS = true;
+		descDiffuse.setVS = descDiffuse.setPS = true;
 		pRenderer->RenderSkinned
 		(
 			*pModel,
@@ -450,7 +454,7 @@ private:
 		}
 	}
 
-	void DrawOriginCube( const Donya::Vector4x4 &matW, const Donya::Vector4x4 &matVP ) const
+	void DrawOriginCube(  const Donya::Vector4x4 &matVP ) const
 	{
 		if ( !drawOriginCube ) { return; }
 		// else
@@ -460,7 +464,8 @@ private:
 		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
 
 		constexpr Donya::Vector4 COLOR{ 0.8f, 1.0f, 0.9f, 0.6f };
-		cube.Render( nullptr, true, true, matW * matVP, matW, directionalLight.direction, COLOR );
+		constexpr Donya::Vector4x4 W = Donya::Vector4x4::Identity();
+		cube.Render( nullptr, true, true, W * matVP, W, directionalLight.direction, COLOR );
 	}
 private:
 	bool ShaderInit()

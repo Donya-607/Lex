@@ -221,8 +221,11 @@ namespace Donya
 			void UpdateConstantsPerMeshSkinned( const Donya::Model::Model &model, size_t meshIndex, const Animation::KeyFrame &currentPose, const ConstantDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
 			void UpdateConstantsPerMeshStatic ( const Donya::Model::Model &model, size_t meshIndex, const ConstantDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
 			void ActivateCBPerMesh( const ConstantDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
+			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext );
 
 			void UpdateConstantsPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const ConstantDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
+			void ActivateCBPerSubset( const ConstantDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
+			void DeactivateCBPerSubset( ID3D11DeviceContext *pImmediateContext );
 
 			using SRVType = ID3D11ShaderResourceView * const *;
 			void SetTexture( const TextureDesc &diffuseSettings, SRVType diffuseSRV, ID3D11DeviceContext *pImmediateContext ) const;
