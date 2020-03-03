@@ -269,7 +269,7 @@ namespace Donya
 		std::lock_guard<std::mutex> enterCS( mutexFullPathName );
 
 		auto bufferSize = GetFullPathNameA( filePath.c_str(), NULL, NULL, nullptr );
-		std::unique_ptr<char[]> buffer = std::make_unique<char[]>( bufferSize );
+		std::unique_ptr<char[]> buffer = std::make_unique<char[]>( bufferSize + 1/* NULL End */ );
 
 		/* auto result = */GetFullPathNameA( filePath.c_str(), bufferSize, buffer.get(), nullptr );
 
@@ -282,7 +282,7 @@ namespace Donya
 		if ( !pathLength ) { return ""; }
 		// else
 
-		std::unique_ptr<char[]> directory = std::make_unique<char[]>( pathLength );
+		std::unique_ptr<char[]> directory = std::make_unique<char[]>( pathLength + 1/* NULL End */ );
 		for ( size_t i = 0; i < pathLength; ++i )
 		{
 			directory[i] = fullPath[i];
