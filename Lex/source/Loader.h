@@ -361,7 +361,7 @@ namespace Donya
 
 		void MakeAbsoluteFilePath( const std::string &filePath );
 
-		void FetchVertices( size_t meshIndex, const fbxsdk::FbxMesh *pMesh, const std::vector<BoneInfluencesPerControlPoint> &fetchedInfluencesPerControlPoints );
+		void FetchVertices( size_t meshIndex, const fbxsdk::FbxMesh *pMesh, const std::vector<BoneInfluencesPerControlPoint> &fetchedInfluencesPerControlPoints, const Donya::Vector4x4 &globalTransform );
 		void FetchMaterial( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
 		void AnalyseProperty( size_t meshIndex, int mtlIndex, fbxsdk::FbxSurfaceMaterial *pMaterial );
 		void FetchGlobalTransform( size_t meshIndex, const fbxsdk::FbxMesh *pMesh );
