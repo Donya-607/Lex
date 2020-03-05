@@ -244,6 +244,7 @@ ModelManifest.xml
 # Edit by EmEditor.
 
 imgui.ini
+*.txt
 External/
 
 ShortcutTo*

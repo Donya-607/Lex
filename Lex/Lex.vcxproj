@@ -259,6 +259,7 @@
     <ClCompile Include="Source\Model.cpp" />
     <ClCompile Include="Source\ModelAnimator.cpp" />
     <ClCompile Include="Source\ModelMaker.cpp" />
+    <ClCompile Include="Source\ModelMotion.cpp" />
     <ClCompile Include="Source\ModelRenderer.cpp" />
     <ClCompile Include="Source\Motion.cpp" />
     <ClCompile Include="Source\SceneLex.cpp" />
