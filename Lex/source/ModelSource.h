@@ -86,7 +86,9 @@ namespace Donya
 
 				int								boneIndex;		// The index of this mesh's node.
 				std::vector<int>				boneIndices;	// The indices of associated nodes with this mesh and this mesh's node.
-				std::vector<Donya::Vector4x4>	boneOffsets;	// The bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
+				std::vector<Animation::Bone>	boneOffsets;	// Used as the bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
+
+				std::vector<Animation::Motion>	motions;		// Represent animations. The animations contain only animation(i.e. The animation provides a matrix of from mesh space to local(current pose) space).
 
 				std::vector<Vertex::Pos>		positions;
 				std::vector<Vertex::Tex>		texCoords;
@@ -108,6 +110,7 @@ namespace Donya
 							CEREAL_NVP(	boneIndex		),
 							CEREAL_NVP(	boneIndices		),
 							CEREAL_NVP(	boneOffsets		),
+							CEREAL_NVP(	motions			),
 							CEREAL_NVP(	positions		),
 							CEREAL_NVP(	texCoords		),
 							CEREAL_NVP(	boneInfluences	),
@@ -119,8 +122,8 @@ namespace Donya
 			};
 		public:
 			std::vector<Mesh>				meshes;
-			std::vector<Animation::Bone>	skeletal;	// Represent bones of initial pose(like T-pose).
-			std::vector<Animation::Motion>	animations;	// Represent animations. The animations contain only animation(i.e. The animation provides a matrix of from mesh space to local(current pose) space).
+			//std::vector<Animation::Bone>	skeletal;	// Represent bones of initial pose(like T-pose).
+			//std::vector<Animation::Motion>	animations;	// Represent animations. The animations contain only animation(i.e. The animation provides a matrix of from mesh space to local(current pose) space).
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -130,9 +133,7 @@ namespace Donya
 				{
 					archive
 					(
-						CEREAL_NVP(	meshes		),
-						CEREAL_NVP(	skeletal	),
-						CEREAL_NVP(	animations	)
+						CEREAL_NVP(	meshes )
 					);
 				}
 			}

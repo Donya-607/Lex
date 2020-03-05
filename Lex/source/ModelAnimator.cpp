@@ -102,12 +102,19 @@ namespace Donya
 
 			_ASSERT_EXPR( currentPose.keyPose.size() == nextPose.keyPose.size(), L"Error : The bone count did not match! " );
 
-			auto SlerpBone = []( const Animation::Bone &lhs, const Animation::Bone rhs, float percent )
+			auto SlerpTransform	= []( const Animation::Transform &lhs, const Animation::Transform &rhs, float percent )
 			{
-				Animation::Bone rv = lhs;
-				rv.scale		= Donya::Lerp( lhs.scale,		rhs.scale,			percent );
+				Animation::Transform rv = lhs;
+				rv.scale		= Donya::Lerp( lhs.scale, rhs.scale, percent );
 				rv.rotation		= Donya::Quaternion::Slerp( lhs.rotation, rhs.rotation, percent );
-				rv.translation	= Donya::Lerp( lhs.translation,	rhs.translation,	percent );
+				rv.translation	= Donya::Lerp( lhs.translation, rhs.translation, percent );
+				return rv;
+			};
+			auto SlerpBone		= [&SlerpTransform]( const Animation::Bone &lhs, const Animation::Bone rhs, float percent )
+			{
+				Animation::Bone rv	= lhs;
+				rv.transformOffset	= SlerpTransform( lhs.transformOffset,	rhs.transformOffset,	percent );
+				rv.transformPose	= SlerpTransform( lhs.transformPose,	rhs.transformPose,		percent );
 				return rv;
 			};
 

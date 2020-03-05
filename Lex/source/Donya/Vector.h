@@ -994,7 +994,7 @@ namespace Donya
 	public:
 		constexpr Int4() : x( 0 ), y( 0 ), z( 0 ), w( 0 ) {}
 		constexpr Int4( int x, int y, int z, int w ) : x( x ), y( y ), z( z ), w( w ) {}
-		constexpr Int4( const Int4 &ref ) : x( ref.x ), y( ref.y ), z( ref.z ) {}
+		constexpr Int4( const Int4 &ref ) : x( ref.x ), y( ref.y ), z( ref.z ), w( ref.w ) {}
 		Int4 &operator = ( int scalar ) noexcept { x = y = z = w = scalar;                     return *this; }
 		Int4 &operator = ( const Int4 &ref ) noexcept { x = ref.x; y = ref.y; z = ref.z; w = ref.w; return *this; }
 		Int4 &operator = ( const Int4 &&ref ) noexcept { x = ref.x; y = ref.y; z = ref.z; w = ref.w; return *this; }

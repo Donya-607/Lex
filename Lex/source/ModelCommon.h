@@ -125,14 +125,8 @@ namespace Donya
 		/// </summary>
 		namespace Animation
 		{
-			/// <summary>
-			/// Represent a transforming data of an associated bone(you may call it Rig or Node), at some timing.<para></para>
-			/// The stored transforming data are local space(Calculated in: ParentGlobal.Inverse * Global).
-			/// </summary>
-			struct Bone
+			struct Transform
 			{
-				std::string			name;
-				int					parentIndex = -1; // -1 is invalid.
 				Donya::Vector3		scale{ 1.0f, 1.0f, 1.0f };
 				Donya::Quaternion	rotation;
 				Donya::Vector3		translation;
@@ -145,11 +139,36 @@ namespace Donya
 					{
 						archive
 						(
-							CEREAL_NVP(	name		),
-							CEREAL_NVP(	parentIndex	),
-							CEREAL_NVP(	scale		),
-							CEREAL_NVP(	rotation	),
-							CEREAL_NVP(	translation	)
+							CEREAL_NVP( scale ),
+							CEREAL_NVP( rotation ),
+							CEREAL_NVP( translation )
+						);
+					}
+				}
+			};
+
+			/// <summary>
+			/// Represent a transforming data of an associated bone(you may call it Rig or Node), at some timing.
+			/// </summary>
+			struct Bone
+			{
+				std::string			name;
+				int					parentIndex = -1;	// This will be -1 if myself is root.
+				Transform			transformOffset;	// Transforms the coordinates of initial pose: mesh->global->bone.
+				Transform			transformPose;		// Transforms the coordinates of current pose: bone->global->mesh.
+			private:
+				friend class cereal::access;
+				template<class Archive>
+				void serialize( Archive &archive, std::uint32_t version )
+				{
+					if ( version == 0 )
+					{
+						archive
+						(
+							CEREAL_NVP(	name				),
+							CEREAL_NVP(	parentIndex			),
+							CEREAL_NVP( transformOffset		),
+							CEREAL_NVP( transformPose		)
 						);
 					}
 				}
@@ -184,10 +203,11 @@ namespace Donya
 			{
 				static constexpr float	DEFAULT_SAMPLING_RATE = 1.0f / 24.0f;
 			public:
-				std::string				name;
-				float					samplingRate{ DEFAULT_SAMPLING_RATE };
-				float					animSeconds;
-				std::vector<KeyFrame>	keyFrames;
+				std::string						name;
+				float							samplingRate{ DEFAULT_SAMPLING_RATE };
+				float							animSeconds;
+				std::vector<KeyFrame>			keyFrames;
+				std::vector<Donya::Vector4x4>	globalTransforms;	// The global transforms per sampling-rate that timing is the same as keyFrames.
 			private:
 				friend class cereal::access;
 				template<class Archive>
@@ -197,11 +217,12 @@ namespace Donya
 					{
 						archive
 						(
-							CEREAL_NVP(	name			),
-							CEREAL_NVP(	samplingRate	),
-							CEREAL_NVP(	animSeconds		),
-							CEREAL_NVP(	animSeconds		),
-							CEREAL_NVP(	keyFrames		)
+							CEREAL_NVP(	name				),
+							CEREAL_NVP(	samplingRate		),
+							CEREAL_NVP(	animSeconds			),
+							CEREAL_NVP(	animSeconds			),
+							CEREAL_NVP(	keyFrames			),
+							CEREAL_NVP(	globalTransforms	)
 						);
 					}
 				}

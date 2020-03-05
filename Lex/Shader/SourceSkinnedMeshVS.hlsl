@@ -28,9 +28,9 @@ VS_OUT main( VS_IN vin )
 	float4x4 W		= mul( cbAdjustMatrix, cbWorld );
 	float4x4 WVP	= mul( W, cbViewProj );
 
-	VS_OUT vout		= ( VS_OUT )0;
-	vout.wsPos		= mul( vin.pos, W );
+	VS_OUT vout		= ( VS_OUT )( 0 );
 	vout.pos		= mul( vin.pos, WVP );
+	vout.wsPos		= mul( vin.pos, W );
 	vout.normal		= normalize( mul( vin.normal, W ) );
 	vout.texCoord	= vin.texCoord;
 	return vout;

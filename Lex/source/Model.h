@@ -98,37 +98,19 @@ namespace Donya
 
 				int										boneIndex;		// The index of this mesh's node.
 				std::vector<int>						boneIndices;	// The indices of associated nodes with this mesh and this mesh's node.
-				std::vector<Donya::Vector4x4>			boneOffsets;	// The bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
-				/*
-				Note:
-				The "boneOffsets" contain values are same as "ModelSource::Mesh::boneOffsets".
-				So now implement has an extra array of vec4x4.
-				You can more small with changing the type of "boneOffsets" to "unsigned int" from "Vector4x4",
-				Then rename to "useBoneOffsetIndices" from "boneOffsets", and store the index of the original array.
-				*/
+				std::vector<Animation::Bone>			boneOffsets;	// Used as the bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
+				
+				std::vector<Animation::Motion>			motions;		// Represent animations. The animations contain only animation(i.e. The animation provides a matrix of from mesh space to local(current pose) space).
 
 				std::shared_ptr<Strategy::VertexBase>	pVertex;
 				std::vector<Subset>						subsets;
 
 				ComPtr<ID3D11Buffer>					indexBuffer;
 			};
-			/// <summary>
-			/// The stored transforming data are local space(Calculated in: ParentGlobal.Inverse * Global).<para></para>
-			/// The "parentIndex" is valid only if used as an index of the Bone's array(it means skeletal).
-			/// </summary>
-			struct Bone
-			{
-				std::string			name;
-				int					parentIndex = -1; // -1 is invalid.
-				Donya::Vector3		scale{ 1.0f, 1.0f, 1.0f };
-				Donya::Quaternion	rotation;
-				Donya::Vector3		translation;
-			};
 		private:
 			std::shared_ptr<ModelSource>	pSource;
 			std::string						fileDirectory;	// Use for making file path.
 			std::vector<Mesh>				meshes;
-			std::vector<Bone>				skeletal;		// Represent bones of initial pose(like T-pose).
 		public:
 			/// <summary>
 			/// If set nullptr to "pDevice", use default device.
@@ -144,8 +126,6 @@ namespace Donya
 			void InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDestination, const std::vector<ModelSource::Subset> &source );
 			void InitSubset( ID3D11Device *pDevice, Model::Subset *pDestination, const ModelSource::Subset &source );
 			void CreateMaterial( Model::Material *pDestination, ID3D11Device *pDevice );
-
-			void InitSkeletal();
 		public:
 			std::shared_ptr<ModelSource> AcquireModelSource() const
 			{

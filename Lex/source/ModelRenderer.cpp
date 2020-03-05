@@ -357,7 +357,7 @@ namespace Donya
 		{
 			D3D11_RASTERIZER_DESC standard{};
 			standard.FillMode				= D3D11_FILL_SOLID;
-			standard.CullMode				= D3D11_CULL_BACK;
+			standard.CullMode				= D3D11_CULL_FRONT;
 			standard.FrontCounterClockwise	= FALSE;
 			standard.DepthBias				= 0;
 			standard.DepthBiasClamp			= 0;
@@ -782,7 +782,7 @@ namespace Donya
 
 		// HACK : These render method can optimize. There is many copy-paste :(
 
-		bool ModelRenderer::RenderSkinned( const Model &model, const Animation::Motion &motion, const Animator &animator, const ConstantDesc &descMesh, const ConstantDesc &descSubset, const TextureDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext )
+		bool ModelRenderer::RenderSkinned( const Model &model, /*const Animation::Motion &motion,*/ const Animator &animator, const ConstantDesc &descMesh, const ConstantDesc &descSubset, const TextureDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext )
 		{
 			if ( !EnableSkinned() ) { return false; }
 			// else
@@ -798,7 +798,9 @@ namespace Donya
 			for ( size_t i = 0; i < meshCount; ++i )
 			{
 				const auto &mesh = model.meshes[i];
-				UpdateConstantsPerMeshSkinned( model, i, CalcCurrentPose( motion.keyFrames, animator ), descMesh, pImmediateContext );
+				auto &tmpMotion = mesh.motions.front();
+
+				UpdateConstantsPerMeshSkinned( model, i, CalcCurrentPose( tmpMotion.keyFrames, animator ), descMesh, pImmediateContext );
 				ActivateCBPerMesh( descMesh, pImmediateContext );
 
 				mesh.pVertex->SetVertexBuffers( pImmediateContext );
@@ -890,29 +892,39 @@ namespace Donya
 			const auto &mesh = model.meshes[meshIndex];
 			Constants::PerMesh::Bone constants{};
 
-			Donya::Vector4x4 boneToLocal{};
-			auto MakeMatrix = []( const Animation::Bone &bone )->Donya::Vector4x4
+			Donya::Vector4x4 meshToBone{};
+			Donya::Vector4x4 boneToMesh{};
+			auto MakeMatrix			= []( const Animation::Transform &SRT )
 			{
 				Donya::Vector4x4 m{};
-				m._11 = bone.scale.x;
-				m._22 = bone.scale.y;
-				m._33 = bone.scale.z;
-
-				m *= bone.rotation.RequireRotationMatrix();
-
-				m._41 = bone.translation.x;
-				m._42 = bone.translation.y;
-				m._43 = bone.translation.z;
+				m._11 = SRT.scale.x;
+				m._22 = SRT.scale.y;
+				m._33 = SRT.scale.z;
+				m *= SRT.rotation.RequireRotationMatrix();
+				m._41 = SRT.translation.x;
+				m._42 = SRT.translation.y;
+				m._43 = SRT.translation.z;
 				return m;
+			};
+			auto MakeOffsetMatrix	= [&MakeMatrix]( const Animation::Bone &bone )->Donya::Vector4x4
+			{
+				return MakeMatrix( bone.transformOffset );
+			};
+			auto MakePoseMatrix		= [&MakeMatrix]( const Animation::Bone &bone )->Donya::Vector4x4
+			{
+				return MakeMatrix( bone.transformPose );
 			};
 
 			const size_t boneCount = std::min( mesh.boneIndices.size(), scast<size_t>( Constants::PerMesh::Bone::MAX_BONE_COUNT ) );
 			for ( size_t i = 0; i < boneCount; ++i )
 			{
-				const Animation::Bone &bone = currentPose.keyPose[mesh.boneIndices[i]];
-				boneToLocal = MakeMatrix( bone );
-
-				constants.boneTransforms[i] = mesh.boneOffsets[i] * boneToLocal;
+				const Animation::Bone &offsetBone  = mesh.boneOffsets[i];
+				const Animation::Bone &currentBone = currentPose.keyPose[mesh.boneIndices[i]];
+				meshToBone	= MakeOffsetMatrix( offsetBone  );
+				boneToMesh	= MakePoseMatrix  ( currentBone );
+				
+				// constants.boneTransforms[i] = meshToBone * boneToMesh;
+				constants.boneTransforms[i] = Donya::Vector4x4::Identity();
 			}
 
 			return constants;

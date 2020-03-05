@@ -126,8 +126,6 @@ namespace Donya
 			}
 
 			InitMeshes( pDevice, usage );
-
-			InitSkeletal();
 		}
 
 		void Model::InitMeshes( ID3D11Device *pDevice, ModelUsage usage )
@@ -145,6 +143,7 @@ namespace Donya
 					pDest->boneIndex			= source.boneIndex;
 					pDest->boneIndices			= source.boneIndices;
 					pDest->boneOffsets			= source.boneOffsets;
+					pDest->motions				= source.motions;
 				};
 
 				for ( size_t i = 0; i < meshCount; ++i )
@@ -286,25 +285,6 @@ namespace Donya
 			if ( !succeeded )
 			{
 				AssertCreation( "texture", fileDirectory + pDest->textureName );
-			}
-		}
-
-		void Model::InitSkeletal()
-		{
-			auto AssignBone = []( Model::Bone *pDest, const Animation::Bone &source )
-			{
-				pDest->name			= source.name;
-				pDest->parentIndex	= source.parentIndex;
-				pDest->scale		= source.scale;
-				pDest->rotation		= source.rotation;
-				pDest->translation	= source.translation;
-			};
-
-			const size_t boneCount = pSource->skeletal.size();
-			skeletal.resize( ( boneCount ) );
-			for ( size_t i = 0; i < boneCount; ++i )
-			{
-				AssignBone( &skeletal[i], pSource->skeletal[i] );
 			}
 		}
 	}
