@@ -782,7 +782,7 @@ namespace Donya
 
 		// HACK : These render method can optimize. There is many copy-paste :(
 
-		bool ModelRenderer::RenderSkinned( const Model &model, /*const Animation::Motion &motion,*/ const Animator &animator, const ConstantDesc &descMesh, const ConstantDesc &descSubset, const TextureDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext )
+		bool ModelRenderer::RenderSkinned( const Model &model, const Animation::Motion &motion, const Animator &animator, const ConstantDesc &descMesh, const ConstantDesc &descSubset, const TextureDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext )
 		{
 			if ( !EnableSkinned() ) { return false; }
 			// else
@@ -798,9 +798,8 @@ namespace Donya
 			for ( size_t i = 0; i < meshCount; ++i )
 			{
 				const auto &mesh = model.meshes[i];
-				auto &tmpMotion = mesh.motions.front();
-
-				UpdateConstantsPerMeshSkinned( model, i, CalcCurrentPose( tmpMotion.keyFrames, animator ), descMesh, pImmediateContext );
+				
+				UpdateConstantsPerMeshSkinned( model, i, CalcCurrentPose( motion.keyFrames, animator ), descMesh, pImmediateContext );
 				ActivateCBPerMesh( descMesh, pImmediateContext );
 
 				mesh.pVertex->SetVertexBuffers( pImmediateContext );
@@ -810,6 +809,7 @@ namespace Donya
 				for ( size_t j = 0; j < subsetCount; ++j )
 				{
 					const auto &subset = mesh.subsets[j];
+
 					UpdateConstantsPerSubset( model, i, j, descSubset, pImmediateContext );
 					ActivateCBPerSubset( descSubset, pImmediateContext );
 
@@ -923,8 +923,7 @@ namespace Donya
 				meshToBone	= MakeOffsetMatrix( offsetBone  );
 				boneToMesh	= MakePoseMatrix  ( currentBone );
 				
-				// constants.boneTransforms[i] = meshToBone * boneToMesh;
-				constants.boneTransforms[i] = Donya::Vector4x4::Identity();
+				constants.boneTransforms[i] = meshToBone * boneToMesh;
 			}
 
 			return constants;

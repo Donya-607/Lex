@@ -206,7 +206,7 @@ namespace Donya
 			/// This method is "Skinned" version. If the usage that specified when creation is different, returns false and don't render.<para></para>
 			/// If set nullptr to "pImmediateContext", use default device.
 			/// </summary>
-			bool RenderSkinned( const Donya::Model::Model &model,/* const Animation::Motion &motion,*/ const Animator &animator, const ConstantDesc &meshSettings, const ConstantDesc &subsetSettings, const TextureDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext = nullptr );
+			bool RenderSkinned( const Donya::Model::Model &model, const Animation::Motion &motion, const Animator &animator, const ConstantDesc &meshSettings, const ConstantDesc &subsetSettings, const TextureDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext = nullptr );
 			/// <summary>
 			/// Call a draw method by each subset of each mesh of the model.<para></para>
 			/// This method is "Static" version. If the usage that specified when creation is different, returns false and don't render.<para></para>

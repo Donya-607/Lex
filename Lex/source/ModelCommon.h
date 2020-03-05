@@ -153,6 +153,7 @@ namespace Donya
 			struct Bone
 			{
 				std::string			name;
+				std::string			parentName;
 				int					parentIndex = -1;	// This will be -1 if myself is root.
 				Transform			transformOffset;	// Transforms the coordinates of initial pose: mesh->global->bone.
 				Transform			transformPose;		// Transforms the coordinates of current pose: bone->global->mesh.
@@ -165,10 +166,11 @@ namespace Donya
 					{
 						archive
 						(
-							CEREAL_NVP(	name				),
-							CEREAL_NVP(	parentIndex			),
-							CEREAL_NVP( transformOffset		),
-							CEREAL_NVP( transformPose		)
+							CEREAL_NVP(	name			),
+							CEREAL_NVP(	parentName		),
+							CEREAL_NVP(	parentIndex		),
+							CEREAL_NVP( transformOffset	),
+							CEREAL_NVP( transformPose	)
 						);
 					}
 				}

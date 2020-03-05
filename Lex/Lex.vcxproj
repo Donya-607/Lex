@@ -207,6 +207,7 @@
     <ClInclude Include="Source\ModelAnimator.h" />
     <ClInclude Include="Source\ModelCommon.h" />
     <ClInclude Include="Source\ModelMaker.h" />
+    <ClInclude Include="Source\ModelMotion.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
     <ClInclude Include="Source\ModelSource.h" />
     <ClInclude Include="Source\Motion.h" />

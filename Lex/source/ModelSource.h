@@ -123,7 +123,7 @@ namespace Donya
 		public:
 			std::vector<Mesh>				meshes;
 			//std::vector<Animation::Bone>	skeletal;	// Represent bones of initial pose(like T-pose).
-			//std::vector<Animation::Motion>	animations;	// Represent animations. The animations contain only animation(i.e. The animation provides a matrix of from mesh space to local(current pose) space).
+			std::vector<Animation::Motion>	motions;		// Represent animations. The animations contain only animation(i.e. The animation provides a matrix of from mesh space to local(current pose) space).
 		private:
 			friend class cereal::access;
 			template<class Archive>

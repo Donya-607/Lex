@@ -432,7 +432,7 @@ private:
 		pRenderer->RenderSkinned
 		(
 			*pModel,
-			/*pSource->animations.front(),*/ data.mAnimator,
+			pSource->motions.front(), data.mAnimator,
 			descMesh, descSubset, descDiffuse
 		);
 		mcbPerModel.Deactivate();
