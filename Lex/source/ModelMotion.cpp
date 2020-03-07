@@ -7,7 +7,11 @@ namespace Donya
 {
 	namespace Model
 	{
-		Animation::Motion EmptyMotion()
+		Animation::KeyFrame	EmptyKeyFrame()
+		{
+			return Animation::KeyFrame{};
+		}
+		Animation::Motion	EmptyMotion()
 		{
 			return Animation::Motion{};
 		}
@@ -51,28 +55,21 @@ namespace Donya
 
 
 
-		bool FocusMotion::IsValidMotion( const Animation::Motion &motion ) const
+		bool FocusMotion::IsValidMotion( const Animation::Motion &motion )
 		{
 			/*
 			Requirements:
-			a.	(When the focus is not registered)
-					The keyframes is empty.
-			b.	(When the focus is registered)
-					The bone count of all key pose of keyframes is same as my bone count.
+				1. The motion has something.
+				2. The motion's bone count of all key pose of keyframes is the same.
 			*/
 
-			// a
-			if ( skeletal.empty() )
-			{
-				return ( motion.keyFrames.empty() ) ? true : false;
-			}
+			const size_t boneCount = motion.keyFrames.size();
+
+			// No.1
+			if ( !boneCount ) { return false; };
 			// else
 
-			// b
-
-			if ( motion.keyFrames.empty() ) { return false; };
-			// else
-			const size_t boneCount = skeletal.size();
+			// No.2
 			for ( const auto &keyFrame : motion.keyFrames )
 			{
 				if ( keyFrame.keyPose.size() != boneCount )
@@ -84,15 +81,27 @@ namespace Donya
 			return true;
 		}
 
-		void FocusMotion::RegisterMotion( const Animation::Motion &target )
+		bool FocusMotion::RegisterMotion( const Animation::Motion &target )
 		{
+			if ( !IsValidMotion( target ) )
+			{
+				focus = EmptyMotion();
+
+				skeletal.clear();
+				return false;
+			}
+			// else
+
 			focus = target;
+
+			AdaptToFocus();
+			return true;
 		}
+
 		Animation::Motion FocusMotion::GetFocusingMotion() const
 		{
 			return focus;
 		}
-
 		const std::vector<FocusMotion::Node> &FocusMotion::GetCurrentSkeletal() const
 		{
 			return skeletal;
@@ -100,8 +109,15 @@ namespace Donya
 
 		void FocusMotion::UpdateCurrentPose( float currentFrame )
 		{
+			if ( !IsValidMotion( focus ) )
+			{
+				_ASSERT_EXPR( 0, L"Error : The focusing motion is invalid!" );
+				return;
+			}
+			// else
+
 			const auto currentPose = CalcCurrentPose( currentFrame );
-			AssignPose( currentPose );
+			UpdateSkeletal( currentPose );
 
 			CalcLocalMatrix();
 
@@ -110,22 +126,27 @@ namespace Donya
 		void FocusMotion::UpdateCurrentPose( const Animator &animator )
 		{
 			float currentFrame = animator.CalcCurrentFrame();
-			CalcCurrentPose( currentFrame );
+			UpdateCurrentPose( currentFrame );
 		}
 
-		Animation::KeyFrame EmptyKeyFrame()
+		void FocusMotion::AdaptToFocus()
 		{
-			return Animation::KeyFrame{};
-		}
-		Animation::KeyFrame FocusMotion::CalcCurrentPose( float currentFrame )
-		{
-			if ( !IsValidMotion( focus ) )
+			const auto   basicKeyFrame	= CalcCurrentPose( 0.0f );
+			const size_t boneCount		= basicKeyFrame.keyPose.size();
+
+			if ( !boneCount )
 			{
-				_ASSERT_EXPR( 0, L"Error : The focusing motion is invalid!" );
-				return EmptyKeyFrame();
+				skeletal.clear();
+				return;
 			}
 			// else
 
+			skeletal.resize( boneCount );
+			UpdateSkeletal( basicKeyFrame );
+		}
+
+		Animation::KeyFrame FocusMotion::CalcCurrentPose( float currentFrame )
+		{
 			const size_t frameCount = focus.keyFrames.size();
 
 			float  integral{};
@@ -173,9 +194,10 @@ namespace Donya
 			return resultPose;
 		}
 
-		void FocusMotion::AssignPose( const Animation::KeyFrame &keyFrame )
+		void FocusMotion::UpdateSkeletal( const Animation::KeyFrame &keyFrame )
 		{
 			_ASSERT_EXPR( keyFrame.keyPose.size() == skeletal.size(), L"Error : The bone count of focusing motion is invalid!" );
+
 			const size_t boneCount = skeletal.size();
 			for ( size_t i = 0; i < boneCount; ++i )
 			{

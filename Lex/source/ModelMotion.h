@@ -42,23 +42,25 @@ namespace Donya
 		class FocusMotion
 		{
 		public:
+			/// <summary>
+			/// Validate the motion has compatible to this class.
+			/// </summary>
+			static bool IsValidMotion( const Animation::Motion &motion );
+		public:
 			struct Node
 			{
-				Animation::Bone		bone;	// The source.
-				Donya::Vector4x4	local;	// Represents local transform only.
-				Donya::Vector4x4	global;	// Contain all parent's global transform. If the root bone, this matrix contains the local transform only.
+				Animation::Bone		bone;		// The source.
+				Donya::Vector4x4	local;		// Represents local transform only.
+				Donya::Vector4x4	global;		// Contain all parent's global transform. If the root bone, this matrix contains the local transform only.
 			};
 		private:
-			std::vector<Node>	skeletal; // Provides the matrices of the current pose. That transforms space is bone -> mesh.
-			Animation::Motion	focus;
+			std::vector<Node>		skeletal;	// Provides the matrices of the current pose. That transforms space is bone -> mesh.
+			Animation::Motion		focus;
 		public:
 			/// <summary>
-			/// Validate the motion has compatible of now focus.<para></para>
-			/// You should register the focus motion before call this.
+			/// If the passed motion is invalid, me to be empty and then returns false.
 			/// </summary>
-			bool IsValidMotion( const Animation::Motion &motion ) const;
-
-			void RegisterMotion( const Animation::Motion &targetMotion );
+			bool RegisterMotion( const Animation::Motion &targetMotion );
 		public:
 			Animation::Motion GetFocusingMotion() const;
 			const std::vector<Node> &GetCurrentSkeletal() const;
@@ -66,9 +68,17 @@ namespace Donya
 			void UpdateCurrentPose( float currentFrame );
 			void UpdateCurrentPose( const Animator &frameCalculator );
 		private:
+			/// <summary>
+			/// Re build the skeletal with focusing motion.
+			/// </summary>
+			void AdaptToFocus();
+
 			Animation::KeyFrame CalcCurrentPose( float currentFrame );
 
-			void AssignPose( const Animation::KeyFrame &assignFrame );
+			/// <summary>
+			/// This method expects the skeletal already adapted to the focus.
+			/// </summary>
+			void UpdateSkeletal( const Animation::KeyFrame &assignFrame );
 
 			void CalcLocalMatrix();
 			void CalcGlobalMatrix();
