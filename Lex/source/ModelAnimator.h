@@ -9,8 +9,6 @@ namespace Donya
 {
 	namespace Model
 	{
-		// TODO : Have the FPS member to Animator.
-
 		/// <summary>
 		/// This class's role is calculation a motion frame.
 		/// </summary>
@@ -18,12 +16,13 @@ namespace Donya
 		{
 		private:
 			float	elapsedTime			= 0.0f;
+			float	FPS					= 1.0f / Animation::Motion::DEFAULT_SAMPLING_RATE;
 			bool	enableWrapAround	= true;
 		public:
 			/// <summary>
 			/// Set zero to internal elapsed-timer.
 			/// </summary>
-			void Reset();
+			void ResetTimer();
 			/// <summary>
 			/// Update an internal elapsed-timer.
 			/// </summary>
@@ -32,19 +31,19 @@ namespace Donya
 			/// <summary>
 			/// Set some motion frame to internal elapsed-timer. That calculated in this way:"frame * ( 1.0f / FPS )".
 			/// </summary>
-			void AssignFrame( float frame, float FPS = 1.0f / Animation::Motion::DEFAULT_SAMPLING_RATE );
+			void AssignFrame( float frame );
 			/// <summary>
 			/// Calculate current motion frame by internal elapsed-timer. That calculated in this way:"internal-elapsed-timer / ( 1.0f / FPS )".
 			/// </summary>
-			float CalcCurrentFrame( float FPS = 1.0f / Animation::Motion::DEFAULT_SAMPLING_RATE ) const;
+			float CalcCurrentFrame() const;
 			/// <summary>
 			/// Calculate current motion frame within the range [minFrame ~ maxFrame] by internal-timer.
 			/// </summary>
-			float CalcCurrentFrame( float FPS, float minFrame, float maxFrame ) const;
+			float CalcCurrentFrame( float minFrame, float maxFrame ) const;
 			/// <summary>
 			/// Calculate current motion frame within the range [0.0f ~ asFrameRange.size()] by internal-timer.
 			/// </summary>
-			float CalcCurrentFrame( float FPS, const std::vector<Animation::KeyFrame> &asFrameRange ) const;
+			float CalcCurrentFrame( const std::vector<Animation::KeyFrame> &asFrameRange ) const;
 		public:
 			/// <summary>
 			/// The calculate method returns frame will be wrap-around values within some range.
@@ -56,6 +55,10 @@ namespace Donya
 			void DisableWrapAround();
 		public:
 			/// <summary>
+			/// The method of frame calculation will use this FPS. The lower limit of FPS is 1.0f.
+			/// </summary>
+			void SetFPS( float overwrite );
+			/// <summary>
 			/// Overwrite an internal timer that updating at Update(). This does not represent a current frame.
 			/// </summary>
 			void SetInternalElapsedTime( float overwrite );
@@ -64,14 +67,5 @@ namespace Donya
 			/// </summary>
 			float GetInternalElapsedTime() const;
 		};
-
-		/// <summary>
-		/// Returns bone-matrix(interpolated by slerp) at current frame.
-		/// </summary>
-		Animation::KeyFrame CalcCurrentPose( const std::vector<Animation::KeyFrame> &motion, float currentFrame, bool enableLoop = true );
-		/// <summary>
-		/// Returns bone-matrix(interpolated by slerp) at current frame.
-		/// </summary>
-		Animation::KeyFrame CalcCurrentPose( const std::vector<Animation::KeyFrame> &motion, const Animator &currentFrameCalculator, float FPS = 1.0f / Animation::Motion::DEFAULT_SAMPLING_RATE );
 	}
 }

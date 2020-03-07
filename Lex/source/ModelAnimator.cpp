@@ -32,7 +32,7 @@ namespace Donya
 {
 	namespace Model
 	{
-		void  Animator::Reset()
+		void  Animator::ResetTimer()
 		{
 			elapsedTime = 0.0f;
 		}
@@ -41,21 +41,21 @@ namespace Donya
 			elapsedTime += argElapsedTime;
 		}
 
-		void  Animator::AssignFrame( float frame, float FPS )
+		void  Animator::AssignFrame( float frame )
 		{
 			elapsedTime = frame * FPSToRate( FPS );
 		}
-		float Animator::CalcCurrentFrame( float FPS ) const
+		float Animator::CalcCurrentFrame() const
 		{
 			return elapsedTime / FPSToRate( FPS );
 		}
-		float Animator::CalcCurrentFrame( float FPS, float minFrame, float maxFrame ) const
+		float Animator::CalcCurrentFrame( float minFrame, float maxFrame ) const
 		{
-			const float frame = CalcCurrentFrame( FPS );
+			const float frame = CalcCurrentFrame();
 
 			return HandleFrameImpl( frame, minFrame, maxFrame, enableWrapAround );
 		}
-		float Animator::CalcCurrentFrame( float FPS, const std::vector<Animation::KeyFrame> &asFrameRange ) const
+		float Animator::CalcCurrentFrame( const std::vector<Animation::KeyFrame> &asFrameRange ) const
 		{
 			const size_t frameCount = asFrameRange.size();
 			if ( !frameCount || frameCount == 1 )
@@ -63,7 +63,7 @@ namespace Donya
 				return 0.0f;
 			}
 			// else
-			return CalcCurrentFrame( FPS, 0.0f, scast<float>( frameCount ) );
+			return CalcCurrentFrame( 0.0f, scast<float>( frameCount ) );
 		}
 
 		void  Animator::EnableWrapAround()
@@ -75,6 +75,12 @@ namespace Donya
 			enableWrapAround = false;
 		}
 
+		void  Animator::SetFPS( float overwrite )
+		{
+			FPS = overwrite;
+			FPS = std::max( 1.0f, FPS );
+		}
+
 		void  Animator::SetInternalElapsedTime( float overwrite )
 		{
 			elapsedTime = overwrite;
@@ -82,62 +88,6 @@ namespace Donya
 		float Animator::GetInternalElapsedTime() const
 		{
 			return elapsedTime;
-		}
-
-		Animation::KeyFrame CalcCurrentPoseImpl( const std::vector<Animation::KeyFrame> &motion, float currentFrame )
-		{
-			float  integral{};
-			float  fractional = modf( currentFrame, &integral );	// Will using as percent of interpolation.
-			size_t baseFrame  = scast<size_t>( integral );
-			size_t nextFrame  = ( motion.size() <= baseFrame + 1 )
-								? ( baseFrame + 1 ) % motion.size()	// Wrap around.
-								: baseFrame + 1;
-
-			const Animation::KeyFrame currentPose	= motion[baseFrame];
-			const Animation::KeyFrame nextPose		= motion[nextFrame];
-
-			// Calculation is not necessary.
-			if ( ZeroEqual( fractional ) ) { return currentPose; }
-			// else
-
-			_ASSERT_EXPR( currentPose.keyPose.size() == nextPose.keyPose.size(), L"Error : The bone count did not match! " );
-
-			auto SlerpTransform	= []( const Animation::Transform &lhs, const Animation::Transform &rhs, float percent )
-			{
-				Animation::Transform rv = lhs;
-				rv.scale		= Donya::Lerp( lhs.scale, rhs.scale, percent );
-				rv.rotation		= Donya::Quaternion::Slerp( lhs.rotation, rhs.rotation, percent );
-				rv.translation	= Donya::Lerp( lhs.translation, rhs.translation, percent );
-				return rv;
-			};
-			auto SlerpBone		= [&SlerpTransform]( const Animation::Bone &lhs, const Animation::Bone rhs, float percent )
-			{
-				Animation::Bone rv	= lhs;
-				rv.transformOffset	= SlerpTransform( lhs.transformOffset,	rhs.transformOffset,	percent );
-				rv.transformPose	= SlerpTransform( lhs.transformPose,	rhs.transformPose,		percent );
-				return rv;
-			};
-
-			// A member that does not interpolate is using as currentPose.
-			Animation::KeyFrame resultPose = currentPose;
-
-			const size_t boneCount = currentPose.keyPose.size();
-			for ( size_t i = 0; i < boneCount; ++i )
-			{
-				resultPose.keyPose[i] = SlerpBone( currentPose.keyPose[i], nextPose.keyPose[i], fractional );
-			}
-
-			return resultPose;
-		}
-		Animation::KeyFrame CalcCurrentPose( const std::vector<Animation::KeyFrame> &motion, float currentFrame, bool enableLoop )
-		{
-			float  computedFrame = HandleFrameImpl( currentFrame, 0.0f, scast<float>( motion.size() ), enableLoop );
-			return CalcCurrentPoseImpl( motion, computedFrame );
-		}
-		Animation::KeyFrame CalcCurrentPose( const std::vector<Animation::KeyFrame> &motion, const Animator &animator, float FPS )
-		{
-			float  computedFrame = animator.CalcCurrentFrame( FPS, motion );
-			return CalcCurrentPoseImpl( motion, computedFrame );
 		}
 	}
 }
