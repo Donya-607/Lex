@@ -143,7 +143,6 @@ namespace Donya
 					pDest->boneIndex			= source.boneIndex;
 					pDest->boneIndices			= source.boneIndices;
 					pDest->boneOffsets			= source.boneOffsets;
-					pDest->motions				= source.motions;
 				};
 
 				for ( size_t i = 0; i < meshCount; ++i )

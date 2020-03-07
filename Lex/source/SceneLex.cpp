@@ -29,6 +29,7 @@
 #include "Model.h"
 #include "ModelCommon.h"
 #include "ModelMaker.h"
+#include "ModelMotion.h"
 namespace
 {
 	std::vector<Donya::Model::Model> tmp{};
@@ -67,9 +68,11 @@ public:
 	{
 		Donya::Loader		loader{};
 		Donya::SkinnedMesh	mesh{};
-		size_t				modelID{ NULL };
-		size_t				rendererID{ NULL };
-		Donya::Model::Animator mAnimator{};
+		size_t						modelID{ NULL };
+		size_t						rendererID{ NULL };
+		Donya::Model::MotionHolder	mHolder{};
+		Donya::Model::FocusMotion	mActiveMotion{};
+		Donya::Model::Animator		mAnimator{};
 		Donya::MotionChunk	motions{};
 		Donya::Animator		animator{};
 		Donya::Vector3		scale		{ 1.0f, 1.0f, 1.0f };
@@ -92,6 +95,26 @@ public:
 			if ( !modelID ) { succeeded = false; }
 			rendererID	= Donya::Model::MakeRenderer( Donya::Model::ModelUsage::Skinned );
 			if ( !rendererID ) { succeeded = false; }
+
+			// Assign to holder.
+			{
+				const auto ppRawModel = Donya::Model::AcquireRawModel( modelID );
+				if ( ppRawModel )
+				{
+					const auto pSource = ( *ppRawModel )->AcquireModelSource();
+					for ( const auto &motion : pSource->motions )
+					{
+						mHolder.AppendMotion( motion );
+					}
+				}
+			}
+			// Focus some motion.
+			{
+				const auto motionCount = mHolder.GetMotionCount();
+				const auto motion = mHolder.GetMotion( 0 );
+				bool isValid = mActiveMotion.IsValidMotion( motion );
+				mActiveMotion.RegisterMotion( motion );
+			}
 
 			result = Donya::MotionChunk::Create( loader, &motions );
 			if ( !result ) { succeeded = false; }
@@ -405,7 +428,7 @@ private:
 			Donya::Model::ModelRenderer::ActivateDefaultPixelShaderSkinned();
 		}
 
-		auto pSource = pModel->AcquireModelSource();
+		// auto pSource = pModel->AcquireModelSource();
 		
 		const Donya::Vector3 eulerRadians
 		{
@@ -432,7 +455,7 @@ private:
 		pRenderer->RenderSkinned
 		(
 			*pModel,
-			pSource->motions.front(), data.mAnimator,
+			data.mActiveMotion, data.mAnimator,
 			descMesh, descSubset, descDiffuse
 		);
 		mcbPerModel.Deactivate();
@@ -882,6 +905,8 @@ private:
 			it.animator.Update( elapsedTime * it.motionAccelPercent );
 			it.mAnimator.Update( elapsedTime * it.motionAccelPercent );
 			it.currentElapsedTime = it.animator.GetCurrentElapsedTime();
+
+			it.mActiveMotion.UpdateCurrentPose( it.mAnimator );
 		}
 	}
 
