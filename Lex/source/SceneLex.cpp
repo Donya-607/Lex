@@ -112,7 +112,7 @@ public:
 			{
 				const auto motionCount = mHolder.GetMotionCount();
 				const auto motion = mHolder.GetMotion( 0 );
-				bool isValid = mActiveMotion.IsValidMotion( motion );
+				bool isValid = Donya::Model::FocusMotion::IsValidMotion( motion );
 				mActiveMotion.RegisterMotion( motion );
 			}
 

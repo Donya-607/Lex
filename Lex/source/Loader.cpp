@@ -827,8 +827,8 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMesh( Model::ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
 	// void BuildMesh( Model::ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, FBX::FbxScene *pScene, const std::string &fileDirectory, float animationSamplingFPS )
+	void BuildMesh( Model::ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
 	{
 		AttachGlobalTransform( pMesh, pFBXMesh );
 		AdjustCoordinate( pMesh );
@@ -1099,8 +1099,8 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMeshes( std::vector<Model::ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
 	// void BuildMeshes( std::vector<Model::ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, FBX::FbxScene *pScene, const std::string &fileDirectory, float animationSamplingFPS )
+	void BuildMeshes( std::vector<Model::ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
 	{
 		const size_t meshCount = meshNodes.size();
 		pMeshes->resize( meshCount );
@@ -1116,6 +1116,10 @@ namespace Donya
 
 	void BuildModelSource( Model::ModelSource *pSource, FBX::FbxScene *pScene, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes, float animationSamplingFPS, const std::string &fileDirectory )
 	{
+		BuildSkeletal( &pSource->skeletal, motionNodes );
+
+		// The meshes building function is using the skeletal, so we should build after building of the skeletal.
+
 		// BuildMeshes( &pSource->meshes, meshNodes, pScene, fileDirectory, animationSamplingFPS );
 		BuildMeshes( &pSource->meshes, meshNodes, pScene, fileDirectory, pSource->skeletal, animationSamplingFPS );
 

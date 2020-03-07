@@ -138,9 +138,9 @@ namespace Donya
 					m._22 = scale.y;
 					m._33 = scale.z;
 					m *= rotation.RequireRotationMatrix();
-					m._41 = scale.x;
-					m._42 = scale.y;
-					m._43 = scale.z;
+					m._41 = translation.x;
+					m._42 = translation.y;
+					m._43 = translation.z;
 					return m;
 				}
 			public:

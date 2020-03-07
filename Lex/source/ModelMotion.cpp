@@ -63,11 +63,12 @@ namespace Donya
 				2. The motion's bone count of all key pose of keyframes is the same.
 			*/
 
-			const size_t boneCount = motion.keyFrames.size();
-
 			// No.1
-			if ( !boneCount ) { return false; };
+			if ( motion.keyFrames.empty() ) { return false; };
 			// else
+
+			const auto  &someFrame = motion.keyFrames.front();
+			const size_t boneCount = someFrame.keyPose.size();
 
 			// No.2
 			for ( const auto &keyFrame : motion.keyFrames )
@@ -151,7 +152,7 @@ namespace Donya
 
 			float  integral{};
 			float  fractional = modf( currentFrame, &integral );	// Will using as percent of interpolation.
-			size_t baseFrame  = scast<size_t>( integral );
+			size_t baseFrame  = scast<size_t>( integral ) % frameCount;
 			size_t nextFrame  = ( frameCount <= baseFrame + 1 )
 								? ( baseFrame + 1 ) % frameCount	// Wrap around.
 								: baseFrame + 1;
@@ -172,8 +173,6 @@ namespace Donya
 			if ( ZeroEqual( fractional ) ) { return currentPose; }
 			// else
 
-			_ASSERT_EXPR( currentPose.keyPose.size() == nextPose.keyPose.size(), L"Error : The bone count did not match! " );
-
 			auto SlerpBone = [&SlerpTransform]( const Animation::Bone &lhs, const Animation::Bone rhs, float percent )
 			{
 				Animation::Bone rv		= lhs;
@@ -184,6 +183,8 @@ namespace Donya
 
 			// A member that does not interpolate is using as currentPose.
 			Animation::KeyFrame resultPose = currentPose;
+
+			_ASSERT_EXPR( currentPose.keyPose.size() == nextPose.keyPose.size(), L"Error : The bone count did not match! " );
 
 			const size_t boneCount = currentPose.keyPose.size();
 			for ( size_t i = 0; i < boneCount; ++i )
