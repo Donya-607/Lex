@@ -130,6 +130,24 @@ namespace Donya
 				Donya::Vector3		scale{ 1.0f, 1.0f, 1.0f };
 				Donya::Quaternion	rotation;
 				Donya::Vector3		translation;
+			public:
+				Donya::Vector4x4 ToWorldMatrix() const
+				{
+					Donya::Vector4x4 m{};
+					m._11 = scale.x;
+					m._22 = scale.y;
+					m._33 = scale.z;
+					m *= rotation.RequireRotationMatrix();
+					m._41 = scale.x;
+					m._42 = scale.y;
+					m._43 = scale.z;
+					return m;
+				}
+			public:
+				static Transform Identity()
+				{
+					return Transform{};
+				}
 			private:
 				friend class cereal::access;
 				template<class Archive>
@@ -152,11 +170,11 @@ namespace Donya
 			/// </summary>
 			struct Bone
 			{
-				std::string			name;
-				std::string			parentName;
-				int					parentIndex = -1;	// This will be -1 if myself is root.
-				Transform			transformOffset;	// Transforms the coordinates of initial pose: mesh->global->bone.
-				Transform			transformPose;		// Transforms the coordinates of current pose: bone->global->mesh.
+				std::string		name;
+				std::string		parentName;			// This will be "" if myself has not parent.
+				int				parentIndex = -1;	// This will be -1 if myself has not parent.
+				Transform		transform;			// Local transform(bone -> mesh).
+				Transform		transformToParent;	// Transform to parent bone space. This will be identity if myself has not parent.
 			private:
 				friend class cereal::access;
 				template<class Archive>
@@ -166,11 +184,11 @@ namespace Donya
 					{
 						archive
 						(
-							CEREAL_NVP(	name			),
-							CEREAL_NVP(	parentName		),
-							CEREAL_NVP(	parentIndex		),
-							CEREAL_NVP( transformOffset	),
-							CEREAL_NVP( transformPose	)
+							CEREAL_NVP(	name				),
+							CEREAL_NVP(	parentName			),
+							CEREAL_NVP(	parentIndex			),
+							CEREAL_NVP( transform			),
+							CEREAL_NVP( transformToParent	)
 						);
 					}
 				}
@@ -182,7 +200,7 @@ namespace Donya
 			struct KeyFrame
 			{
 				float				seconds;
-				std::vector<Bone>	keyPose; // A skeletal at that timing.
+				std::vector<Bone>	keyPose;	// A skeletal at some timing. That transform space is bone -> mesh.
 			private:
 				friend class cereal::access;
 				template<class Archive>
@@ -205,11 +223,10 @@ namespace Donya
 			{
 				static constexpr float	DEFAULT_SAMPLING_RATE = 1.0f / 24.0f;
 			public:
-				std::string						name;
-				float							samplingRate{ DEFAULT_SAMPLING_RATE };
-				float							animSeconds;
-				std::vector<KeyFrame>			keyFrames;
-				std::vector<Donya::Vector4x4>	globalTransforms;	// The global transforms per sampling-rate that timing is the same as keyFrames.
+				std::string				name;
+				float					samplingRate{ DEFAULT_SAMPLING_RATE };
+				float					animSeconds;
+				std::vector<KeyFrame>	keyFrames;
 			private:
 				friend class cereal::access;
 				template<class Archive>
@@ -219,12 +236,11 @@ namespace Donya
 					{
 						archive
 						(
-							CEREAL_NVP(	name				),
-							CEREAL_NVP(	samplingRate		),
-							CEREAL_NVP(	animSeconds			),
-							CEREAL_NVP(	animSeconds			),
-							CEREAL_NVP(	keyFrames			),
-							CEREAL_NVP(	globalTransforms	)
+							CEREAL_NVP(	name			),
+							CEREAL_NVP(	samplingRate	),
+							CEREAL_NVP(	animSeconds		),
+							CEREAL_NVP(	animSeconds		),
+							CEREAL_NVP(	keyFrames		)
 						);
 					}
 				}

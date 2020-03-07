@@ -495,8 +495,8 @@ namespace Donya
 		Model::Animation::Bone output{};
 		output.name				= pMesh->GetNode()->GetName();
 		output.parentName		= ( pParent ) ? pParent->GetName() : "";
-		output.transformOffset	= SeparateSRT( initialBoneOffset );
-		output.transformPose	= SeparateSRT( currentPose );
+		//output.transformOffset	= SeparateSRT( initialBoneOffset );
+		//output.transformPose	= SeparateSRT( currentPose );
 		return output;
 	}
 	/// <summary>
@@ -559,36 +559,59 @@ namespace Donya
 
 		const size_t nodeCount = skeletalNodes.size();
 		data.resize( nodeCount );
-		for ( size_t i = 0;  i < nodeCount; ++i )
+		for ( size_t i = 0; i < nodeCount; ++i )
 		{
 			Model::Animation::Bone &bone = data[i];
 			FBX::FbxNode *pNode = skeletalNodes[i];
 
-			// This matrix transforms coordinates of the current pose from bone space to global space.
-			FBX::FbxAMatrix boneToGlobal{};
-			boneToGlobal = pNode->EvaluateGlobalTransform( currentTime );
+			FBX::FbxAMatrix localTransform{};
+			localTransform = pNode->EvaluateLocalTransform( currentTime );
 
-			// FBX::FbxAMatrix localTransform{};
-			// localTransform = pNode->EvaluateLocalTransform( currentTime );
-
-			bone.name = pNode->GetName();
-			bone.transformPose = SeparateSRT( boneToGlobal );
+			bone.name		= pNode->GetName();
+			bone.transform	= SeparateSRT( localTransform );
 
 			FBX::FbxNode *pParent = pNode->GetParent();
 			if ( pParent )
 			{
-				bone.parentName  = pParent->GetName();
-				bone.parentIndex = FindBoneIndex( data, bone.parentName );
+				bone.parentName   = pParent->GetName();
 			}
 			else
 			{
-				bone.parentName  = "";
+				bone.parentName   = "";
+			}
+		}
+
+		// Assign the parent from built skeletal.
+		for ( size_t i = 0; i < nodeCount; ++i )
+		{
+			Model::Animation::Bone &bone = data[i];
+			FBX::FbxNode *pNode = skeletalNodes[i];
+
+			if ( bone.parentName == "" )
+			{
 				bone.parentIndex = -1;
+				bone.transformToParent = Model::Animation::Transform::Identity();
+			}
+			else
+			{
+				// This matrix transforms coordinates of the current pose from bone space to global space.
+				FBX::FbxAMatrix boneToGlobal{};
+				boneToGlobal = pNode->EvaluateGlobalTransform( currentTime );
+
+				// This matrix transforms coordinates of the current pose from parent's bone space to global space.
+				FBX::FbxAMatrix parentBoneToGlobal{};
+				parentBoneToGlobal = pNode->GetParent()->EvaluateGlobalTransform( currentTime );
+
+				// bone -> global * global -> parentBone
+				FBX::FbxAMatrix boneToParent{};
+				boneToParent = parentBoneToGlobal.Inverse() * boneToGlobal;
+
+				bone.parentIndex		= FindBoneIndex( data, bone.parentName );
+				bone.transformToParent	= SeparateSRT( boneToParent );
 			}
 		}
 	}
 
-	// void BuildKeyFrame( Model::Animation::KeyFrame *pKeyFrame, FBX::FbxMesh *pMesh, const FBX::FbxTime &currentTime, float currentSeconds )
 	void BuildKeyFrame( Model::Animation::KeyFrame *pKeyFrame, const std::vector<FBX::FbxNode *> &skeletalNodes, const FBX::FbxTime &currentTime, float currentSeconds )
 	{
 		pKeyFrame->seconds = currentSeconds;
@@ -664,9 +687,7 @@ namespace Donya
 			for (  FBX::FbxTime currentTime = beginTime; currentTime < endTime; currentTime += samplingStep )
 			{
 				BuildKeyFrame( &motion.keyFrames[index], skeletalNodes, currentTime, seconds );
-				//currentGlobalTransform = Convert( FetchSceneMatrix( pMesh->GetNode(), currentTime ) );
-				motion.globalTransforms.emplace_back( currentGlobalTransform );
-
+				
 				seconds	+= samplingTime;
 				index	+= 1U;
 			}
@@ -864,7 +885,8 @@ namespace Donya
 				
 				Model::Animation::Bone bone{};
 				bone.name				= pCluster->GetLink()->GetName();
-				bone.transformOffset	= SeparateSRT( boneOffset );
+				bone.transform			= SeparateSRT( boneOffset );
+				bone.transformToParent	= Model::Animation::Transform::Identity();
 				pMesh->boneOffsets.emplace_back( std::move( bone ) );
 			};
 
