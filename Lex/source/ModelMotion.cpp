@@ -55,25 +55,20 @@ namespace Donya
 		{
 			/*
 			Requirements:
-			1.	The global transform count is the same as the keyframe count.
-			2.	(When the focus is not registered)
+			a.	(When the focus is not registered)
 					The keyframes is empty.
-			3.	(When the focus is registered)
+			b.	(When the focus is registered)
 					The bone count of all key pose of keyframes is same as my bone count.
 			*/
 
-			// No.1
-			if ( motion.globalTransforms.size() != motion.keyFrames.size() ) { return false; }
-			// else
-			
-			// No.2
+			// a
 			if ( skeletal.empty() )
 			{
 				return ( motion.keyFrames.empty() ) ? true : false;
 			}
 			// else
 
-			// No.3
+			// b
 
 			if ( motion.keyFrames.empty() ) { return false; };
 			// else
@@ -105,8 +100,8 @@ namespace Donya
 
 		void FocusMotion::UpdateCurrentPose( float currentFrame )
 		{
-			const auto currentTransform = CalcCurrentPose( currentFrame );
-			AssignTransform( currentTransform );
+			const auto currentPose = CalcCurrentPose( currentFrame );
+			AssignPose( currentPose );
 
 			CalcLocalMatrix();
 
@@ -114,15 +109,20 @@ namespace Donya
 		}
 		void FocusMotion::UpdateCurrentPose( const Animator &animator )
 		{
-			CalcCurrentPose( animator.CalcCurrentFrame() );
+			float currentFrame = animator.CalcCurrentFrame();
+			CalcCurrentPose( currentFrame );
 		}
 
-		FocusMotion::LerpedTransform FocusMotion::CalcCurrentPose( float currentFrame )
+		Animation::KeyFrame EmptyKeyFrame()
+		{
+			return Animation::KeyFrame{};
+		}
+		Animation::KeyFrame FocusMotion::CalcCurrentPose( float currentFrame )
 		{
 			if ( !IsValidMotion( focus ) )
 			{
 				_ASSERT_EXPR( 0, L"Error : The focusing motion is invalid!" );
-				return LerpedTransform::Empty();
+				return EmptyKeyFrame();
 			}
 			// else
 
@@ -144,68 +144,50 @@ namespace Donya
 				return rv;
 			};
 
-			auto CalcLerpedPose = [&]()->Animation::KeyFrame
+			const Animation::KeyFrame currentPose	= focus.keyFrames[baseFrame];
+			const Animation::KeyFrame nextPose		= focus.keyFrames[nextFrame];
+
+			// Interpolation is not necessary.
+			if ( ZeroEqual( fractional ) ) { return currentPose; }
+			// else
+
+			_ASSERT_EXPR( currentPose.keyPose.size() == nextPose.keyPose.size(), L"Error : The bone count did not match! " );
+
+			auto SlerpBone = [&SlerpTransform]( const Animation::Bone &lhs, const Animation::Bone rhs, float percent )
 			{
-				const Animation::KeyFrame currentPose	= focus.keyFrames[baseFrame];
-				const Animation::KeyFrame nextPose		= focus.keyFrames[nextFrame];
-
-				if ( ZeroEqual( fractional ) ) { return currentPose; }
-				// else
-
-				_ASSERT_EXPR( currentPose.keyPose.size() == nextPose.keyPose.size(), L"Error : The bone count did not match! " );
-				auto SlerpBone = [&SlerpTransform]( const Animation::Bone &lhs, const Animation::Bone rhs, float percent )
-				{
-					Animation::Bone rv	= lhs;
-					rv.transformOffset	= SlerpTransform( lhs.transformOffset,	rhs.transformOffset,	percent );
-					rv.transformPose	= SlerpTransform( lhs.transformPose,	rhs.transformPose,		percent );
-					return rv;
-				};
-
-				// A member that does not interpolate is using as currentPose.
-				Animation::KeyFrame resultPose = currentPose;
-
-				const size_t boneCount = currentPose.keyPose.size();
-				for ( size_t i = 0; i < boneCount; ++i )
-				{
-					resultPose.keyPose[i] = SlerpBone( currentPose.keyPose[i], nextPose.keyPose[i], fractional );
-				}
-
-				return resultPose;
-			};
-			auto CalcLerpedGlobalTransform = [&]()->Animation::Transform
-			{
-				const Animation::Transform currentTransform	= focus.globalTransforms[baseFrame];
-				const Animation::Transform nextTransform	= focus.globalTransforms[nextFrame];
-
-				if ( ZeroEqual( fractional ) ) { return currentTransform; }
-				// else
-
-				return SlerpTransform( currentTransform, nextTransform, fractional );
+				Animation::Bone rv		= lhs;
+				rv.transform			= SlerpTransform( lhs.transform,			rhs.transform,			percent );
+				rv.transformToParent	= SlerpTransform( lhs.transformToParent,	rhs.transformToParent,	percent );
+				return rv;
 			};
 
-			LerpedTransform result{};
-			result.keyFrame = CalcLerpedPose();
-			result.globalTransform = CalcLerpedGlobalTransform();
-			return result;
+			// A member that does not interpolate is using as currentPose.
+			Animation::KeyFrame resultPose = currentPose;
+
+			const size_t boneCount = currentPose.keyPose.size();
+			for ( size_t i = 0; i < boneCount; ++i )
+			{
+				resultPose.keyPose[i] = SlerpBone( currentPose.keyPose[i], nextPose.keyPose[i], fractional );
+			}
+
+			return resultPose;
 		}
 
-		void FocusMotion::AssignTransform( const LerpedTransform &transform )
+		void FocusMotion::AssignPose( const Animation::KeyFrame &keyFrame )
 		{
-			_ASSERT_EXPR( transform.keyFrame.keyPose.size() == skeletal.size(), L"Error : The bone count of focusing motion is invalid!" );
+			_ASSERT_EXPR( keyFrame.keyPose.size() == skeletal.size(), L"Error : The bone count of focusing motion is invalid!" );
 			const size_t boneCount = skeletal.size();
 			for ( size_t i = 0; i < boneCount; ++i )
 			{
-				skeletal[i].bone = transform.keyFrame.keyPose[i];
+				skeletal[i].bone = keyFrame.keyPose[i];
 			}
-
-			globalTransform = transform.globalTransform.ToWorldMatrix();
 		}
 
 		void FocusMotion::CalcLocalMatrix()
 		{
 			for ( auto &it : skeletal )
 			{
-				it.local = it.bone.transformPose.ToWorldMatrix();
+				it.local = it.bone.transform.ToWorldMatrix();
 			}
 		}
 		void FocusMotion::CalcGlobalMatrix()

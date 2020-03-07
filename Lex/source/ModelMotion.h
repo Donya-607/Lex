@@ -44,13 +44,12 @@ namespace Donya
 		public:
 			struct Node
 			{
-				Animation::Bone		bone;
-				Donya::Vector4x4	local;
-				Donya::Vector4x4	global;
+				Animation::Bone		bone;	// The source.
+				Donya::Vector4x4	local;	// Represents local transform only.
+				Donya::Vector4x4	global;	// Contain all parent's global transform. If the root bone, this matrix contains the local transform only.
 			};
 		private:
 			std::vector<Node>	skeletal; // Provides the matrices of the current pose. That transforms space is bone -> mesh.
-			Donya::Vector4x4	globalTransform;
 			Animation::Motion	focus;
 		public:
 			/// <summary>
@@ -67,19 +66,9 @@ namespace Donya
 			void UpdateCurrentPose( float currentFrame );
 			void UpdateCurrentPose( const Animator &frameCalculator );
 		private:
-			struct LerpedTransform
-			{
-				Animation::KeyFrame		keyFrame;
-				Animation::Transform	globalTransform;
-			public:
-				static LerpedTransform Empty()
-				{
-					return LerpedTransform{};
-				}
-			};
-			LerpedTransform CalcCurrentPose( float currentFrame );
+			Animation::KeyFrame CalcCurrentPose( float currentFrame );
 
-			void AssignTransform( const LerpedTransform &transform );
+			void AssignPose( const Animation::KeyFrame &assignFrame );
 
 			void CalcLocalMatrix();
 			void CalcGlobalMatrix();
