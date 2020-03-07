@@ -59,8 +59,8 @@ namespace Donya
 			bool IsValidMotion( const Animation::Motion &motion ) const;
 
 			void RegisterMotion( const Animation::Motion &targetMotion );
+		public:
 			Animation::Motion GetFocusingMotion() const;
-
 			const std::vector<Node> &GetCurrentSkeletal() const;
 		public:
 			void UpdateCurrentPose( float currentFrame );

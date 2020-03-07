@@ -782,7 +782,7 @@ namespace Donya
 
 		// HACK : These render method can optimize. There is many copy-paste :(
 
-		bool ModelRenderer::RenderSkinned( const Model &model, const Animation::Motion &motion, const Animator &animator, const ConstantDesc &descMesh, const ConstantDesc &descSubset, const TextureDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext )
+		bool ModelRenderer::RenderSkinned( const Model &model, const FocusMotion &activeMotion, const Animator &animator, const ConstantDesc &descMesh, const ConstantDesc &descSubset, const TextureDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext )
 		{
 			if ( !EnableSkinned() ) { return false; }
 			// else
@@ -799,7 +799,7 @@ namespace Donya
 			{
 				const auto &mesh = model.meshes[i];
 				
-				UpdateConstantsPerMeshSkinned( model, i, CalcCurrentPose( motion.keyFrames, animator ), descMesh, pImmediateContext );
+				UpdateConstantsPerMeshSkinned( model, i, activeMotion, descMesh, pImmediateContext );
 				ActivateCBPerMesh( descMesh, pImmediateContext );
 
 				mesh.pVertex->SetVertexBuffers( pImmediateContext );
@@ -887,51 +887,30 @@ namespace Donya
 
 			return constants;
 		}
-		Constants::PerMesh::Bone   ModelRenderer::MakeConstantsBone  ( const Model &model, size_t meshIndex, const Animation::KeyFrame &currentPose ) const
+		Constants::PerMesh::Bone   ModelRenderer::MakeConstantsBone  ( const Model &model, size_t meshIndex, const FocusMotion &activeMotion ) const
 		{
-			const auto &mesh = model.meshes[meshIndex];
+			const auto &mesh		= model.meshes[meshIndex];
+			const auto &currentPose	= activeMotion.GetCurrentSkeletal();
 			Constants::PerMesh::Bone constants{};
 
-			Donya::Vector4x4 meshToBone{};
-			Donya::Vector4x4 boneToMesh{};
-			auto MakeMatrix			= []( const Animation::Transform &SRT )
-			{
-				Donya::Vector4x4 m{};
-				m._11 = SRT.scale.x;
-				m._22 = SRT.scale.y;
-				m._33 = SRT.scale.z;
-				m *= SRT.rotation.RequireRotationMatrix();
-				m._41 = SRT.translation.x;
-				m._42 = SRT.translation.y;
-				m._43 = SRT.translation.z;
-				return m;
-			};
-			auto MakeOffsetMatrix	= [&MakeMatrix]( const Animation::Bone &bone )->Donya::Vector4x4
-			{
-				return MakeMatrix( bone.transformOffset );
-			};
-			auto MakePoseMatrix		= [&MakeMatrix]( const Animation::Bone &bone )->Donya::Vector4x4
-			{
-				return MakeMatrix( bone.transformPose );
-			};
-
+			Donya::Vector4x4 meshToBone{}; // So-called "Bone offset matrix".
+			Donya::Vector4x4 boneToMesh{}; // Transform to mesh space of current pose.
 			const size_t boneCount = std::min( mesh.boneIndices.size(), scast<size_t>( Constants::PerMesh::Bone::MAX_BONE_COUNT ) );
 			for ( size_t i = 0; i < boneCount; ++i )
 			{
-				const Animation::Bone &offsetBone  = mesh.boneOffsets[i];
-				const Animation::Bone &currentBone = currentPose.keyPose[mesh.boneIndices[i]];
-				meshToBone	= MakeOffsetMatrix( offsetBone  );
-				boneToMesh	= MakePoseMatrix  ( currentBone );
+				size_t poseIndex = mesh.boneIndices[i]; // This index was fetched with boneOffset's name.
+				meshToBone = mesh.boneOffsets[i].transform.ToWorldMatrix();
+				boneToMesh = currentPose[poseIndex].global;
 				
 				constants.boneTransforms[i] = meshToBone * boneToMesh;
 			}
 
 			return constants;
 		}
-		void ModelRenderer::UpdateConstantsPerMeshSkinned( const Model &model, size_t meshIndex, const Animation::KeyFrame &currentPose, const ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		void ModelRenderer::UpdateConstantsPerMeshSkinned( const Model &model, size_t meshIndex, const FocusMotion &activeMotion, const ConstantDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
 			Constants::PerMesh::Common constantsCommon = MakeConstantsCommon( model, meshIndex );
-			Constants::PerMesh::Bone   constantsBone   = MakeConstantsBone  ( model, meshIndex, currentPose );
+			Constants::PerMesh::Bone   constantsBone   = MakeConstantsBone  ( model, meshIndex, activeMotion );
 
 			pCBPerMesh->Update( constantsCommon, constantsBone );
 		}

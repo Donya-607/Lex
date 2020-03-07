@@ -157,12 +157,12 @@ namespace Donya
 
 		return -1;
 	}
-	int  FindBoneIndex( const std::vector<Model::Animation::Bone> &skeletal, const std::string &keyName )
+	int  FindBoneIndex( const std::vector<Model::Animation::Bone> &source, const std::string &keyName )
 	{
-		const size_t boneCount = skeletal.size();
+		const size_t boneCount = source.size();
 		for ( size_t i = 0; i < boneCount; ++i )
 		{
-			if ( skeletal[i].name == keyName )
+			if ( source[i].name == keyName )
 			{
 				return scast<int>( i );
 			}
@@ -827,7 +827,8 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMesh( Model::ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, FBX::FbxScene *pScene, const std::string &fileDirectory, float animationSamplingFPS )
+	void BuildMesh( Model::ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
+	// void BuildMesh( Model::ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, FBX::FbxScene *pScene, const std::string &fileDirectory, float animationSamplingFPS )
 	{
 		AttachGlobalTransform( pMesh, pFBXMesh );
 		AdjustCoordinate( pMesh );
@@ -879,15 +880,15 @@ namespace Donya
 					data.Append( weight, index );
 				}
 			};
-			auto FetchBoneOffset	= [&pMesh]( const FBX::FbxCluster *pCluster )
+			auto FetchBoneOffset	= []( const FBX::FbxCluster *pCluster, std::vector<Model::Animation::Bone> *pBoneOffsets )
 			{
-				const FBX::FbxAMatrix boneOffset = FetchBoneOffsetMatrix( pCluster );
+				const FBX::FbxAMatrix  boneOffset = FetchBoneOffsetMatrix( pCluster );
 				
 				Model::Animation::Bone bone{};
 				bone.name				= pCluster->GetLink()->GetName();
 				bone.transform			= SeparateSRT( boneOffset );
-				bone.transformToParent	= Model::Animation::Transform::Identity();
-				pMesh->boneOffsets.emplace_back( std::move( bone ) );
+				bone.transformToParent	= Model::Animation::Transform::Identity(); // The bone offset matrix does not use this.
+				pBoneOffsets->emplace_back( std::move( bone ) );
 			};
 
 			const int deformerCount = pFBXMesh->GetDeformerCount( FBX::FbxDeformer::eSkin );
@@ -901,20 +902,20 @@ namespace Donya
 				{
 					FBX::FbxCluster *pCluster = pSkin->GetCluster( clusterIndex );
 					FetchInfluence ( pCluster, clusterIndex );
-					FetchBoneOffset( pCluster );
+					FetchBoneOffset( pCluster, &pMesh->boneOffsets );
 				}
 
 				// Assign the bone indices. The searching range is whole skeletal, so we should assign after building the skeletal.
 				for ( int clusterIndex = 0; clusterIndex < clusterCount; ++clusterIndex )
 				{
 					const FBX::FbxCluster *pCluster = pSkin->GetCluster( clusterIndex );
-					const int boneIndex =  FindBoneIndex( pMesh->boneOffsets, pCluster->GetLink()->GetName() );
+					const int boneIndex =  FindBoneIndex( modelSkeletal, pCluster->GetLink()->GetName() );
 
 					pMesh->boneIndices.emplace_back( boneIndex );
 				}
 			}
 
-			pMesh->boneIndex = FindBoneIndex( pMesh->boneOffsets, pNode->GetName() );
+			pMesh->boneIndex = FindBoneIndex( modelSkeletal, pNode->GetName() );
 		}
 
 		// Fetch vertex data.
@@ -1098,7 +1099,8 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMeshes( std::vector<Model::ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, FBX::FbxScene *pScene, const std::string &fileDirectory, float animationSamplingFPS )
+	void BuildMeshes( std::vector<Model::ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
+	// void BuildMeshes( std::vector<Model::ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, FBX::FbxScene *pScene, const std::string &fileDirectory, float animationSamplingFPS )
 	{
 		const size_t meshCount = meshNodes.size();
 		pMeshes->resize( meshCount );
@@ -1107,13 +1109,15 @@ namespace Donya
 			FBX::FbxMesh *pFBXMesh = meshNodes[i]->GetMesh();
 			_ASSERT_EXPR( pFBXMesh, L"Error : A mesh-node that passed mesh-nodes is not mesh!" );
 
-			BuildMesh( &( *pMeshes )[i], meshNodes[i], pFBXMesh, pScene, fileDirectory, animationSamplingFPS );
+			BuildMesh( &( *pMeshes )[i], meshNodes[i], pFBXMesh, pScene, fileDirectory, modelSkeletal, animationSamplingFPS );
+			// BuildMesh( &( *pMeshes )[i], meshNodes[i], pFBXMesh, pScene, fileDirectory, animationSamplingFPS );
 		}
 	}
 
 	void BuildModelSource( Model::ModelSource *pSource, FBX::FbxScene *pScene, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes, float animationSamplingFPS, const std::string &fileDirectory )
 	{
-		BuildMeshes( &pSource->meshes, meshNodes, pScene, fileDirectory, animationSamplingFPS );
+		// BuildMeshes( &pSource->meshes, meshNodes, pScene, fileDirectory, animationSamplingFPS );
+		BuildMeshes( &pSource->meshes, meshNodes, pScene, fileDirectory, pSource->skeletal, animationSamplingFPS );
 
 		BuildMotions( &pSource->motions, motionNodes, pScene, animationSamplingFPS );
 	}
