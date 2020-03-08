@@ -131,9 +131,9 @@ namespace Donya
 	{
 		constexpr FBX::FbxNodeAttribute::EType HAS_LIST[]
 		{
-			FBX::FbxNodeAttribute::EType::eUnknown,
-			FBX::FbxNodeAttribute::EType::eNull,
-			FBX::FbxNodeAttribute::EType::eMarker,
+			// FBX::FbxNodeAttribute::EType::eUnknown,
+			// FBX::FbxNodeAttribute::EType::eNull,
+			// FBX::FbxNodeAttribute::EType::eMarker,
 			FBX::FbxNodeAttribute::EType::eSkeleton,
 			FBX::FbxNodeAttribute::EType::eMesh
 		};
