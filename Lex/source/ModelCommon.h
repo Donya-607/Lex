@@ -239,7 +239,6 @@ namespace Donya
 							CEREAL_NVP(	name			),
 							CEREAL_NVP(	samplingRate	),
 							CEREAL_NVP(	animSeconds		),
-							CEREAL_NVP(	animSeconds		),
 							CEREAL_NVP(	keyFrames		)
 						);
 					}

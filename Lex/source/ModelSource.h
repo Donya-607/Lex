@@ -88,8 +88,6 @@ namespace Donya
 				std::vector<int>				boneIndices;	// The indices of associated nodes with this mesh and this mesh's node.
 				std::vector<Animation::Bone>	boneOffsets;	// Used as the bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
 
-				//std::vector<Animation::Motion>	motions;		// Represent animations. The animations contain only animation(i.e. The animation provides a matrix of from mesh space to local(current pose) space).
-
 				std::vector<Vertex::Pos>		positions;
 				std::vector<Vertex::Tex>		texCoords;
 				std::vector<Vertex::Bone>		boneInfluences;
@@ -110,7 +108,6 @@ namespace Donya
 							CEREAL_NVP(	boneIndex		),
 							CEREAL_NVP(	boneIndices		),
 							CEREAL_NVP(	boneOffsets		),
-							//CEREAL_NVP(	motions			),
 							CEREAL_NVP(	positions		),
 							CEREAL_NVP(	texCoords		),
 							CEREAL_NVP(	boneInfluences	),
