@@ -108,13 +108,9 @@ namespace Donya
 			return skeletal;
 		}
 
-		void FocusMotion::UpdateCurrentPose( float currentFrame )
+		bool FocusMotion::UpdateCurrentSkeletal( float currentFrame )
 		{
-			if ( !IsValidMotion( focus ) )
-			{
-				_ASSERT_EXPR( 0, L"Error : The focusing motion is invalid!" );
-				return;
-			}
+			if ( !IsValidMotion( focus ) ) { return false; }
 			// else
 
 			const auto currentPose = CalcCurrentPose( currentFrame );
@@ -123,11 +119,13 @@ namespace Donya
 			CalcLocalMatrix();
 
 			CalcGlobalMatrix();
+
+			return true;
 		}
-		void FocusMotion::UpdateCurrentPose( const Animator &animator )
+		bool FocusMotion::UpdateCurrentSkeletal( const Animator &animator )
 		{
-			float currentFrame = animator.CalcCurrentFrame();
-			UpdateCurrentPose( currentFrame );
+			const float currentFrame = animator.CalcCurrentFrame();
+			return UpdateCurrentSkeletal( currentFrame );
 		}
 
 		void FocusMotion::AdaptToFocus()

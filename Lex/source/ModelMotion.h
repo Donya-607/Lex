@@ -58,15 +58,21 @@ namespace Donya
 			Animation::Motion		focus;
 		public:
 			/// <summary>
-			/// If the passed motion is invalid, me to be empty and then returns false.
+			/// If the passed motion is invalid, this will be empty and then returns false.
 			/// </summary>
 			bool RegisterMotion( const Animation::Motion &targetMotion );
 		public:
 			Animation::Motion GetFocusingMotion() const;
 			const std::vector<Node> &GetCurrentSkeletal() const;
 		public:
-			void UpdateCurrentPose( float currentFrame );
-			void UpdateCurrentPose( const Animator &frameCalculator );
+			/// <summary>
+			/// If the focusing motion is invalid, this does not update and returns false.
+			/// </summary>
+			bool UpdateCurrentSkeletal( float currentFrame );
+			/// <summary>
+			/// If the focusing motion is invalid, this does not update and returns false.
+			/// </summary>
+			bool UpdateCurrentSkeletal( const Animator &frameCalculator );
 		private:
 			/// <summary>
 			/// Re build the skeletal with focusing motion.

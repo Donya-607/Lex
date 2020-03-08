@@ -906,7 +906,7 @@ private:
 			it.mAnimator.Update( elapsedTime * it.motionAccelPercent );
 			it.currentElapsedTime = it.animator.GetCurrentElapsedTime();
 
-			it.mActiveMotion.UpdateCurrentPose( it.mAnimator );
+			it.mActiveMotion.UpdateCurrentSkeletal( it.mAnimator );
 		}
 	}
 

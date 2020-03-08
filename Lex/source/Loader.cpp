@@ -377,51 +377,6 @@ namespace Donya
 		return true;
 	}
 
-	void BuildBone( Model::Animation::Bone *pBone, FBX::FbxNode *pNode, int parentIndex, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
-	{
-		const FbxAMatrix &localTransform = pNode->EvaluateLocalTransform( currentTime );
-
-		pBone->name			= pNode->GetName();
-		pBone->parentIndex	= parentIndex;
-		// pBone->scale		= ToVec3( Convert( localTransform.GetS() ) );
-		// pBone->rotation		= ToQuaternion( localTransform.GetQ() );
-		// pBone->translation	= ToVec3( Convert( localTransform.GetT() ) );
-	}
-	void BuildSkeletalRecursively( std::vector<Model::Animation::Bone> *pSkeletal, FBX::FbxNode *pCurrentNode, int parentIndex, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
-	{
-		auto HasSkeletalType = []( FBX::FbxNode *pTargetNode )->bool
-		{
-			FBX::FbxNodeAttribute *pNodeAttr = pTargetNode->GetNodeAttribute();
-			FBX::FbxNodeAttribute::EType attrType = FBX::FbxNodeAttribute::EType::eUnknown;
-			if ( pNodeAttr )
-			{
-				attrType = pNodeAttr->GetAttributeType();
-			}
-
-			return HasSkeletal( attrType );
-		};
-		if ( HasSkeletalType( pCurrentNode ) )
-		{
-			Model::Animation::Bone bone{};
-			BuildBone( &bone, pCurrentNode, parentIndex, currentTime );
-
-			pSkeletal->emplace_back( std::move( bone ) );
-		}
-
-		// The bone count will increase when BuildSkeletalRecursively() called.
-		// So we can calculate the parentIndex by: currentBoneCount - 1.(-1 represent an invalid)
-		// [0] currentBoneCount == 0 -> parentIndex = -1
-		// [1] currentBoneCount == 1 -> parentIndex = 0
-		// [2] currentBoneCount == 2 -> parentIndex = 1 ...
-		parentIndex = scast<int>( pSkeletal->size() ) - 1;
-
-		const int childCount = pCurrentNode->GetChildCount();
-		for ( int i = 0; i < childCount; ++i )
-		{
-			BuildSkeletalRecursively( pSkeletal, pCurrentNode->GetChild( i ), parentIndex, currentTime );
-		}
-	}
-
 	void AttachGlobalTransform( Model::ModelSource::Mesh *pMesh, FBX::FbxMesh *pFBXMesh )
 	{
 		FBX::FbxAMatrix globalTransform = pFBXMesh->GetNode()->EvaluateGlobalTransform( 0 );
@@ -431,14 +386,6 @@ namespace Donya
 	{
 		// Convert right-hand space to left-hand space.
 		pMesh->coordinateConversion._11 = -1.0f;
-	}
-
-	/// <summary>
-	/// Fetch the matrix that transforms: mesh space -> scene space(it like a global space in model file).
-	/// </summary>
-	FBX::FbxAMatrix FetchSceneMatrix( FBX::FbxNode *pNode, const FBX::FbxTime &currentTime )
-	{
-		return pNode->EvaluateGlobalTransform( currentTime );
 	}
 
 	/// <summary>
@@ -456,102 +403,9 @@ namespace Donya
 
 		return clusterGlobalInitPosition.Inverse() * referenceGlobalInitPosition;
 	}
+
 	/// <summary>
-	/// Fetch the pose matrix at binding time of "currentTime", that transforms: bone space -> mesh space.
-	/// </summary>
-	FBX::FbxAMatrix FetchCurrentPoseMatrix( FBX::FbxMesh *pMesh, FBX::FbxCluster *pCluster, const FBX::FbxTime &currentTime )
-	{
-		FBX::FbxNode *pMeshNode = pMesh->GetNode();
-		FBX::FbxNode *pLinkNode = pCluster->GetLink();
-		if ( !pMeshNode || !pLinkNode )
-		{
-			_ASSERT_EXPR( 0, L"Error : Unexpected error!" );
-			return{};
-		}
-		// else
-
-		// This matrix transforms coordinates of the current pose from mesh space to global space.
-		FBX::FbxAMatrix referenceGlobalCurrentPosition{};
-		referenceGlobalCurrentPosition = pMeshNode->EvaluateGlobalTransform( currentTime );
-
-		// This matrix transforms coordinates of the current pose from bone space to global space.
-		FBX::FbxAMatrix clusterGlobalCurrentPosition{};
-		clusterGlobalCurrentPosition = pLinkNode->EvaluateGlobalTransform( currentTime );
-
-		return referenceGlobalCurrentPosition.Inverse() * clusterGlobalCurrentPosition;
-	}
-
-	Model::Animation::Bone AnalyseCluster( FBX::FbxMesh *pMesh, FBX::FbxCluster *pCluster, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
-	{
-		// mesh space -> bone space.
-		FBX::FbxAMatrix initialBoneOffset = FetchBoneOffsetMatrix( pCluster );
-
-		// bone space -> mesh space.
-		FBX::FbxAMatrix currentPose = FetchCurrentPoseMatrix( pMesh, pCluster, currentTime );
-
-		FBX::FbxNode *pLinkNode = pCluster->GetLink();
-		FBX::FbxNode *pParent   = ( pLinkNode ) ? pLinkNode->GetParent() : nullptr;
-
-		Model::Animation::Bone output{};
-		output.name				= pMesh->GetNode()->GetName();
-		output.parentName		= ( pParent ) ? pParent->GetName() : "";
-		//output.transformOffset	= SeparateSRT( initialBoneOffset );
-		//output.transformPose	= SeparateSRT( currentPose );
-		return output;
-	}
-	/// <summary>
-	/// Build the skeletal from the associated mesh.
-	/// </summary>
-	void BuildSkeletal( std::vector<Model::Animation::Bone> *pSkeletal, FBX::FbxMesh *pMesh, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
-	{
-		std::vector<Model::Animation::Bone> &skeletal = *pSkeletal;
-
-		const int deformerCount = pMesh->GetDeformerCount( FBX::FbxDeformer::eSkin );
-		for ( int deformerIndex = 0; deformerIndex < deformerCount; ++deformerIndex )
-		{
-			FBX::FbxSkin *pSkin = scast<FBX::FbxSkin *>( pMesh->GetDeformer( deformerIndex, FBX::FbxDeformer::eSkin ) );
-
-			const int clusterCount = pSkin->GetClusterCount();
-			skeletal.resize( clusterCount );
-
-			// Build the skeletal.
-			for ( int clusterIndex = 0; clusterIndex < clusterCount; ++clusterIndex )
-			{
-				FBX::FbxCluster *pCluster = pSkin->GetCluster( clusterIndex );
-				skeletal[clusterIndex] = AnalyseCluster( pMesh, pCluster, currentTime );
-			}
-
-			// Assign the parents. The searching range is whole skeletal, so we should assign after building the skeletal.
-			for ( int clusterIndex = 0; clusterIndex < clusterCount; ++clusterIndex )
-			{
-				skeletal[clusterIndex].parentIndex = FindBoneIndex
-				(
-					skeletal,
-					skeletal[clusterIndex].parentName
-				);
-			}
-		}
-
-		/*
-		constexpr int firstParent = -1;
-		BuildSkeletalRecursively( pSkeletal, pRootNode, firstParent, currentTime );
-		*/
-
-		/*
-		for ( auto &pNode : skeletalNodes )
-		{
-			Model::Animation::Bone bone{};
-			BuildBone( &bone, pNode, parentIndex, currentTime );
-			pSkeletal->emplace_back( std::move( bone ) );
-
-			// When first loop, the bone has no parent(-1).
-			// After that loop, the bone has some parent index(0 ~ size()-1).
-			parentIndex++;
-		}
-		*/
-	}
-	/// <summary>
-	/// Build the skeletal from skeletal nodes.
+	/// Build a skeletal from skeletal nodes.
 	/// </summary>
 	void BuildSkeletal( std::vector<Model::Animation::Bone> *pSkeletal, const std::vector<FBX::FbxNode *> &skeletalNodes, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
 	{
@@ -619,11 +473,7 @@ namespace Donya
 
 		BuildSkeletal( &pKeyFrame->keyPose, skeletalNodes, currentTime );
 	}
-	/// <summary>
-	/// Build the motion data from the associated mesh.
-	/// </summary>
-	// void BuildMotions( std::vector<Model::Animation::Motion> *pMotion, FBX::FbxMesh *pMesh, FBX::FbxScene *pScene, float samplingFPS )
-	void BuildMotions( std::vector<Model::Animation::Motion> *pMotion, const std::vector<FBX::FbxNode *> &skeletalNodes, FBX::FbxScene *pScene, float samplingFPS )
+	void BuildMotions( std::vector<Model::Animation::Motion> *pMotions, const std::vector<FBX::FbxNode *> &skeletalNodes, FBX::FbxScene *pScene, float samplingFPS )
 	{
 		// List of all the animation stack. 
 		FBX::FbxArray<FBX::FbxString *> animationStackNames;
@@ -692,7 +542,7 @@ namespace Donya
 				index	+= 1U;
 			}
 
-			pMotion->emplace_back( std::move( motion ) );
+			pMotions->emplace_back( std::move( motion ) );
 		}
 		
 		ReleaseAnimationStackNames();
@@ -827,7 +677,6 @@ namespace Donya
 			}
 		}
 	}
-	// void BuildMesh( Model::ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, FBX::FbxScene *pScene, const std::string &fileDirectory, float animationSamplingFPS )
 	void BuildMesh( Model::ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
 	{
 		AttachGlobalTransform( pMesh, pFBXMesh );
@@ -1099,7 +948,6 @@ namespace Donya
 			}
 		}
 	}
-	// void BuildMeshes( std::vector<Model::ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, FBX::FbxScene *pScene, const std::string &fileDirectory, float animationSamplingFPS )
 	void BuildMeshes( std::vector<Model::ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
 	{
 		const size_t meshCount = meshNodes.size();
@@ -1110,7 +958,6 @@ namespace Donya
 			_ASSERT_EXPR( pFBXMesh, L"Error : A mesh-node that passed mesh-nodes is not mesh!" );
 
 			BuildMesh( &( *pMeshes )[i], meshNodes[i], pFBXMesh, pScene, fileDirectory, modelSkeletal, animationSamplingFPS );
-			// BuildMesh( &( *pMeshes )[i], meshNodes[i], pFBXMesh, pScene, fileDirectory, animationSamplingFPS );
 		}
 	}
 
@@ -1119,8 +966,6 @@ namespace Donya
 		BuildSkeletal( &pSource->skeletal, motionNodes );
 
 		// The meshes building function is using the skeletal, so we should build after building of the skeletal.
-
-		// BuildMeshes( &pSource->meshes, meshNodes, pScene, fileDirectory, animationSamplingFPS );
 		BuildMeshes( &pSource->meshes, meshNodes, pScene, fileDirectory, pSource->skeletal, animationSamplingFPS );
 
 		BuildMotions( &pSource->motions, motionNodes, pScene, animationSamplingFPS );
@@ -1818,81 +1663,6 @@ namespace Donya
 	{
 		ImVec2 childFrameSize( 0.0f, 0.0f );
 
-		if ( ImGui::Button( u8"影響度の一致確認" ) )
-		{
-			auto At = []( const Donya::Vector4 &v, int index )->float
-			{
-				switch ( index )
-				{
-				case 0: return v.x;
-				case 1: return v.y;
-				case 2: return v.z;
-				case 3: return v.w;
-				default: assert( 0 ); break;
-				}
-				return v.x;
-			};
-			auto AtI = []( const Donya::Int4 &v, int index )->int
-				{
-					switch ( index )
-					{
-					case 0: return v.x;
-					case 1: return v.y;
-					case 2: return v.z;
-					case 3: return v.w;
-					default: assert( 0 ); break;
-					}
-					return v.x;
-				};
-
-			if ( meshes.size() != source.meshes.size() )
-			{
-				char breakpoint = 0;
-			}
-
-			const int meshCount = scast<int>( meshes.size() );
-			for ( int m = 0; m < meshCount; ++m )
-			{
-				auto &mesh = meshes[m];
-				auto &meshS = source.meshes[m];
-
-				if ( mesh.influences.size() != meshS.boneInfluences.size() )
-				{
-					char breakpoint = 0;
-				}
-
-				const int inflCount = mesh.influences.size();
-				for ( int i = 0; i < inflCount; ++i )
-				{
-					auto &infl = mesh.influences[i];
-					auto &inflS = meshS.boneInfluences[i];
-
-					float weightSum = 0.0f;
-					int clusterCount = infl.cluster.size();
-					for ( int c = 0; c < clusterCount; ++c )
-					{
-						float atWeight = At( inflS.weights, c );
-						int atIndex = AtI( inflS.indices, c );
-
-						if ( !ZeroEqual( fabsf( atWeight - infl.cluster[c].weight ) ) )
-						{
-							char breakpoint = 0;
-						}
-						if ( atIndex != infl.cluster[c].index )
-						{
-							char breakpoint = 0;
-						}
-
-						weightSum += atWeight;
-					}
-					if ( 0.000001f < fabsf( weightSum - 1.0f ) )
-					{
-						char breakpoint = 0;
-					}
-				}
-			}
-		}
-
 		// Show ModelSource.
 		if ( ImGui::TreeNode( u8"モデルソース" ) )
 		{
@@ -2025,9 +1795,6 @@ namespace Donya
 
 					if ( ImGui::TreeNode( "Bone" ) )
 					{
-						ImGui::Text( "I didn't implemented this yet." );
-
-						
 						if ( ImGui::TreeNode( "Influences" ) )
 						{
 							ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), childFrameSize );
@@ -2067,7 +1834,6 @@ namespace Donya
 							ImGui::TreePop();
 						}
 						
-
 						ImGui::TreePop();
 					}
 
