@@ -39,7 +39,7 @@ namespace Donya
 				virtual void Deactivate( ID3D11DeviceContext *pImmediateContext ) const = 0;
 			};
 
-			class SkinnedConstantsPerMesh : public IConstantsPerMesh
+			class SkinningConstantsPerMesh : public IConstantsPerMesh
 			{
 			public:
 				static constexpr unsigned int MAX_BONE_COUNT = 64U;
@@ -208,59 +208,59 @@ namespace Donya
 			/// </summary>
 			static std::vector<D3D11_INPUT_ELEMENT_DESC> GetInputElementDescs( ModelUsage usage );
 		private:
-			const ModelUsage inputUsage;
-			Donya::CBuffer<Constants::PerModel::Common>  CBPerModel;
-			std::shared_ptr<Strategy::IConstantsPerMesh> pCBPerMesh;
 			Donya::CBuffer<Constants::PerSubset::Common> CBPerSubset;
 		private:
 			// This making function declared at "ModelMaker.h".
 			friend size_t MakeRenderer( ModelUsage usage, ID3D11Device *pDevice );
-		private:
+		protected:
 			/// <summary>
 			/// If set nullptr to "pDevice", use default device.
 			/// </summary>
-			ModelRenderer( ModelUsage usage, ID3D11Device *pDevice = nullptr );
-			bool AssignSpecifiedCBuffer( ModelUsage usage, ID3D11Device *pDevice );
-		public:
-			/// <summary>
-			/// Enable a configuration of drawing some model.<para></para>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			void ActivateModelConstants( const Constants::PerModel::Common &enableData, const RegisterDesc &settingDesc, ID3D11DeviceContext *pImmediateContext = nullptr );
-			/// <summary>
-			/// Disable a configuration of drawing some model.<para></para>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			void DeactivateModelConstants( ID3D11DeviceContext *pImmediateContext = nullptr ) const;
-			/// <summary>
-			/// Call a draw method by each subset of each mesh of the model.<para></para>
-			/// This method is "Skinned" version. If the usage that specified when creation is different, returns false and don't render.<para></para>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			bool RenderSkinned( const Donya::Model::Model &model, const FocusMotion &activeMotion, const Animator &animator, const RegisterDesc &meshSettings, const RegisterDesc &subsetSettings, const RegisterDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext = nullptr );
-			/// <summary>
-			/// Call a draw method by each subset of each mesh of the model.<para></para>
-			/// This method is "Static" version. If the usage that specified when creation is different, returns false and don't render.<para></para>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			bool RenderStatic( const Donya::Model::Model &model, const RegisterDesc &meshSettings, const RegisterDesc &subsetSettings, const RegisterDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext = nullptr );
+			ModelRenderer( ID3D11Device *pDevice = nullptr );
+			virtual ~ModelRenderer() = default;
+		protected:
+			void SetVertexBuffers( const Donya::Model::Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
+			void SetIndexBuffer( const Donya::Model::Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
+
+			Constants::PerMesh::Common MakeCommonConstantsPerMesh( const Model &model, size_t meshIndex ) const;
+
+			void DrawEachSubsets( const Donya::Model::Model &model, size_t meshIndex, const RegisterDesc &subsetSetting, const RegisterDesc &diffuseMapSetting, ID3D11DeviceContext *pImmediateContext );
 		private:
-			bool EnableSkinned();
-
-			Constants::PerMesh::Common MakeConstantsCommon( const Donya::Model::Model &model, size_t meshIndex ) const;
-			Constants::PerMesh::Bone   MakeConstantsBone  ( const Donya::Model::Model &model, size_t meshIndex, const FocusMotion &activeMotion ) const;
-			void UpdateConstantsPerMeshSkinned( const Donya::Model::Model &model, size_t meshIndex, const FocusMotion &activeMotion, const RegisterDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
-			void UpdateConstantsPerMeshStatic ( const Donya::Model::Model &model, size_t meshIndex, const RegisterDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
-			void ActivateCBPerMesh( const RegisterDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
-			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext );
-
-			void UpdateConstantsPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
+			void UpdateCBPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
 			void ActivateCBPerSubset( const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
 			void DeactivateCBPerSubset( ID3D11DeviceContext *pImmediateContext );
 
 			using SRVType = ID3D11ShaderResourceView * const *;
 			void SetTexture( const RegisterDesc &diffuseSettings, SRVType diffuseSRV, ID3D11DeviceContext *pImmediateContext ) const;
-			void ResetTexture( const RegisterDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext ) const;
+			void UnsetTexture( const RegisterDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext ) const;
+
+			void DrawIndexed( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, ID3D11DeviceContext *pImmediateContext ) const;
+		};
+
+		class SkinningRenderer : public ModelRenderer
+		{
+		private:
+			Strategy::SkinningConstantsPerMesh CBPerMesh;
+		private:
+			/// <summary>
+			/// If set nullptr to "pDevice", use default device.
+			/// </summary>
+			SkinningRenderer( ID3D11Device *pDevice = nullptr );
+		public:
+			void Render
+			(
+				const Model			&model,
+				const FocusMotion	&activeMotion,
+				const RegisterDesc	&meshSetting,
+				const RegisterDesc	&subsetSetting,
+				const RegisterDesc	&diffuseMapSetting,
+				ID3D11DeviceContext	*pImmediateContext
+			);
+		private:
+			Constants::PerMesh::Bone MakeBoneConstants( const Model &model, size_t meshIndex, const FocusMotion &activeMotion ) const;
+			void UpdateCBPerMesh( const Model &model, size_t meshIndex, const FocusMotion &activeMotion, const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
+			void ActivateCBPerMesh( const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
+			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext );
 		};
 	}
 }

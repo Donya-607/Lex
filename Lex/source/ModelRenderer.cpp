@@ -25,24 +25,24 @@ namespace Donya
 				pDest->bone.boneTransforms = source.boneTransforms;
 			}
 
-			bool SkinnedConstantsPerMesh::CreateBuffer( ID3D11Device *pDevice )
+			bool SkinningConstantsPerMesh::CreateBuffer( ID3D11Device *pDevice )
 			{
 				return cbuffer.Create( pDevice );
 			}
-			void SkinnedConstantsPerMesh::Update( const CBStructPerMesh::Common &source )
+			void SkinningConstantsPerMesh::Update( const CBStructPerMesh::Common &source )
 			{
 				AssignCommon( &cbuffer.data, source );
 			}
-			void SkinnedConstantsPerMesh::Update( const CBStructPerMesh::Common &srcCommon, const CBStructPerMesh::Bone &srcBone )
+			void SkinningConstantsPerMesh::Update( const CBStructPerMesh::Common &srcCommon, const CBStructPerMesh::Bone &srcBone )
 			{
 				Update( srcCommon );
 				AssignBone( &cbuffer.data, srcBone );
 			}
-			void SkinnedConstantsPerMesh::Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const
+			void SkinningConstantsPerMesh::Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const
 			{
 				cbuffer.Activate( setSlot, setVS, setPS, pImmediateContext );
 			}
-			void SkinnedConstantsPerMesh::Deactivate( ID3D11DeviceContext *pImmediateContext ) const
+			void SkinningConstantsPerMesh::Deactivate( ID3D11DeviceContext *pImmediateContext ) const
 			{
 				cbuffer.Deactivate( pImmediateContext );
 			}
@@ -728,122 +728,23 @@ namespace Donya
 			return std::vector<D3D11_INPUT_ELEMENT_DESC>{};
 		}
 
-		ModelRenderer::ModelRenderer( ModelUsage usage, ID3D11Device *pDevice ) :
-			inputUsage( usage ), CBPerModel(), pCBPerMesh( nullptr ), CBPerSubset()
+		ModelRenderer::ModelRenderer( ID3D11Device *pDevice ) :
+			CBPerSubset()
 		{
 			if ( !pDevice )
 			{
 				pDevice = Donya::GetDevice();
 			}
 
-			try
+			bool  result = CBPerSubset.Create();
+			if ( !result )
 			{
-				auto ThrowRuntimeError = []( const std::string &constantsName )
-				{
-					const std::string errMsg =
-						"Exception : Creation of a constant-buffer per " + constantsName + " is failed.";
-					throw std::runtime_error{ errMsg };
-				};
-
-				bool succeeded = true;
-
-				succeeded = CBPerModel.Create();
-				if ( !succeeded )
-				{
-					ThrowRuntimeError( "model" );
-				}
-				succeeded = AssignSpecifiedCBuffer( usage, pDevice );
-				if ( !succeeded )
-				{
-					ThrowRuntimeError( "mesh" );
-				}
-				succeeded = CBPerSubset.Create();
-				if ( !succeeded )
-				{
-					ThrowRuntimeError( "subset" );
-				}
-			}
-			catch ( ... )
-			{
-				exit( EXIT_FAILURE );
+				const std::string errMsg =
+					"Exception : Creation of a constant-buffer per subset is failed.";
+				throw std::runtime_error{ errMsg };
 			}
 		}
 
-		bool ModelRenderer::AssignSpecifiedCBuffer( ModelUsage usage, ID3D11Device *pDevice )
-		{
-			using namespace Strategy;
-
-			switch ( usage )
-			{
-			case ModelUsage::Static:
-				pCBPerMesh = std::make_shared<StaticConstantsPerMesh>();
-				return pCBPerMesh->CreateBuffer( pDevice );
-			case ModelUsage::Skinned:
-				pCBPerMesh = std::make_shared<SkinnedConstantsPerMesh>();
-				return pCBPerMesh->CreateBuffer( pDevice );
-			default:
-				_ASSERT_EXPR( 0, L"Error : That model-usage is not supported!" );
-				return false;
-			}
-			return false;
-		}
-
-		void ModelRenderer::ActivateModelConstants( const Constants::PerModel::Common &input, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
-		{
-			CBPerModel.data = input;
-			CBPerModel.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
-		}
-		void ModelRenderer::DeactivateModelConstants( ID3D11DeviceContext *pImmediateContext ) const
-		{
-			CBPerModel.Deactivate( pImmediateContext );
-		}
-
-		// HACK : These render method can optimize. There is many copy-paste :(
-
-		bool ModelRenderer::RenderSkinned( const Model &model, const FocusMotion &activeMotion, const Animator &animator, const RegisterDesc &descMesh, const RegisterDesc &descSubset, const RegisterDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext )
-		{
-			if ( !EnableSkinned() ) { return false; }
-			// else
-
-			if ( !pImmediateContext )
-			{
-				pImmediateContext = Donya::GetImmediateContext();
-			}
-
-			pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
-
-			const size_t meshCount = model.meshes.size();
-			for ( size_t i = 0; i < meshCount; ++i )
-			{
-				const auto &mesh = model.meshes[i];
-				
-				UpdateConstantsPerMeshSkinned( model, i, activeMotion, descMesh, pImmediateContext );
-				ActivateCBPerMesh( descMesh, pImmediateContext );
-
-				mesh.pVertex->SetVertexBuffers( pImmediateContext );
-				pImmediateContext->IASetIndexBuffer( mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
-
-				const size_t subsetCount = mesh.subsets.size();
-				for ( size_t j = 0; j < subsetCount; ++j )
-				{
-					const auto &subset = mesh.subsets[j];
-
-					UpdateConstantsPerSubset( model, i, j, descSubset, pImmediateContext );
-					ActivateCBPerSubset( descSubset, pImmediateContext );
-
-					SetTexture( descDiffuse, subset.diffuse.pSRV.GetAddressOf(), pImmediateContext );
-
-					pImmediateContext->DrawIndexed( subset.indexCount, subset.indexStart, 0 );
-
-					ResetTexture( descDiffuse, pImmediateContext );
-					DeactivateCBPerSubset( pImmediateContext );
-				}
-
-				DeactivateCBPerMesh( pImmediateContext );
-			}
-
-			return true;
-		}
 		bool ModelRenderer::RenderStatic( const Model &model, const RegisterDesc &descMesh, const RegisterDesc &descSubset, const RegisterDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext )
 		{
 			if ( EnableSkinned() ) { return false; }
@@ -883,20 +784,18 @@ namespace Donya
 			return true;
 		}
 
-		bool ModelRenderer::EnableSkinned()
+		void ModelRenderer::SetVertexBuffers( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext )
 		{
-			switch ( inputUsage )
-			{
-			case ModelUsage::Static:  return false;
-			case ModelUsage::Skinned: return true;
-			default:
-				_ASSERT_EXPR( 0, L"Error : That model-usage is not supported!" );
-				break;
-			}
-			return false;
+			const auto &mesh = model.meshes[meshIndex];
+			mesh.pVertex->SetVertexBuffers( pImmediateContext );
+		}
+		void ModelRenderer::SetIndexBuffer( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext )
+		{
+			const auto &mesh = model.meshes[meshIndex];
+			pImmediateContext->IASetIndexBuffer( mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
 		}
 
-		Constants::PerMesh::Common ModelRenderer::MakeConstantsCommon( const Model &model, size_t meshIndex ) const
+		Constants::PerMesh::Common ModelRenderer::MakeCommonConstantsPerMesh( const Model &model, size_t meshIndex ) const
 		{
 			const auto &mesh = model.meshes[meshIndex];
 			Constants::PerMesh::Common constants{};
@@ -905,49 +804,35 @@ namespace Donya
 
 			return constants;
 		}
-		Constants::PerMesh::Bone   ModelRenderer::MakeConstantsBone  ( const Model &model, size_t meshIndex, const FocusMotion &activeMotion ) const
+		
+		void ModelRenderer::DrawEachSubsets( const Model &model, size_t meshIndex, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
 		{
-			const auto &mesh		= model.meshes[meshIndex];
-			const auto &currentPose	= activeMotion.GetCurrentSkeletal();
-			Constants::PerMesh::Bone constants{};
+			const auto &mesh = model.meshes[meshIndex];
 
-			Donya::Vector4x4 meshToBone{}; // So-called "Bone offset matrix".
-			Donya::Vector4x4 boneToMesh{}; // Transform to mesh space of current pose.
-			const size_t boneCount = std::min( mesh.boneIndices.size(), scast<size_t>( Constants::PerMesh::Bone::MAX_BONE_COUNT ) );
-			for ( size_t i = 0; i < boneCount; ++i )
+			const size_t subsetCount = mesh.subsets.size();
+			for ( size_t j = 0; j < subsetCount; ++j )
 			{
-				size_t poseIndex = mesh.boneIndices[i]; // This index was fetched with boneOffset's name.
-				meshToBone = mesh.boneOffsets[i].transform.ToWorldMatrix();
-				boneToMesh = currentPose[poseIndex].global;
-				
-				constants.boneTransforms[i] = meshToBone * boneToMesh;
+				const auto &subset = mesh.subsets[j];
+				UpdateCBPerSubset( model, meshIndex, j, descSubset, pImmediateContext );
+
+				ActivateCBPerSubset( descSubset, pImmediateContext );
+				SetTexture( descDiffuseMap, subset.diffuse.pSRV.GetAddressOf(), pImmediateContext );
+
+				DrawIndexed( model, meshIndex, j, pImmediateContext );
+
+				UnsetTexture( descDiffuseMap, pImmediateContext );
+				DeactivateCBPerSubset( pImmediateContext );
 			}
-
-			return constants;
 		}
-		void ModelRenderer::UpdateConstantsPerMeshSkinned( const Model &model, size_t meshIndex, const FocusMotion &activeMotion, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
-		{
-			Constants::PerMesh::Common constantsCommon = MakeConstantsCommon( model, meshIndex );
-			Constants::PerMesh::Bone   constantsBone   = MakeConstantsBone  ( model, meshIndex, activeMotion );
 
-			pCBPerMesh->Update( constantsCommon, constantsBone );
-		}
 		void ModelRenderer::UpdateConstantsPerMeshStatic ( const Model &model, size_t meshIndex, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
 			Constants::PerMesh::Common constantsCommon = MakeConstantsCommon( model, meshIndex );
 		
 			pCBPerMesh->Update( constantsCommon );
 		}
-		void ModelRenderer::ActivateCBPerMesh( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
-		{
-			pCBPerMesh->Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
-		}
-		void ModelRenderer::DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext )
-		{
-			pCBPerMesh->Deactivate( pImmediateContext );
-		}
-
-		void ModelRenderer::UpdateConstantsPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		
+		void ModelRenderer::UpdateCBPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
 			const auto &mesh   = model.meshes[meshIndex];
 			const auto &subset = mesh.subsets[subsetIndex];
@@ -979,7 +864,7 @@ namespace Donya
 				pImmediateContext->PSSetShaderResources( descDiffuse.setSlot, 1U, diffuseSRV );
 			}
 		}
-		void ModelRenderer::ResetTexture( const RegisterDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext ) const
+		void ModelRenderer::UnsetTexture( const RegisterDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext ) const
 		{
 			ID3D11ShaderResourceView *pNullSRV = nullptr;
 			if ( descDiffuse.setVS )
@@ -990,6 +875,92 @@ namespace Donya
 			{
 				pImmediateContext->PSSetShaderResources( descDiffuse.setSlot, 1U, &pNullSRV );
 			}
+		}
+
+		void ModelRenderer::DrawIndexed( const Model &model, size_t meshIndex, size_t subsetIndex, ID3D11DeviceContext *pImmediateContext ) const
+		{
+			const auto &mesh	= model.meshes[meshIndex];
+			const auto &subset	= mesh.subsets[subsetIndex];
+
+			pImmediateContext->DrawIndexed( subset.indexCount, subset.indexStart, 0 );
+		}
+
+		SkinningRenderer::SkinningRenderer( ID3D11Device *pDevice ) :
+			ModelRenderer( pDevice ),
+			CBPerMesh()
+		{
+			if ( !pDevice )
+			{
+				pDevice = Donya::GetDevice();
+			}
+
+			bool  result = CBPerMesh.CreateBuffer( pDevice );
+			if ( !result )
+			{
+				const std::string errMsg =
+					"Exception : Creation of a constant-buffer per mesh is failed.";
+				throw std::runtime_error{ errMsg };
+			}
+		}
+
+		void SkinningRenderer::Render( const Model &model, const FocusMotion &activeMotion, const RegisterDesc &descMesh, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
+		{
+			if ( !pImmediateContext )
+			{
+				pImmediateContext = Donya::GetImmediateContext();
+			}
+
+			pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+
+			const size_t meshCount = model.meshes.size();
+			for ( size_t i = 0; i < meshCount; ++i )
+			{
+				UpdateCBPerMesh( model, i, activeMotion, descMesh, pImmediateContext );
+				ActivateCBPerMesh( descMesh, pImmediateContext );
+
+				SetVertexBuffers( model, i, pImmediateContext );
+				SetIndexBuffer( model, i, pImmediateContext );
+
+				DrawEachSubsets( model, i, descSubset, descDiffuseMap, pImmediateContext );
+
+				DeactivateCBPerMesh( pImmediateContext );
+			}
+		}
+
+		Constants::PerMesh::Bone SkinningRenderer::MakeBoneConstants( const Model &model, size_t meshIndex, const FocusMotion &activeMotion ) const
+		{
+			const auto &mesh		= model.meshes[meshIndex];
+			const auto &currentPose	= activeMotion.GetCurrentSkeletal();
+			Constants::PerMesh::Bone constants{};
+
+			Donya::Vector4x4 meshToBone{}; // So-called "Bone offset matrix".
+			Donya::Vector4x4 boneToMesh{}; // Transform to mesh space of current pose.
+			const size_t boneCount = std::min( mesh.boneIndices.size(), scast<size_t>( Constants::PerMesh::Bone::MAX_BONE_COUNT ) );
+			for ( size_t i = 0; i < boneCount; ++i )
+			{
+				size_t poseIndex = mesh.boneIndices[i]; // This index was fetched with boneOffset's name.
+				meshToBone = mesh.boneOffsets[i].transform.ToWorldMatrix();
+				boneToMesh = currentPose[poseIndex].global;
+				
+				constants.boneTransforms[i] = meshToBone * boneToMesh;
+			}
+
+			return constants;
+		}
+		void SkinningRenderer::UpdateCBPerMesh( const Model &model, size_t meshIndex, const FocusMotion &activeMotion, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		{
+			Constants::PerMesh::Common	constantsCommon	= MakeCommonConstantsPerMesh( model, meshIndex );
+			Constants::PerMesh::Bone	constantsBone	= MakeBoneConstants( model, meshIndex, activeMotion );
+
+			CBPerMesh.Update( constantsCommon, constantsBone );
+		}
+		void SkinningRenderer::ActivateCBPerMesh( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		{
+			CBPerMesh.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
+		}
+		void SkinningRenderer::DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext )
+		{
+			CBPerMesh.Deactivate( pImmediateContext );
 		}
 	}
 }
