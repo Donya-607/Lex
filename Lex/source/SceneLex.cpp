@@ -399,7 +399,7 @@ private:
 
 		// Activate CB per frame to slot 0.
 		{
-			Donya::Model::Constants::PerNeed::Common constants{};
+			Donya::Model::Constants::PerScene::Common constants{};
 			constants.directionalLight.direction	= directionalLight.direction;
 			constants.directionalLight.color		= directionalLight.color;
 			constants.eyePosition = cameraPos;

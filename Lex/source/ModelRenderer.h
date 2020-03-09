@@ -82,101 +82,131 @@ namespace Donya
 		class Model; // Use for a reference at Render() method.
 	
 		/// <summary>
-		/// Render a 3D-model.
+		/// Renderer of the Model class.<para></para>
+		/// If you do not want using a custom shader, you can use a default shading by internal class.
 		/// </summary>
 		class ModelRenderer
 		{
-		private:
-			// Static members. Use for default shading.
-		private:
-			struct DefaultStatus
+		public:
+			/// <summary>
+			/// Provides a default shading and settings.<para></para>
+			/// You can use:<para></para>
+			/// Depth Stencil state,<para></para>
+			/// Rasterizer state,<para></para>
+			/// Sampler state,<para></para>
+			/// (The Blend state is there at Blend.h)<para></para>
+			/// Constant Buffer of Donya::Model::Constants::PerScene,<para></para>
+			/// Shaders for skinning,<para></para>
+			/// Shaders for static.<para></para>
+			/// Use with ActivateXXX / DeactivateXXX.
+			/// </summary>
+			class Default
 			{
-				static constexpr int DEFAULT_ID = 0;
-				int idDSState	= DEFAULT_ID;
-				int idRSState	= DEFAULT_ID;
-				int idPSSampler	= DEFAULT_ID;
-				Donya::CBuffer<Constants::PerNeed::Common> CBPerScene;
-
-				struct Shader
+			private:
+				struct Member
 				{
-					Donya::VertexShader VS;
-					Donya::PixelShader  PS;
+					static constexpr int DEFAULT_ID = 0;
+					int idDSState	= DEFAULT_ID;
+					int idRSState	= DEFAULT_ID;
+					int idPSSampler	= DEFAULT_ID;
+					Donya::CBuffer<Constants::PerScene::Common> CBPerScene;
+
+					struct Shader
+					{
+						Donya::VertexShader VS;
+						Donya::PixelShader  PS;
+					};
+					Shader shaderSkinning;
+					Shader shaderStatic;
 				};
-				Shader shaderSkinned;
-				Shader shaderStatic;
+			private:
+				static std::unique_ptr<Member> pMember;
+			public:
+				/// <summary>
+				/// Initialize all default settings.<para></para>
+				/// Please call this before the initialization of application(before a game-loop).<para></para>
+				/// Returns true if all initialization was succeeded, or already initialized.
+				/// </summary>
+				static bool Initialize( ID3D11Device *pDevice );
+			private:
+				static bool AssignStatusIdentifiers( ID3D11Device *pDevice );
+				static bool CreateRenderingStates  ( ID3D11Device *pDevice );
+				static bool CreateDefaultShaders   ( ID3D11Device *pDevice );
+			public:
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static bool ActivateDepthStencil( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static bool ActivateRasterizer( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static bool ActivateSampler( const RegisterDesc &setting, ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void DeactivateDepthStencil( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void DeactivateRasterizer( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void DeactivateSampler( ID3D11DeviceContext *pImmediateContext = nullptr );
+			public:
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void ActivateVertexShaderSkinning( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void ActivatePixelShaderSkinning( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void ActivateVertexShaderStatic( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void ActivatePixelShaderStatic( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void DeactivateVertexShaderSkinning( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void DeactivatePixelShaderSkinning( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void DeactivateVertexShaderStatic( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void DeactivatePixelShaderStatic( ID3D11DeviceContext *pImmediateContext = nullptr );
+			public:
+				static void UpdateSceneConstants( const Constants::PerScene::Common &assignParameter );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void ActivateSceneConstants( const RegisterDesc &setting, ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void DeactivateSceneConstants( ID3D11DeviceContext *pImmediateContext = nullptr );
 			};
-		private:
-			static std::unique_ptr<DefaultStatus> pDefaultStatus;
 		public:
 			/// <summary>
 			/// Returns input-element-descs that used for create a default vertex-shader.<para></para>
 			/// That is the synthesis of return value of the static method of some structure's that belongs to Donya::Vertex.
 			/// </summary>
 			static std::vector<D3D11_INPUT_ELEMENT_DESC> GetInputElementDescs( ModelUsage usage );
-			/// <summary>
-			/// Initialization of default shading statuses.<para></para>
-			/// Please call only once a time when the initialize of application(before a game-loop).<para></para>
-			/// If set nullptr to "pDevice", use default device.
-			/// </summary>
-			static bool InitDefaultStatus( ID3D11Device *pDevice = nullptr );			
-		private:
-			static bool AssignStatusIdentifiers( DefaultStatus *pStatus );
-			static bool CreateRenderingStates  ( DefaultStatus *pStatus );
-			static bool CreateDefaultShaders   ( DefaultStatus *pStatus );
-		public:
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static bool ActivateDefaultStateDepthStencil( ID3D11DeviceContext *pImmediateContext = nullptr );
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static void DeactivateDefaultStateDepthStencil( ID3D11DeviceContext *pImmediateContext = nullptr );
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static bool ActivateDefaultStateRasterizer( ID3D11DeviceContext *pImmediateContext = nullptr );
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static void DeactivateDefaultStateRasterizer( ID3D11DeviceContext *pImmediateContext = nullptr );
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static bool ActivateDefaultStateSampler( const TextureDesc &setting, ID3D11DeviceContext *pImmediateContext = nullptr );
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static void DeactivateDefaultStateSampler( ID3D11DeviceContext *pImmediateContext = nullptr );
-		public:
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static void ActivateDefaultVertexShaderSkinned( ID3D11DeviceContext *pImmediateContext = nullptr );
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static void DeactivateDefaultVertexShaderSkinned( ID3D11DeviceContext *pImmediateContext = nullptr );
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static void ActivateDefaultPixelShaderSkinned( ID3D11DeviceContext *pImmediateContext = nullptr );
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static void DeactivateDefaultPixelShaderSkinned( ID3D11DeviceContext *pImmediateContext = nullptr );
-		public:
-			static void UpdateDefaultConstants( const Constants::PerNeed::Common &assignParameter );
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static void ActivateDefaultConstants( const ConstantDesc &settings, ID3D11DeviceContext *pImmediateContext = nullptr );
-			/// <summary>
-			/// If set nullptr to "pImmediateContext", use default device.
-			/// </summary>
-			static void DeactivateDefaultConstants( ID3D11DeviceContext *pImmediateContext = nullptr );
-		public:
-		// Instance members.
 		private:
 			const ModelUsage inputUsage;
 			Donya::CBuffer<Constants::PerModel::Common>  CBPerModel;
@@ -196,7 +226,7 @@ namespace Donya
 			/// Enable a configuration of drawing some model.<para></para>
 			/// If set nullptr to "pImmediateContext", use default device.
 			/// </summary>
-			void ActivateModelConstants( const Constants::PerModel::Common &enableData, const ConstantDesc &settingDesc, ID3D11DeviceContext *pImmediateContext = nullptr );
+			void ActivateModelConstants( const Constants::PerModel::Common &enableData, const RegisterDesc &settingDesc, ID3D11DeviceContext *pImmediateContext = nullptr );
 			/// <summary>
 			/// Disable a configuration of drawing some model.<para></para>
 			/// If set nullptr to "pImmediateContext", use default device.
@@ -207,30 +237,30 @@ namespace Donya
 			/// This method is "Skinned" version. If the usage that specified when creation is different, returns false and don't render.<para></para>
 			/// If set nullptr to "pImmediateContext", use default device.
 			/// </summary>
-			bool RenderSkinned( const Donya::Model::Model &model, const FocusMotion &activeMotion, const Animator &animator, const ConstantDesc &meshSettings, const ConstantDesc &subsetSettings, const TextureDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext = nullptr );
+			bool RenderSkinned( const Donya::Model::Model &model, const FocusMotion &activeMotion, const Animator &animator, const RegisterDesc &meshSettings, const RegisterDesc &subsetSettings, const RegisterDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext = nullptr );
 			/// <summary>
 			/// Call a draw method by each subset of each mesh of the model.<para></para>
 			/// This method is "Static" version. If the usage that specified when creation is different, returns false and don't render.<para></para>
 			/// If set nullptr to "pImmediateContext", use default device.
 			/// </summary>
-			bool RenderStatic( const Donya::Model::Model &model, const ConstantDesc &meshSettings, const ConstantDesc &subsetSettings, const TextureDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext = nullptr );
+			bool RenderStatic( const Donya::Model::Model &model, const RegisterDesc &meshSettings, const RegisterDesc &subsetSettings, const RegisterDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext = nullptr );
 		private:
 			bool EnableSkinned();
 
 			Constants::PerMesh::Common MakeConstantsCommon( const Donya::Model::Model &model, size_t meshIndex ) const;
 			Constants::PerMesh::Bone   MakeConstantsBone  ( const Donya::Model::Model &model, size_t meshIndex, const FocusMotion &activeMotion ) const;
-			void UpdateConstantsPerMeshSkinned( const Donya::Model::Model &model, size_t meshIndex, const FocusMotion &activeMotion, const ConstantDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
-			void UpdateConstantsPerMeshStatic ( const Donya::Model::Model &model, size_t meshIndex, const ConstantDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
-			void ActivateCBPerMesh( const ConstantDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
+			void UpdateConstantsPerMeshSkinned( const Donya::Model::Model &model, size_t meshIndex, const FocusMotion &activeMotion, const RegisterDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
+			void UpdateConstantsPerMeshStatic ( const Donya::Model::Model &model, size_t meshIndex, const RegisterDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
+			void ActivateCBPerMesh( const RegisterDesc &meshSettings, ID3D11DeviceContext *pImmediateContext );
 			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext );
 
-			void UpdateConstantsPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const ConstantDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
-			void ActivateCBPerSubset( const ConstantDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
+			void UpdateConstantsPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
+			void ActivateCBPerSubset( const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
 			void DeactivateCBPerSubset( ID3D11DeviceContext *pImmediateContext );
 
 			using SRVType = ID3D11ShaderResourceView * const *;
-			void SetTexture( const TextureDesc &diffuseSettings, SRVType diffuseSRV, ID3D11DeviceContext *pImmediateContext ) const;
-			void ResetTexture( const TextureDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext ) const;
+			void SetTexture( const RegisterDesc &diffuseSettings, SRVType diffuseSRV, ID3D11DeviceContext *pImmediateContext ) const;
+			void ResetTexture( const RegisterDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext ) const;
 		};
 	}
 }

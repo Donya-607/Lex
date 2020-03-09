@@ -254,7 +254,7 @@ namespace Donya
 			/// <summary>
 			/// The constants that update per need. This is not related to the model. Exists for default shading of ModelRenderer.
 			/// </summary>
-			namespace PerNeed
+			namespace PerScene
 			{
 				struct DirectionalLight
 				{
@@ -327,21 +327,12 @@ namespace Donya
 		}
 
 		/// <summary>
-		/// The usage of constant-buffer.
+		/// The setting description of some shader's slot.
 		/// </summary>
-		struct ConstantDesc
+		struct RegisterDesc
 		{
 			unsigned int setSlot = 0;
 			bool setVS = true;
-			bool setPS = true;
-		};
-		/// <summary>
-		/// The usage of shader-resource view.
-		/// </summary>
-		struct TextureDesc
-		{
-			unsigned int setSlot = 0;
-			bool setVS = false;
 			bool setPS = true;
 		};
 	}
