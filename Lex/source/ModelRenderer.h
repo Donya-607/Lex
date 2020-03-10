@@ -201,12 +201,6 @@ namespace Donya
 				/// </summary>
 				static void DeactivateSceneConstants( ID3D11DeviceContext *pImmediateContext = nullptr );
 			};
-		public:
-			/// <summary>
-			/// Returns input-element-descs that used for create a default vertex-shader.<para></para>
-			/// That is the synthesis of return value of the static method of some structure's that belongs to Donya::Vertex.
-			/// </summary>
-			static std::vector<D3D11_INPUT_ELEMENT_DESC> GetInputElementDescs( ModelUsage usage );
 		private:
 			Donya::CBuffer<Constants::PerSubset::Common> CBPerSubset;
 		private:
@@ -225,6 +219,9 @@ namespace Donya
 			Constants::PerMesh::Common MakeCommonConstantsPerMesh( const Model &model, size_t meshIndex ) const;
 
 			void DrawEachSubsets( const Donya::Model::Model &model, size_t meshIndex, const RegisterDesc &subsetSetting, const RegisterDesc &diffuseMapSetting, ID3D11DeviceContext *pImmediateContext );
+		protected:
+			virtual void ActivateCBPerMesh( const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext ) = 0;
+			virtual void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext ) = 0;
 		private:
 			void UpdateCBPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
 			void ActivateCBPerSubset( const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
@@ -259,8 +256,32 @@ namespace Donya
 		private:
 			Constants::PerMesh::Bone MakeBoneConstants( const Model &model, size_t meshIndex, const FocusMotion &activeMotion ) const;
 			void UpdateCBPerMesh( const Model &model, size_t meshIndex, const FocusMotion &activeMotion, const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
-			void ActivateCBPerMesh( const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
-			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext );
+			void ActivateCBPerMesh( const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext ) override;
+			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext ) override;
+		};
+
+		class StaticRenderer : public ModelRenderer
+		{
+		private:
+			Strategy::StaticConstantsPerMesh CBPerMesh;
+		private:
+			/// <summary>
+			/// If set nullptr to "pDevice", use default device.
+			/// </summary>
+			StaticRenderer( ID3D11Device *pDevice = nullptr );
+		public:
+			void Render
+			(
+				const Model			&model,
+				const RegisterDesc	&meshSetting,
+				const RegisterDesc	&subsetSetting,
+				const RegisterDesc	&diffuseMapSetting,
+				ID3D11DeviceContext	*pImmediateContext
+			);
+		private:
+			void UpdateCBPerMesh( const Model &model, size_t meshIndex, const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
+			void ActivateCBPerMesh( const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext ) override;
+			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext ) override;
 		};
 	}
 }

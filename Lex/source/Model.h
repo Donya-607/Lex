@@ -33,7 +33,7 @@ namespace Donya
 				virtual HRESULT CreateVertexBufferBone( ID3D11Device *pDevice, const std::vector<Vertex::Bone> &source ) { return S_OK; }
 			public:
 				virtual void SetVertexBuffers( ID3D11DeviceContext *pImmediateContext ) const = 0;
-				// virtual void ResetVertexBuffers( ID3D11DeviceContext *pImmediateContext ) const = 0;
+				// virtual void UnsetVertexBuffers( ID3D11DeviceContext *pImmediateContext ) const = 0;
 			};
 
 			class VertexSkinned final : public VertexBase
@@ -44,8 +44,8 @@ namespace Donya
 				ComPtr<ID3D11Buffer> pBufferTex;
 				ComPtr<ID3D11Buffer> pBufferBone;
 			public:
-				HRESULT CreateVertexBufferTex ( ID3D11Device *pDevice, const std::vector<Vertex::Tex>  &source );
-				HRESULT CreateVertexBufferBone( ID3D11Device *pDevice, const std::vector<Vertex::Bone> &source );
+				HRESULT CreateVertexBufferTex ( ID3D11Device *pDevice, const std::vector<Vertex::Tex>  &source ) override;
+				HRESULT CreateVertexBufferBone( ID3D11Device *pDevice, const std::vector<Vertex::Bone> &source ) override;
 			public:
 				void SetVertexBuffers( ID3D11DeviceContext *pImmediateContext ) const override;
 			};
@@ -56,7 +56,7 @@ namespace Donya
 			private:
 				ComPtr<ID3D11Buffer> pBufferTex;
 			public:
-				HRESULT CreateVertexBufferTex( ID3D11Device *pDevice, const std::vector<Vertex::Tex> &source );
+				HRESULT CreateVertexBufferTex( ID3D11Device *pDevice, const std::vector<Vertex::Tex> &source ) override;
 			public:
 				void SetVertexBuffers( ID3D11DeviceContext *pImmediateContext ) const override;
 			};
@@ -67,7 +67,7 @@ namespace Donya
 		/// </summary>
 		class Model
 		{
-			friend ModelRenderer; // To usable for render.
+			//friend ModelRenderer; // To usable for render.
 		public:
 			struct Material
 			{
@@ -125,6 +125,10 @@ namespace Donya
 			void InitSubset( ID3D11Device *pDevice, Model::Subset *pDestination, const ModelSource::Subset &source );
 			void CreateMaterial( Model::Material *pDestination, ID3D11Device *pDevice );
 		public:
+			const std::vector<Mesh> &GetMeshes() const
+			{
+				return meshes;
+			}
 			std::shared_ptr<ModelSource> AcquireModelSource() const
 			{
 				return pSource;
