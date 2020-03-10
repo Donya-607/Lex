@@ -94,7 +94,7 @@ namespace Donya
 
 	#pragma region Renderer
 
-		static std::unordered_map<size_t, std::unique_ptr<ModelRenderer>> rendererMap{};
+		static std::unordered_map<size_t, std::unique_ptr<Renderer>> rendererMap{};
 
 		size_t MakeRenderer( ModelUsage usage, ID3D11Device *pDevice )
 		{
@@ -111,20 +111,20 @@ namespace Donya
 			}
 			// else
 
-			ModelRenderer renderer{ usage, pDevice };
+			Renderer renderer{ usage, pDevice };
 			rendererMap.insert
 			(
 				std::make_pair
 				(
 					hash,
-					std::make_unique<ModelRenderer>( std::move( renderer ) )
+					std::make_unique<Renderer>( std::move( renderer ) )
 				)
 			);
 
 			return hash;
 		}
 
-		const std::unique_ptr<ModelRenderer> *AcquireRawRenderer( size_t id )
+		const std::unique_ptr<Renderer> *AcquireRawRenderer( size_t id )
 		{
 			const auto found = rendererMap.find( id );
 			if ( found == rendererMap.end() )

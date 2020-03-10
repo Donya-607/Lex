@@ -43,7 +43,7 @@ namespace Donya
 
 	#pragma region Renderer
 
-		class ModelRenderer;
+		class Renderer;
 
 		/// <summary>
 		/// Returns an identifier of the made renderer, or NULL when failed making.<para></para>
@@ -55,7 +55,7 @@ namespace Donya
 		/// Returns pointer that point to internal cache directly, or nullptr when passed identifier is not valid.<para></para>
 		/// You must not delete the renderer by it!
 		/// </summary>
-		const std::unique_ptr<ModelRenderer> *AcquireRawRenderer( size_t modelIdentifier );
+		const std::unique_ptr<Renderer> *AcquireRawRenderer( size_t modelIdentifier );
 		/// <summary>
 		/// Remove the internally cache of a renderer.<para></para>
 		/// Returns false if passed identifier is not valid.

@@ -79,14 +79,28 @@ namespace Donya
 			};
 		}
 
-		class Model; // Use for a reference at Render() method.
-	
+		class Model;			// Use for a reference at Render() method.
+		class SkinningRenderer;	// Use for the return value of making method.
+		class StaticRenderer;	// Use for the return value of making method.
+
 		/// <summary>
 		/// Renderer of the Model class.<para></para>
+		/// You can get a concrete renderer with CreateXXX() method.<para></para>
 		/// If you do not want using a custom shader, you can use a default shading by internal class.
 		/// </summary>
-		class ModelRenderer
+		class Renderer
 		{
+		public:
+			/// <summary>
+			/// This method is equivalent to call SkinningRenderer::Create().<para></para>
+			/// If you set nullptr to "pDevice", use default device.
+			/// </summary>
+			static std::unique_ptr<SkinningRenderer> CreateSkinning( ID3D11Device *pDevice = nullptr );
+			/// <summary>
+			/// This method is equivalent to call StaticRenderer::Create().<para></para>
+			/// If you set nullptr to "pDevice", use default device.
+			/// </summary>
+			static std::unique_ptr<StaticRenderer> CreateStatic( ID3D11Device *pDevice = nullptr );
 		public:
 			/// <summary>
 			/// Provides a default shading and settings.<para></para>
@@ -110,6 +124,7 @@ namespace Donya
 					int idRSState	= DEFAULT_ID;
 					int idPSSampler	= DEFAULT_ID;
 					Donya::CBuffer<Constants::PerScene::Common> CBPerScene;
+					Donya::CBuffer<Constants::PerModel::Common> CBPerModel;
 
 					struct Shader
 					{
@@ -130,8 +145,9 @@ namespace Donya
 				static bool Initialize( ID3D11Device *pDevice );
 			private:
 				static bool AssignStatusIdentifiers( ID3D11Device *pDevice );
-				static bool CreateRenderingStates  ( ID3D11Device *pDevice );
-				static bool CreateDefaultShaders   ( ID3D11Device *pDevice );
+				static bool CreateRenderingStates( ID3D11Device *pDevice );
+				static bool CreateCBuffers( ID3D11Device *pDevice );
+				static bool CreateDefaultShaders( ID3D11Device *pDevice );
 			public:
 				/// <summary>
 				/// If set nullptr to "pImmediateContext", use default device.
@@ -191,27 +207,51 @@ namespace Donya
 				/// </summary>
 				static void DeactivatePixelShaderStatic( ID3D11DeviceContext *pImmediateContext = nullptr );
 			public:
-				static void UpdateSceneConstants( const Constants::PerScene::Common &assignParameter );
+				static void UpdateCBufferScene( const Constants::PerScene::Common &assignParameter );
+				static void UpdateCBufferModel( const Constants::PerModel::Common &assignParameter );
 				/// <summary>
 				/// If set nullptr to "pImmediateContext", use default device.
 				/// </summary>
-				static void ActivateSceneConstants( const RegisterDesc &setting, ID3D11DeviceContext *pImmediateContext = nullptr );
+				static void ActivateCBufferScene( ID3D11DeviceContext *pImmediateContext = nullptr );
 				/// <summary>
 				/// If set nullptr to "pImmediateContext", use default device.
 				/// </summary>
-				static void DeactivateSceneConstants( ID3D11DeviceContext *pImmediateContext = nullptr );
+				static void ActivateCBufferModel( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void DeactivateCBufferScene( ID3D11DeviceContext *pImmediateContext = nullptr );
+				/// <summary>
+				/// If set nullptr to "pImmediateContext", use default device.
+				/// </summary>
+				static void DeactivateCBufferModel( ID3D11DeviceContext *pImmediateContext = nullptr );
+			public:
+				/// <summary>
+				/// Returns default description of the cbuffer per scene.
+				/// </summary>
+				static RegisterDesc DescCBufferPerScene();
+				/// <summary>
+				/// Returns default description of the cbuffer per model.
+				/// </summary>
+				static RegisterDesc DescCBufferPerModel();
+				/// <summary>
+				/// Returns default description of the cbuffer per mesh.
+				/// </summary>
+				static RegisterDesc DescCBufferPerMesh();
+				/// <summary>
+				/// Returns default description of the cbuffer per subset.
+				/// </summary>
+				static RegisterDesc DescCBufferPerSubset();
+				/// <summary>
+				/// Returns default description of the diffuse map.
+				/// </summary>
+				static RegisterDesc DescDiffuseMap();
 			};
 		private:
 			Donya::CBuffer<Constants::PerSubset::Common> CBPerSubset;
-		private:
-			// This making function declared at "ModelMaker.h".
-			friend size_t MakeRenderer( ModelUsage usage, ID3D11Device *pDevice );
 		protected:
-			/// <summary>
-			/// If set nullptr to "pDevice", use default device.
-			/// </summary>
-			ModelRenderer( ID3D11Device *pDevice = nullptr );
-			virtual ~ModelRenderer() = default;
+			Renderer( ID3D11Device *pDevice );
+			virtual ~Renderer() = default;
 		protected:
 			void SetVertexBuffers( const Donya::Model::Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
 			void SetIndexBuffer( const Donya::Model::Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
@@ -234,24 +274,31 @@ namespace Donya
 			void DrawIndexed( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, ID3D11DeviceContext *pImmediateContext ) const;
 		};
 
-		class SkinningRenderer : public ModelRenderer
+		class SkinningRenderer : public Renderer
 		{
+		public:
+			/// <summary>
+			/// If you set nullptr to "pDevice", use default device.
+			/// </summary>
+			static std::unique_ptr<SkinningRenderer> Create( ID3D11Device *pDevice = nullptr );
 		private:
 			Strategy::SkinningConstantsPerMesh CBPerMesh;
 		private:
-			/// <summary>
-			/// If set nullptr to "pDevice", use default device.
-			/// </summary>
-			SkinningRenderer( ID3D11Device *pDevice = nullptr );
+			SkinningRenderer( ID3D11Device *pDevice );
 		public:
+			/// <summary>
+			/// The "cbufferPerMesh" and "cbufferPerSubset" are used as a cbuffer's slot in HLSL.<para></para>
+			/// The "textureMapDiffuse" is used as a Texture2D's slot in HLSL.<para></para>
+			/// If you set nullptr to "pImmediateContext", use default device-context.
+			/// </summary>
 			void Render
 			(
 				const Model			&model,
 				const FocusMotion	&activeMotion,
-				const RegisterDesc	&meshSetting,
-				const RegisterDesc	&subsetSetting,
-				const RegisterDesc	&diffuseMapSetting,
-				ID3D11DeviceContext	*pImmediateContext
+				const RegisterDesc	&cbufferPerMesh,
+				const RegisterDesc	&cbufferPerSubset,
+				const RegisterDesc	&textureMapDiffuse,
+				ID3D11DeviceContext	*pImmediateContext = nullptr
 			);
 		private:
 			Constants::PerMesh::Bone MakeBoneConstants( const Model &model, size_t meshIndex, const FocusMotion &activeMotion ) const;
@@ -260,23 +307,30 @@ namespace Donya
 			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext ) override;
 		};
 
-		class StaticRenderer : public ModelRenderer
+		class StaticRenderer : public Renderer
 		{
+		public:
+			/// <summary>
+			/// If you set nullptr to "pDevice", use default device.
+			/// </summary>
+			static std::unique_ptr<StaticRenderer> Create( ID3D11Device *pDevice = nullptr );
 		private:
 			Strategy::StaticConstantsPerMesh CBPerMesh;
 		private:
-			/// <summary>
-			/// If set nullptr to "pDevice", use default device.
-			/// </summary>
-			StaticRenderer( ID3D11Device *pDevice = nullptr );
+			StaticRenderer( ID3D11Device *pDevice );
 		public:
+			/// <summary>
+			/// The "cbufferPerMesh" and "cbufferPerSubset" are used as a cbuffer's slot in HLSL.<para></para>
+			/// The "textureMapDiffuse" is used as a Texture2D's slot in HLSL.<para></para>
+			/// If you set nullptr to "pImmediateContext", use default device-context.
+			/// </summary>
 			void Render
 			(
 				const Model			&model,
-				const RegisterDesc	&meshSetting,
-				const RegisterDesc	&subsetSetting,
-				const RegisterDesc	&diffuseMapSetting,
-				ID3D11DeviceContext	*pImmediateContext
+				const RegisterDesc	&cbufferPerMesh,
+				const RegisterDesc	&cbufferPerSubset,
+				const RegisterDesc	&textureMapDiffuse,
+				ID3D11DeviceContext	*pImmediateContext = nullptr
 			);
 		private:
 			void UpdateCBPerMesh( const Model &model, size_t meshIndex, const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );

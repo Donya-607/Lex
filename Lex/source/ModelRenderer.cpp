@@ -419,8 +419,17 @@ namespace Donya
 		}
 
 
-		std::unique_ptr<ModelRenderer::Default::Member> ModelRenderer::Default::pMember = nullptr;
-		bool ModelRenderer::Default::Initialize( ID3D11Device *pDevice )
+		std::unique_ptr<SkinningRenderer> Renderer::CreateSkinning( ID3D11Device *pDevice )
+		{
+			return SkinningRenderer::Create( pDevice );
+		}
+		std::unique_ptr<StaticRenderer>   Renderer::CreateStatic  ( ID3D11Device *pDevice )
+		{
+			return StaticRenderer::Create( pDevice );
+		}
+
+		std::unique_ptr<Renderer::Default::Member> Renderer::Default::pMember = nullptr;
+		bool Renderer::Default::Initialize( ID3D11Device *pDevice )
 		{
 			// Already initialized.
 			if ( pMember ) { return true; }
@@ -428,16 +437,14 @@ namespace Donya
 
 			bool result		= true;
 			bool succeeded	= true;
-			pMember = std::make_unique<ModelRenderer::Default::Member>();
+			pMember = std::make_unique<Renderer::Default::Member>();
 
 			result = AssignStatusIdentifiers( pDevice );
 			if ( !result ) { succeeded = false; }
 			result = CreateRenderingStates  ( pDevice );
 			if ( !result ) { succeeded = false; }
-
-			result = pMember->CBPerScene.Create();
+			result = CreateCBuffers( pDevice );
 			if ( !result ) { succeeded = false; }
-
 			result = CreateDefaultShaders   ( pDevice );
 			if ( !result ) { succeeded = false; }
 
@@ -450,7 +457,7 @@ namespace Donya
 			return succeeded;
 		}
 
-		bool ModelRenderer::Default::AssignStatusIdentifiers( ID3D11Device *pDevice )
+		bool Renderer::Default::AssignStatusIdentifiers( ID3D11Device *pDevice )
 		{
 			using FindFunction = std::function<bool( int )>;
 
@@ -515,7 +522,7 @@ namespace Donya
 			}
 			return succeeded;
 		}
-		bool ModelRenderer::Default::CreateRenderingStates  ( ID3D11Device *pDevice )
+		bool Renderer::Default::CreateRenderingStates( ID3D11Device *pDevice )
 		{
 			if ( pMember->idDSState   == Member::DEFAULT_ID ||
 				 pMember->idRSState   == Member::DEFAULT_ID ||
@@ -562,7 +569,19 @@ namespace Donya
 
 			return succeeded;
 		}
-		bool ModelRenderer::Default::CreateDefaultShaders   ( ID3D11Device *pDevice )
+		bool Renderer::Default::CreateCBuffers( ID3D11Device *pDevice )
+		{
+			bool result		= true;
+			bool succeeded	= true;
+
+			result = pMember->CBPerScene.Create( pDevice );
+			if ( !result ) { succeeded = false; }
+			result = pMember->CBPerModel.Create( pDevice );
+			if ( !result ) { succeeded = false; }
+
+			return succeeded;
+		}
+		bool Renderer::Default::CreateDefaultShaders( ID3D11Device *pDevice )
 		{
 			auto AssertFailedCreation = []( const std::wstring &shaderName )
 			{
@@ -643,87 +662,116 @@ namespace Donya
 			return succeeded;
 		}
 
-		bool ModelRenderer::Default::ActivateDepthStencil( ID3D11DeviceContext *pImmediateContext )
+		bool Renderer::Default::ActivateDepthStencil( ID3D11DeviceContext *pImmediateContext )
 		{
 			return Donya::DepthStencil::Activate( pMember->idDSState, pImmediateContext );
 		}
-		bool ModelRenderer::Default::ActivateRasterizer( ID3D11DeviceContext *pImmediateContext )
+		bool Renderer::Default::ActivateRasterizer( ID3D11DeviceContext *pImmediateContext )
 		{
 			return Donya::Rasterizer::Activate( pMember->idRSState, pImmediateContext );
 		}
-		bool ModelRenderer::Default::ActivateSampler( const RegisterDesc &setting, ID3D11DeviceContext *pImmediateContext )
+		bool Renderer::Default::ActivateSampler( const RegisterDesc &setting, ID3D11DeviceContext *pImmediateContext )
 		{
 			return Donya::Sampler::Activate( pMember->idPSSampler, setting.setSlot, setting.setVS, setting.setPS, pImmediateContext );
 		}
-		void ModelRenderer::Default::DeactivateDepthStencil( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::DeactivateDepthStencil( ID3D11DeviceContext *pImmediateContext )
 		{
 			Donya::DepthStencil::Deactivate( pImmediateContext );
 		}
-		void ModelRenderer::Default::DeactivateRasterizer( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::DeactivateRasterizer( ID3D11DeviceContext *pImmediateContext )
 		{
 			Donya::Rasterizer::Deactivate( pImmediateContext );
 		}
-		void ModelRenderer::Default::DeactivateSampler( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::DeactivateSampler( ID3D11DeviceContext *pImmediateContext )
 		{
 			Donya::Sampler::Deactivate( pImmediateContext );
 		}
 
-		void ModelRenderer::Default::ActivateVertexShaderSkinning( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::ActivateVertexShaderSkinning( ID3D11DeviceContext *pImmediateContext )
 		{
 			pMember->shaderSkinning.VS.Activate( pImmediateContext );
 		}
-		void ModelRenderer::Default::ActivatePixelShaderSkinning( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::ActivatePixelShaderSkinning( ID3D11DeviceContext *pImmediateContext )
 		{
 			pMember->shaderSkinning.PS.Activate( pImmediateContext );
 		}
-		void ModelRenderer::Default::ActivateVertexShaderStatic( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::ActivateVertexShaderStatic( ID3D11DeviceContext *pImmediateContext )
 		{
 			pMember->shaderStatic.VS.Activate( pImmediateContext );
 		}
-		void ModelRenderer::Default::ActivatePixelShaderStatic( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::ActivatePixelShaderStatic( ID3D11DeviceContext *pImmediateContext )
 		{
 			pMember->shaderStatic.PS.Activate( pImmediateContext );
 		}
-		void ModelRenderer::Default::DeactivateVertexShaderSkinning( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::DeactivateVertexShaderSkinning( ID3D11DeviceContext *pImmediateContext )
 		{
 			pMember->shaderSkinning.VS.Deactivate( pImmediateContext );
 		}
-		void ModelRenderer::Default::DeactivatePixelShaderSkinning( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::DeactivatePixelShaderSkinning( ID3D11DeviceContext *pImmediateContext )
 		{
 			pMember->shaderSkinning.PS.Deactivate( pImmediateContext );
 		}
-		void ModelRenderer::Default::DeactivateVertexShaderStatic( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::DeactivateVertexShaderStatic( ID3D11DeviceContext *pImmediateContext )
 		{
 			pMember->shaderStatic.VS.Deactivate( pImmediateContext );
 		}
-		void ModelRenderer::Default::DeactivatePixelShaderStatic( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::DeactivatePixelShaderStatic( ID3D11DeviceContext *pImmediateContext )
 		{
 			pMember->shaderStatic.PS.Deactivate( pImmediateContext );
 		}
 
-		void ModelRenderer::Default::UpdateSceneConstants( const Constants::PerScene::Common &param )
+		void Renderer::Default::UpdateCBufferScene( const Constants::PerScene::Common &param )
 		{
 			pMember->CBPerScene.data = param;
 		}
-		void ModelRenderer::Default::ActivateSceneConstants( const RegisterDesc &setting, ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::UpdateCBufferModel( const Constants::PerModel::Common &param )
 		{
-			pMember->CBPerScene.Activate( setting.setSlot, setting.setVS, setting.setPS, pImmediateContext );
+			pMember->CBPerModel.data = param;
 		}
-		void ModelRenderer::Default::DeactivateSceneConstants( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::Default::ActivateCBufferScene( ID3D11DeviceContext *pImmediateContext )
+		{
+			const RegisterDesc desc = DescCBufferPerScene();
+			pMember->CBPerScene.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
+		}
+		void Renderer::Default::ActivateCBufferModel( ID3D11DeviceContext *pImmediateContext )
+		{
+			const RegisterDesc desc = DescCBufferPerModel();
+			pMember->CBPerModel.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
+		}
+		void Renderer::Default::DeactivateCBufferScene( ID3D11DeviceContext *pImmediateContext )
 		{
 			pMember->CBPerScene.Deactivate( pImmediateContext );
 		}
+		void Renderer::Default::DeactivateCBufferModel( ID3D11DeviceContext *pImmediateContext )
+		{
+			pMember->CBPerModel.Deactivate( pImmediateContext );
+		}
 
+		RegisterDesc Renderer::Default::DescCBufferPerScene()
+		{
+			return RegisterDesc::Make( 0, true, true );
+		}
+		RegisterDesc Renderer::Default::DescCBufferPerModel()
+		{
+			return RegisterDesc::Make( 1, true, true );
+		}
+		RegisterDesc Renderer::Default::DescCBufferPerMesh()
+		{
+			return RegisterDesc::Make( 2, true, false );
+		}
+		RegisterDesc Renderer::Default::DescCBufferPerSubset()
+		{
+			return RegisterDesc::Make( 3, false, true );
+		}
+		RegisterDesc Renderer::Default::DescDiffuseMap()
+		{
+			return RegisterDesc::Make( 0, false, true );
+		}
 
-		ModelRenderer::ModelRenderer( ID3D11Device *pDevice ) :
+		Renderer::Renderer( ID3D11Device *pDevice ) :
 			CBPerSubset()
 		{
-			if ( !pDevice )
-			{
-				pDevice = Donya::GetDevice();
-			}
-
-			bool  result = CBPerSubset.Create();
+			bool  result = CBPerSubset.Create( pDevice );
 			if ( !result )
 			{
 				const std::string errMsg =
@@ -732,20 +780,20 @@ namespace Donya
 			}
 		}
 
-		void ModelRenderer::SetVertexBuffers( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext )
+		void Renderer::SetVertexBuffers( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext )
 		{
 			const auto &meshes	= model.GetMeshes();
 			const auto &mesh	= meshes[meshIndex];
 			mesh.pVertex->SetVertexBuffers( pImmediateContext );
 		}
-		void ModelRenderer::SetIndexBuffer( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext )
+		void Renderer::SetIndexBuffer( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext )
 		{
 			const auto &meshes	= model.GetMeshes();
 			const auto &mesh	= meshes[meshIndex];
 			pImmediateContext->IASetIndexBuffer( mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
 		}
 
-		Constants::PerMesh::Common ModelRenderer::MakeCommonConstantsPerMesh( const Model &model, size_t meshIndex ) const
+		Constants::PerMesh::Common Renderer::MakeCommonConstantsPerMesh( const Model &model, size_t meshIndex ) const
 		{
 			const auto &meshes	= model.GetMeshes();
 			const auto &mesh	= meshes[meshIndex];
@@ -756,7 +804,7 @@ namespace Donya
 			return constants;
 		}
 		
-		void ModelRenderer::DrawEachSubsets( const Model &model, size_t meshIndex, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
+		void Renderer::DrawEachSubsets( const Model &model, size_t meshIndex, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
 		{
 			const auto &meshes	= model.GetMeshes();
 			const auto &mesh	= meshes[meshIndex];
@@ -777,7 +825,7 @@ namespace Donya
 			}
 		}
 
-		void ModelRenderer::UpdateCBPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		void Renderer::UpdateCBPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
 			const auto &meshes = model.GetMeshes();
 			const auto &mesh   = meshes[meshIndex];
@@ -790,16 +838,16 @@ namespace Donya
 			
 			CBPerSubset.data   = constants;
 		}
-		void ModelRenderer::ActivateCBPerSubset( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		void Renderer::ActivateCBPerSubset( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
 			CBPerSubset.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
 		}
-		void ModelRenderer::DeactivateCBPerSubset( ID3D11DeviceContext *pImmediateContext )
+		void Renderer::DeactivateCBPerSubset( ID3D11DeviceContext *pImmediateContext )
 		{
 			CBPerSubset.Deactivate( pImmediateContext );
 		}
 
-		void ModelRenderer::SetTexture( const RegisterDesc &descDiffuse, SRVType diffuseSRV, ID3D11DeviceContext *pImmediateContext ) const
+		void Renderer::SetTexture( const RegisterDesc &descDiffuse, SRVType diffuseSRV, ID3D11DeviceContext *pImmediateContext ) const
 		{
 			if ( descDiffuse.setVS )
 			{
@@ -810,7 +858,7 @@ namespace Donya
 				pImmediateContext->PSSetShaderResources( descDiffuse.setSlot, 1U, diffuseSRV );
 			}
 		}
-		void ModelRenderer::UnsetTexture( const RegisterDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext ) const
+		void Renderer::UnsetTexture( const RegisterDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext ) const
 		{
 			ID3D11ShaderResourceView *pNullSRV = nullptr;
 			if ( descDiffuse.setVS )
@@ -823,7 +871,7 @@ namespace Donya
 			}
 		}
 
-		void ModelRenderer::DrawIndexed( const Model &model, size_t meshIndex, size_t subsetIndex, ID3D11DeviceContext *pImmediateContext ) const
+		void Renderer::DrawIndexed( const Model &model, size_t meshIndex, size_t subsetIndex, ID3D11DeviceContext *pImmediateContext ) const
 		{
 			const auto &meshes	= model.GetMeshes();
 			const auto &mesh	= meshes[meshIndex];
@@ -833,15 +881,20 @@ namespace Donya
 		}
 
 
-		SkinningRenderer::SkinningRenderer( ID3D11Device *pDevice ) :
-			ModelRenderer( pDevice ),
-			CBPerMesh()
+		std::unique_ptr<SkinningRenderer> SkinningRenderer::Create( ID3D11Device *pDevice )
 		{
 			if ( !pDevice )
 			{
 				pDevice = Donya::GetDevice();
 			}
 
+			return std::make_unique<SkinningRenderer>( pDevice );
+		}
+
+		SkinningRenderer::SkinningRenderer( ID3D11Device *pDevice ) :
+			Renderer( pDevice ),
+			CBPerMesh()
+		{
 			bool  result = CBPerMesh.CreateBuffer( pDevice );
 			if ( !result )
 			{
@@ -911,15 +964,20 @@ namespace Donya
 		}
 
 
-		StaticRenderer::StaticRenderer( ID3D11Device *pDevice ) :
-			ModelRenderer( pDevice ),
-			CBPerMesh()
+		std::unique_ptr<StaticRenderer> StaticRenderer::Create( ID3D11Device *pDevice )
 		{
 			if ( !pDevice )
 			{
 				pDevice = Donya::GetDevice();
 			}
 
+			return std::make_unique<StaticRenderer>( pDevice );
+		}
+
+		StaticRenderer::StaticRenderer( ID3D11Device *pDevice ) :
+			Renderer( pDevice ),
+			CBPerMesh()
+		{
 			bool  result = CBPerMesh.CreateBuffer( pDevice );
 			if ( !result )
 			{

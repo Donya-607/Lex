@@ -252,7 +252,7 @@ namespace Donya
 		namespace Constants
 		{
 			/// <summary>
-			/// The constants that update per need. This is not related to the model. Exists for default shading of ModelRenderer.
+			/// The constants that update per need. This is not related to the model. Exists for default shading of Model::Renderer.
 			/// </summary>
 			namespace PerScene
 			{
@@ -334,6 +334,11 @@ namespace Donya
 			unsigned int setSlot = 0;
 			bool setVS = true;
 			bool setPS = true;
+		public:
+			static RegisterDesc Make( unsigned int setSlot, bool setVS, bool setPS )
+			{
+				return RegisterDesc{ setSlot, setVS, setPS };
+			}
 		};
 	}
 }

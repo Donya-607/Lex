@@ -404,28 +404,28 @@ private:
 			constants.directionalLight.color		= directionalLight.color;
 			constants.eyePosition = cameraPos;
 			constants.viewProjMatrix = V * P;
-			Donya::Model::ModelRenderer::UpdateDefaultConstants( constants );
+			Donya::Model::Renderer::UpdateDefaultConstants( constants );
 
 			Donya::Model::ConstantDesc desc{};
 			desc.setSlot = 0;
 			desc.setVS = desc.setPS = true;
-			Donya::Model::ModelRenderer::ActivateDefaultConstants( desc );
+			Donya::Model::Renderer::ActivateDefaultConstants( desc );
 		}
 		// Activate rendering states.
 		{
-			Donya::Model::ModelRenderer::ActivateDefaultStateDepthStencil();
-			Donya::Model::ModelRenderer::ActivateDefaultStateRasterizer();
+			Donya::Model::Renderer::ActivateDefaultStateDepthStencil();
+			Donya::Model::Renderer::ActivateDefaultStateRasterizer();
 			
 			Donya::Model::TextureDesc desc{};
 			desc.setSlot = 0;
 			desc.setVS = true;
 			desc.setPS = true;
-			Donya::Model::ModelRenderer::ActivateDefaultStateSampler( desc );
+			Donya::Model::Renderer::ActivateDefaultStateSampler( desc );
 		}
 		// Activate shaders.
 		{
-			Donya::Model::ModelRenderer::ActivateDefaultVertexShaderSkinned();
-			Donya::Model::ModelRenderer::ActivateDefaultPixelShaderSkinned();
+			Donya::Model::Renderer::ActivateDefaultVertexShaderSkinned();
+			Donya::Model::Renderer::ActivateDefaultPixelShaderSkinned();
 		}
 
 		// auto pSource = pModel->AcquireModelSource();
@@ -462,18 +462,18 @@ private:
 
 		// Deactivate shaders.
 		{
-			Donya::Model::ModelRenderer::DeactivateDefaultVertexShaderSkinned();
-			Donya::Model::ModelRenderer::DeactivateDefaultPixelShaderSkinned();
+			Donya::Model::Renderer::DeactivateDefaultVertexShaderSkinned();
+			Donya::Model::Renderer::DeactivateDefaultPixelShaderSkinned();
 		}
 		// Deactivate rendering states.
 		{
-			Donya::Model::ModelRenderer::DeactivateDefaultStateDepthStencil();
-			Donya::Model::ModelRenderer::DeactivateDefaultStateRasterizer();
-			Donya::Model::ModelRenderer::DeactivateDefaultStateSampler();
+			Donya::Model::Renderer::DeactivateDefaultStateDepthStencil();
+			Donya::Model::Renderer::DeactivateDefaultStateRasterizer();
+			Donya::Model::Renderer::DeactivateDefaultStateSampler();
 		}
 		// Deactivate CB.
 		{
-			Donya::Model::ModelRenderer::DeactivateDefaultConstants();
+			Donya::Model::Renderer::DeactivateDefaultConstants();
 		}
 	}
 
