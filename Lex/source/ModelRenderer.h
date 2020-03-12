@@ -161,7 +161,7 @@ namespace Donya
 				/// <summary>
 				/// If set nullptr to "pImmediateContext", use default device.
 				/// </summary>
-				static bool ActivateSampler( const RegisterDesc &setting, ID3D11DeviceContext *pImmediateContext = nullptr );
+				static bool ActivateSampler( ID3D11DeviceContext *pImmediateContext = nullptr );
 				/// <summary>
 				/// If set nullptr to "pImmediateContext", use default device.
 				/// </summary>
@@ -243,6 +243,10 @@ namespace Donya
 				/// Returns default description of the cbuffer per subset.
 				/// </summary>
 				static RegisterDesc DescCBufferPerSubset();
+				/// <summary>
+				/// Returns default description of the sampler state.
+				/// </summary>
+				static RegisterDesc DescSampler();
 				/// <summary>
 				/// Returns default description of the diffuse map.
 				/// </summary>

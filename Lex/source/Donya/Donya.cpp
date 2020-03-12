@@ -1183,7 +1183,7 @@ namespace Donya
 
 		Donya::ScreenShake::SetEnableState( true );
 
-		Donya::Model::Renderer::InitDefaultStatus( GetDevice() );
+		Donya::Model::Renderer::Default::Initialize( GetDevice() );
 
 		return true;
 	}

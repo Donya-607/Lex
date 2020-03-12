@@ -28,27 +28,8 @@
 
 #include "Model.h"
 #include "ModelCommon.h"
-#include "ModelMaker.h"
+// #include "ModelMaker.h"
 #include "ModelMotion.h"
-namespace
-{
-	std::vector<Donya::Model::Model> tmp{};
-	void Test()
-	{
-		Donya::Model::ModelSource src{};
-		tmp.emplace_back( src, "Test/Directory/", Donya::Model::ModelUsage::Skinned );
-
-		Donya::Model::Model lhs{ src, "Test/Directory/", Donya::Model::ModelUsage::Static };
-		Donya::Model::Model rhs{ std::move( lhs ) };
-		rhs = lhs;
-		rhs = std::move( lhs );
-		
-		/*Donya::ModelSource lhs{ src };
-		Donya::ModelSource rhs{ std::move( lhs ) };
-		rhs = lhs;
-		rhs = std::move( lhs );*/
-	}
-}
 
 #pragma comment( lib, "comdlg32.lib" ) // For common-dialog.
 
@@ -70,6 +51,10 @@ public:
 		Donya::SkinnedMesh	mesh{};
 		size_t						modelID{ NULL };
 		size_t						rendererID{ NULL };
+		std::shared_ptr<Donya::Model::StaticModel>		pModelStatic{ nullptr };
+		std::shared_ptr<Donya::Model::SkinningModel>	pModelSkinning{ nullptr };
+		std::shared_ptr<Donya::Model::StaticRenderer>	pRendererStatic{ nullptr };
+		std::shared_ptr<Donya::Model::SkinningRenderer>	pRendererSkinning{ nullptr };
 		Donya::Model::MotionHolder	mHolder{};
 		Donya::Model::FocusMotion	mActiveMotion{};
 		Donya::Model::Animator		mAnimator{};
@@ -90,30 +75,32 @@ public:
 
 			result = Donya::SkinnedMesh::Create( loader, &mesh );
 			if ( !result ) { succeeded = false; }
-			
-			modelID		= Donya::Model::MakeModel( loader, Donya::Model::ModelUsage::Skinned );
-			if ( !modelID ) { succeeded = false; }
-			rendererID	= Donya::Model::MakeRenderer( Donya::Model::ModelUsage::Skinned );
-			if ( !rendererID ) { succeeded = false; }
+			// modelID		= Donya::Model::MakeModel( loader, Donya::Model::ModelUsage::Skinned );
+			// if ( !modelID ) { succeeded = false; }
+			// rendererID	= Donya::Model::MakeRenderer( Donya::Model::ModelUsage::Skinned );
+			// if ( !rendererID ) { succeeded = false; }
+			pModelStatic = Donya::Model::StaticModel::Create( loader.GetModelSource(), loader.GetFileDirectory() );
+			if ( !pModelStatic ) { succeeded = false; }
+			pModelSkinning = Donya::Model::SkinningModel::Create( loader.GetModelSource(), loader.GetFileDirectory() );
+			if ( !pModelSkinning ) { succeeded = false; }
+			pRendererStatic = Donya::Model::StaticRenderer::Create();
+			if ( !pRendererStatic ) { succeeded = false; }
+			pRendererSkinning = Donya::Model::SkinningRenderer::Create();
+			if ( !pRendererSkinning ) { succeeded = false; }
 
 			// Assign to holder.
+			for ( const auto &motion : loader.GetModelSource().motions )
 			{
-				const auto ppRawModel = Donya::Model::AcquireRawModel( modelID );
-				if ( ppRawModel )
-				{
-					const auto pSource = ( *ppRawModel )->AcquireModelSource();
-					for ( const auto &motion : pSource->motions )
-					{
-						mHolder.AppendMotion( motion );
-					}
-				}
+				mHolder.AppendMotion( motion );
 			}
 			// Focus some motion.
 			{
 				const auto motionCount = mHolder.GetMotionCount();
 				const auto motion = mHolder.GetMotion( 0 );
-				bool isValid = Donya::Model::FocusMotion::IsValidMotion( motion );
-				mActiveMotion.RegisterMotion( motion );
+				if ( Donya::Model::FocusMotion::IsValidMotion( motion ) )
+				{
+					mActiveMotion.RegisterMotion( motion );
+				}
 			}
 
 			result = Donya::MotionChunk::Create( loader, &motions );
@@ -383,15 +370,15 @@ private:
 
 	void DrawModelSource( const MeshAndInfo &data )
 	{
-		auto  ppModel = Donya::Model::AcquireRawModel( data.modelID );
-		if ( !ppModel ) { return; }
-		// else
-		auto &pModel = *ppModel;
-
-		auto  ppRenderer = Donya::Model::AcquireRawRenderer( data.rendererID );
-		if ( !ppRenderer ) { return; }
-		// else
-		auto &pRenderer = *ppRenderer;
+		// auto  ppModel = Donya::Model::AcquireRawModel( data.modelID );
+		// if ( !ppModel ) { return; }
+		// // else
+		// auto &pModel = *ppModel;
+		// 
+		// auto  ppRenderer = Donya::Model::AcquireRawRenderer( data.rendererID );
+		// if ( !ppRenderer ) { return; }
+		// // else
+		// auto &pRenderer = *ppRenderer;
 
 		const Donya::Vector4x4 V = iCamera.CalcViewMatrix();
 		const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
@@ -399,37 +386,44 @@ private:
 
 		// Activate CB per frame to slot 0.
 		{
-			Donya::Model::Constants::PerScene::Common constants{};
-			constants.directionalLight.direction	= directionalLight.direction;
-			constants.directionalLight.color		= directionalLight.color;
-			constants.eyePosition = cameraPos;
-			constants.viewProjMatrix = V * P;
-			Donya::Model::Renderer::UpdateDefaultConstants( constants );
+			Donya::Model::Constants::PerScene::Common constantsScene{};
+			constantsScene.directionalLight.direction	= directionalLight.direction;
+			constantsScene.directionalLight.color		= directionalLight.color;
+			constantsScene.eyePosition					= cameraPos;
+			constantsScene.viewProjMatrix				= V * P;
+			
+			const Donya::Vector3 eulerRadians
+			{
+				ToRadian( data.rotation.x ),
+				ToRadian( data.rotation.y ),
+				ToRadian( data.rotation.z ),
+			};
+			Donya::Model::Constants::PerModel::Common constantsModel{};
+			constantsModel.drawColor = Donya::Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
+			constantsModel.worldMatrix =
+				Donya::Vector4x4::MakeScaling( data.scale ) *
+				Donya::Vector4x4::MakeRotationEuler( eulerRadians ) *
+				Donya::Vector4x4::MakeTranslation( -data.translation );
 
-			Donya::Model::ConstantDesc desc{};
-			desc.setSlot = 0;
-			desc.setVS = desc.setPS = true;
-			Donya::Model::Renderer::ActivateDefaultConstants( desc );
+			Donya::Model::Renderer::Default::UpdateCBufferScene( constantsScene );
+			Donya::Model::Renderer::Default::UpdateCBufferModel( constantsModel );
+			Donya::Model::Renderer::Default::ActivateCBufferScene();
+			Donya::Model::Renderer::Default::ActivateCBufferModel();
 		}
 		// Activate rendering states.
 		{
-			Donya::Model::Renderer::ActivateDefaultStateDepthStencil();
-			Donya::Model::Renderer::ActivateDefaultStateRasterizer();
-			
-			Donya::Model::TextureDesc desc{};
-			desc.setSlot = 0;
-			desc.setVS = true;
-			desc.setPS = true;
-			Donya::Model::Renderer::ActivateDefaultStateSampler( desc );
+			Donya::Model::Renderer::Default::ActivateDepthStencil();
+			Donya::Model::Renderer::Default::ActivateRasterizer();
+			Donya::Model::Renderer::Default::ActivateSampler();
 		}
 		// Activate shaders.
 		{
-			Donya::Model::Renderer::ActivateDefaultVertexShaderSkinned();
-			Donya::Model::Renderer::ActivateDefaultPixelShaderSkinned();
+			Donya::Model::Renderer::Default::ActivateVertexShaderSkinning();
+			Donya::Model::Renderer::Default::ActivatePixelShaderSkinning();
 		}
 
 		// auto pSource = pModel->AcquireModelSource();
-		
+		/*
 		const Donya::Vector3 eulerRadians
 		{
 			ToRadian( data.rotation.x ),
@@ -442,38 +436,32 @@ private:
 			Donya::Vector4x4::MakeRotationEuler( eulerRadians ) *
 			Donya::Vector4x4::MakeTranslation( -data.translation );
 		
-		mcbPerModel.Activate( 1, true, true );
-		Donya::Model::ConstantDesc descMesh{};
-		descMesh.setSlot = 2;
-		descMesh.setVS = descMesh.setPS = true;
-		Donya::Model::ConstantDesc descSubset{};
-		descSubset.setSlot = 3;
-		descSubset.setVS = descSubset.setPS = true;
-		Donya::Model::TextureDesc descDiffuse{};
-		descDiffuse.setSlot = 0;
-		descDiffuse.setVS = descDiffuse.setPS = true;
-		pRenderer->RenderSkinned
+		mcbPerModel.Activate( 1, true, true );*/
+		data.pRendererSkinning->Render
 		(
-			*pModel,
-			data.mActiveMotion, data.mAnimator,
-			descMesh, descSubset, descDiffuse
+			*data.pModelSkinning,
+			data.mActiveMotion,
+			Donya::Model::Renderer::Default::DescCBufferPerMesh(),
+			Donya::Model::Renderer::Default::DescCBufferPerSubset(),
+			Donya::Model::Renderer::Default::DescDiffuseMap()
 		);
-		mcbPerModel.Deactivate();
+		//mcbPerModel.Deactivate();
 
 		// Deactivate shaders.
 		{
-			Donya::Model::Renderer::DeactivateDefaultVertexShaderSkinned();
-			Donya::Model::Renderer::DeactivateDefaultPixelShaderSkinned();
+			Donya::Model::Renderer::Default::DeactivatePixelShaderSkinning();
+			Donya::Model::Renderer::Default::DeactivateVertexShaderSkinning();
 		}
 		// Deactivate rendering states.
 		{
-			Donya::Model::Renderer::DeactivateDefaultStateDepthStencil();
-			Donya::Model::Renderer::DeactivateDefaultStateRasterizer();
-			Donya::Model::Renderer::DeactivateDefaultStateSampler();
+			Donya::Model::Renderer::Default::DeactivateDepthStencil();
+			Donya::Model::Renderer::Default::DeactivateRasterizer();
+			Donya::Model::Renderer::Default::DeactivateSampler();
 		}
 		// Deactivate CB.
 		{
-			Donya::Model::Renderer::DeactivateDefaultConstants();
+			Donya::Model::Renderer::Default::DeactivateCBufferModel();
+			Donya::Model::Renderer::Default::DeactivateCBufferScene();
 		}
 	}
 

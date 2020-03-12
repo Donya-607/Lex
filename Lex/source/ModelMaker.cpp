@@ -1,3 +1,4 @@
+/*
 #include "ModelMaker.h"
 
 #include <d3d11.h>
@@ -159,3 +160,4 @@ namespace Donya
 
 	}
 }
+*/

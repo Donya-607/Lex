@@ -157,7 +157,7 @@ namespace Donya
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
 			static std::unique_ptr<StaticModel> Create( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
-		protected:
+		private:
 			// Represent an array that the vertex of a Model's mesh.
 			// This array's index is linking to the index of Model's mesh. Also, these sizes are the same.
 			std::vector<std::unique_ptr<Strategy::StaticVertex>> pVertices;
@@ -169,7 +169,6 @@ namespace Donya
 			virtual ~StaticModel() = default;
 		private:
 			bool CreateVertices( size_t meshCount ) override;
-		protected:
 			bool CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source ) override;
 		public:
 			void SetVertexBuffers( size_t meshIndex, ID3D11DeviceContext *pImmediateContext ) const override;
@@ -182,6 +181,10 @@ namespace Donya
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
 			static std::unique_ptr<SkinningModel> Create( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
+		private:
+			// Represent an array that the vertex of a Model's mesh.
+			// This array's index is linking to the index of Model's mesh. Also, these sizes are the same.
+			std::vector<std::unique_ptr<Strategy::SkinningVertex>> pVertices;
 		protected:
 			SkinningModel();
 		public:
@@ -190,6 +193,7 @@ namespace Donya
 			virtual ~SkinningModel() = default;
 		private:
 			bool CreateVertices( size_t meshCount ) override;
+			bool CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source ) override;
 		public:
 			void SetVertexBuffers( size_t meshIndex, ID3D11DeviceContext *pImmediateContext ) const override;
 		};

@@ -670,9 +670,10 @@ namespace Donya
 		{
 			return Donya::Rasterizer::Activate( pMember->idRSState, pImmediateContext );
 		}
-		bool Renderer::Default::ActivateSampler( const RegisterDesc &setting, ID3D11DeviceContext *pImmediateContext )
+		bool Renderer::Default::ActivateSampler( ID3D11DeviceContext *pImmediateContext )
 		{
-			return Donya::Sampler::Activate( pMember->idPSSampler, setting.setSlot, setting.setVS, setting.setPS, pImmediateContext );
+			const RegisterDesc desc = DescSampler();
+			return Donya::Sampler::Activate( pMember->idPSSampler, desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
 		}
 		void Renderer::Default::DeactivateDepthStencil( ID3D11DeviceContext *pImmediateContext )
 		{
@@ -762,6 +763,10 @@ namespace Donya
 		RegisterDesc Renderer::Default::DescCBufferPerSubset()
 		{
 			return RegisterDesc::Make( 3, false, true );
+		}
+		RegisterDesc Renderer::Default::DescSampler()
+		{
+			return RegisterDesc::Make( 0, false, true );
 		}
 		RegisterDesc Renderer::Default::DescDiffuseMap()
 		{
@@ -891,7 +896,7 @@ namespace Donya
 			public:
 				MakeUniqueEnabler( ID3D11Device *pDevice ) : StaticRenderer( pDevice ) {}
 			};
-			return std::make_unique<MakeUniqueEnabler>( pDevice );
+			return std::move( std::make_unique<MakeUniqueEnabler>( pDevice ) );
 		}
 
 		StaticRenderer::StaticRenderer( ID3D11Device *pDevice ) :
@@ -958,7 +963,7 @@ namespace Donya
 			public:
 				MakeUniqueEnabler( ID3D11Device *pDevice ) : SkinningRenderer( pDevice ) {}
 			};
-			return std::make_unique<MakeUniqueEnabler>( pDevice );
+			return std::move( std::make_unique<MakeUniqueEnabler>( pDevice ) );
 		}
 
 		SkinningRenderer::SkinningRenderer( ID3D11Device *pDevice ) :

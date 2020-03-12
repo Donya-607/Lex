@@ -288,6 +288,35 @@ namespace Donya
 			return succeeded;
 		}
 
+		template<class StrategyVertex>
+		bool CreateVertexBuffersImpl( ID3D11Device *pDevice, std::vector<std::unique_ptr<StrategyVertex>> *ppVertices, const ModelSource &modelSource )
+		{
+			auto Assert = []( const std::string &kindName, size_t vertexIndex )
+			{
+				const std::string indexStr = "[" + std::to_string( vertexIndex ) + "]";
+				AssertCreation( "buffer", "Vertex::" + kindName + indexStr );
+			};
+
+			HRESULT hr			= S_OK;
+			size_t  vertexCount	= ppVertices->size();
+			for (   size_t i = 0; i < vertexCount; ++i )
+			{
+				const auto &source = modelSource.meshes[i];
+				auto &pVertex = ( *ppVertices )[i];
+
+				hr = pVertex->CreateVertexBufferPos( pDevice, source.positions );
+				if ( FAILED( hr ) ) { Assert( "Pos", i ); return false; }
+				// else
+				hr = pVertex->CreateVertexBufferTex( pDevice, source.texCoords );
+				if ( FAILED( hr ) ) { Assert( "Tex", i ); return false; }
+				// else
+				hr = pVertex->CreateVertexBufferBone( pDevice, source.boneInfluences );
+				if ( FAILED( hr ) ) { Assert( "Bone", i ); return false; }
+			}
+
+			return true;
+		}
+
 
 		std::unique_ptr<StaticModel> StaticModel::Create( const ModelSource &source, const std::string &fileDirectory, ID3D11Device *pDevice )
 		{
@@ -296,7 +325,7 @@ namespace Donya
 			bool  result = instance.BuildMyself( source, fileDirectory, pDevice );
 			if ( !result ) { return nullptr; }
 			// else
-			return std::make_unique<MakeUniqueEnabler>( std::move( instance ) );
+			return std::move( std::make_unique<MakeUniqueEnabler>( std::move( instance ) ) );
 		}
 
 		StaticModel::StaticModel() : Model(), pVertices()
@@ -312,32 +341,9 @@ namespace Donya
 
 			return true;
 		}
-		bool StaticModel::CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &sourceModel )
+		bool StaticModel::CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source )
 		{
-			auto Assert = []( const std::string &kindName, size_t vertexIndex )
-			{
-				const std::string indexStr = "[" + std::to_string( vertexIndex ) + "]";
-				AssertCreation( "buffer", "Vertex::" + kindName + indexStr );
-			};
-
-			HRESULT hr			= S_OK;
-			size_t  vertexCount	= pVertices.size();
-			for (   size_t i = 0; i < vertexCount; ++i )
-			{
-				const auto &source = sourceModel.meshes[i];
-				auto &pVertex = pVertices[i];
-
-				hr = pVertex->CreateVertexBufferPos( pDevice, source.positions );
-				if ( FAILED( hr ) ) { Assert( "Pos", i ); return false; }
-				// else
-				hr = pVertex->CreateVertexBufferTex( pDevice, source.texCoords );
-				if ( FAILED( hr ) ) { Assert( "Tex", i ); return false; }
-				// else
-				hr = pVertex->CreateVertexBufferBone( pDevice, source.boneInfluences );
-				if ( FAILED( hr ) ) { Assert( "Bone", i ); return false; }
-			}
-
-			return true;
+			return CreateVertexBuffersImpl<Strategy::StaticVertex>( pDevice, &pVertices, source );
 		}
 		void StaticModel::SetVertexBuffers( size_t meshIndex, ID3D11DeviceContext *pImmediateContext ) const
 		{
@@ -356,10 +362,10 @@ namespace Donya
 			bool  result = instance.BuildMyself( source, fileDirectory, pDevice );
 			if ( !result ) { return nullptr; }
 			// else
-			return std::make_unique<MakeUniqueEnabler>( std::move( instance ) );
+			return std::move( std::make_unique<MakeUniqueEnabler>( std::move( instance ) ) );
 		}
 
-		SkinningModel::SkinningModel() : StaticModel()
+		SkinningModel::SkinningModel() : StaticModel(), pVertices()
 		{}
 		bool SkinningModel::CreateVertices( size_t meshCount )
 		{
@@ -372,14 +378,15 @@ namespace Donya
 
 			return true;
 		}
+		bool SkinningModel::CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source )
+		{
+			return CreateVertexBuffersImpl<Strategy::SkinningVertex>( pDevice, &pVertices, source );
+		}
 		void SkinningModel::SetVertexBuffers( size_t meshIndex, ID3D11DeviceContext *pImmediateContext ) const
 		{
 			_ASSERT_EXPR( meshIndex < pVertices.size(), L"Error : Passed index out of range!" );
 
-			// A modifier that like "SkinningVertex::" is not necessary.
-			// Because I have no plans to implement some derived class of SkinningModel.
-			// ( Currently, we can not add that modifier even if need. Because the "pVertices" is belong to StaticModel, so we can not change the type of that vertex from StaticVertex to SkinningVertex )
-			pVertices[meshIndex]->SetVertexBuffers( pImmediateContext );
+			pVertices[meshIndex]->SkinningVertex::SetVertexBuffers( pImmediateContext );
 		}
 	}
 }
