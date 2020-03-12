@@ -119,15 +119,15 @@ namespace Donya
 		private:
 			std::string			fileDirectory;	// Use for making file path.
 			std::vector<Mesh>	meshes;
-		protected:
-			Model();
-			Model( const Model & )				= delete;
-			Model &operator = ( const Model & )	= delete;
+		protected: // Prevent a user forgot to call the BuildMyself() when creation.
+			Model()								= default;
 		public:
+			Model( const Model & )				= default;
+			Model &operator = ( const Model & )	= default;
 			Model( Model && )					= default;
 			Model &operator = ( Model && )		= default;
-			virtual ~Model() = default;
-		public:
+			virtual ~Model()					= default;
+		protected:
 			bool BuildMyself( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice );
 		private:
 			// These initialize method are built by "pSource".

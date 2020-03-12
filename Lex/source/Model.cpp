@@ -121,9 +121,6 @@ namespace Donya
 			return SkinningModel::Create( loadedSource, fileDirectory, pDevice );
 		}
 
-		Model::Model() : fileDirectory(), meshes()
-		{}
-
 		bool Model::BuildMyself( const ModelSource &source, const std::string &argFileDirectory, ID3D11Device *pDevice )
 		{
 			if ( !pDevice )
@@ -226,19 +223,19 @@ namespace Donya
 				pDest->textureName	= source.textureName;
 			};
 			
-			struct Bundle { Model::Material &dest; const ModelSource::Material &source; };
+			struct Bundle { Model::Material *dest; const ModelSource::Material &source; };
 			Bundle createList[]
 			{
-				{ pDest->ambient,  source.ambient  },
-				{ pDest->diffuse,  source.diffuse  },
-				{ pDest->specular, source.specular },
+				{ &pDest->ambient,  source.ambient  },
+				{ &pDest->diffuse,  source.diffuse  },
+				{ &pDest->specular, source.specular },
 			};
 
 			bool succeeded = true;
 			for ( auto &it : createList )
 			{
-				/*	INDENT	*/ AssignMaterial( &it.dest, it.source );
-				bool  result = CreateMaterial( &it.dest, pDevice   );
+				/*	INDENT	*/ AssignMaterial( it.dest, it.source );
+				bool  result = CreateMaterial( it.dest, pDevice   );
 				if ( !result ) { succeeded = false; }
 			}
 			return succeeded;
