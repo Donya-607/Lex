@@ -782,9 +782,7 @@ namespace Donya
 
 		void Renderer::SetVertexBuffers( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext )
 		{
-			const auto &meshes	= model.GetMeshes();
-			const auto &mesh	= meshes[meshIndex];
-			mesh.pVertex->SetVertexBuffers( pImmediateContext );
+			model.SetVertexBuffers( meshIndex, pImmediateContext );
 		}
 		void Renderer::SetIndexBuffer( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext )
 		{
@@ -881,17 +879,22 @@ namespace Donya
 		}
 
 
-		std::unique_ptr<SkinningRenderer> SkinningRenderer::Create( ID3D11Device *pDevice )
+		std::unique_ptr<StaticRenderer> StaticRenderer::Create( ID3D11Device *pDevice )
 		{
 			if ( !pDevice )
 			{
 				pDevice = Donya::GetDevice();
 			}
 
-			return std::make_unique<SkinningRenderer>( pDevice );
+			class MakeUniqueEnabler : public StaticRenderer
+			{
+			public:
+				MakeUniqueEnabler( ID3D11Device *pDevice ) : StaticRenderer( pDevice ) {}
+			};
+			return std::make_unique<MakeUniqueEnabler>( pDevice );
 		}
 
-		SkinningRenderer::SkinningRenderer( ID3D11Device *pDevice ) :
+		StaticRenderer::StaticRenderer( ID3D11Device *pDevice ) :
 			Renderer( pDevice ),
 			CBPerMesh()
 		{
@@ -903,7 +906,74 @@ namespace Donya
 				throw std::runtime_error{ errMsg };
 			}
 		}
-		void SkinningRenderer::Render( const Model &model, const FocusMotion &activeMotion, const RegisterDesc &descMesh, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
+		StaticRenderer::~StaticRenderer() = default;
+		void StaticRenderer::Render( const StaticModel &model, const RegisterDesc &descMesh, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
+		{
+			if ( !pImmediateContext )
+			{
+				pImmediateContext = Donya::GetImmediateContext();
+			}
+
+			pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+
+			const size_t meshCount = model.GetMeshes().size();
+			for ( size_t i = 0; i < meshCount; ++i )
+			{
+				UpdateCBPerMesh( model, i, descMesh, pImmediateContext );
+				ActivateCBPerMesh( descMesh, pImmediateContext );
+
+				SetVertexBuffers( model, i, pImmediateContext );
+				SetIndexBuffer( model, i, pImmediateContext );
+
+				DrawEachSubsets( model, i, descSubset, descDiffuseMap, pImmediateContext );
+
+				DeactivateCBPerMesh( pImmediateContext );
+			}
+		}
+		void StaticRenderer::UpdateCBPerMesh( const Model &model, size_t meshIndex, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		{
+			Constants::PerMesh::Common constantsCommon = MakeCommonConstantsPerMesh( model, meshIndex );
+			
+			CBPerMesh.Update( constantsCommon );
+		}
+		void StaticRenderer::ActivateCBPerMesh( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		{
+			CBPerMesh.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
+		}
+		void StaticRenderer::DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext )
+		{
+			CBPerMesh.Deactivate( pImmediateContext );
+		}
+
+
+		std::unique_ptr<SkinningRenderer> SkinningRenderer::Create( ID3D11Device *pDevice )
+		{
+			if ( !pDevice )
+			{
+				pDevice = Donya::GetDevice();
+			}
+
+			class MakeUniqueEnabler : public SkinningRenderer
+			{
+			public:
+				MakeUniqueEnabler( ID3D11Device *pDevice ) : SkinningRenderer( pDevice ) {}
+			};
+			return std::make_unique<MakeUniqueEnabler>( pDevice );
+		}
+
+		SkinningRenderer::SkinningRenderer( ID3D11Device *pDevice ) :
+			StaticRenderer( pDevice ),
+			CBPerMesh()
+		{
+			bool  result = CBPerMesh.CreateBuffer( pDevice );
+			if ( !result )
+			{
+				const std::string errMsg =
+					"Exception : Creation of a constant-buffer per mesh is failed.";
+				throw std::runtime_error{ errMsg };
+			}
+		}
+		void SkinningRenderer::Render( const SkinningModel &model, const FocusMotion &activeMotion, const RegisterDesc &descMesh, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
 		{
 			if ( !pImmediateContext )
 			{
@@ -959,67 +1029,6 @@ namespace Donya
 			CBPerMesh.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
 		}
 		void SkinningRenderer::DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext )
-		{
-			CBPerMesh.Deactivate( pImmediateContext );
-		}
-
-
-		std::unique_ptr<StaticRenderer> StaticRenderer::Create( ID3D11Device *pDevice )
-		{
-			if ( !pDevice )
-			{
-				pDevice = Donya::GetDevice();
-			}
-
-			return std::make_unique<StaticRenderer>( pDevice );
-		}
-
-		StaticRenderer::StaticRenderer( ID3D11Device *pDevice ) :
-			Renderer( pDevice ),
-			CBPerMesh()
-		{
-			bool  result = CBPerMesh.CreateBuffer( pDevice );
-			if ( !result )
-			{
-				const std::string errMsg =
-					"Exception : Creation of a constant-buffer per mesh is failed.";
-				throw std::runtime_error{ errMsg };
-			}
-		}
-		void StaticRenderer::Render( const Model &model, const RegisterDesc &descMesh, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
-		{
-			if ( !pImmediateContext )
-			{
-				pImmediateContext = Donya::GetImmediateContext();
-			}
-
-			pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
-
-			const size_t meshCount = model.GetMeshes().size();
-			for ( size_t i = 0; i < meshCount; ++i )
-			{
-				UpdateCBPerMesh( model, i, descMesh, pImmediateContext );
-				ActivateCBPerMesh( descMesh, pImmediateContext );
-
-				SetVertexBuffers( model, i, pImmediateContext );
-				SetIndexBuffer( model, i, pImmediateContext );
-
-				DrawEachSubsets( model, i, descSubset, descDiffuseMap, pImmediateContext );
-
-				DeactivateCBPerMesh( pImmediateContext );
-			}
-		}
-		void StaticRenderer::UpdateCBPerMesh( const Model &model, size_t meshIndex, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
-		{
-			Constants::PerMesh::Common	constantsCommon = MakeCommonConstantsPerMesh( model, meshIndex );
-			
-			CBPerMesh.Update( constantsCommon );
-		}
-		void StaticRenderer::ActivateCBPerMesh( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
-		{
-			CBPerMesh.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
-		}
-		void StaticRenderer::DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext )
 		{
 			CBPerMesh.Deactivate( pImmediateContext );
 		}
