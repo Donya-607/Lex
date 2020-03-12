@@ -270,11 +270,12 @@ namespace Donya
 				"	vin.pos.w		= 1.0f;\n"
 				"	vin.normal.w	= 0.0f;\n"
 
-				"	row_major float4x4 W = mul( cbAdjustMatrix, cbWorld );\n"
+				"	float4x4 W		= mul( cbAdjustMatrix, cbWorld );\n"
+				"	float4x4 WVP	= mul( W, cbViewProj );\n"
 
 				"	VS_OUT vout		= ( VS_OUT )0;\n"
-				"	vout.pos		= mul( vin.pos, mul( cbWorld, cbViewProj ) );\n"
-				"	vout.wsPos		= mul( vin.pos, cbWorld );\n"
+				"	vout.wsPos		= mul( vin.pos, W );\n"
+				"	vout.pos		= mul( vin.pos, WVP );\n"
 				"	vout.normal		= normalize( mul( vin.normal, cbWorld ) );\n"
 				"	vout.texCoord	= vin.texCoord;\n"
 				"	return vout;\n"

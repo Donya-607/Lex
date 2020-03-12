@@ -67,6 +67,9 @@ public:
 		float	motionAccelPercent{ 1.0f };		// Normal is 1.0f.
 		bool	enableMotionInterpolation{ false };
 		bool	dontWannaDraw{ false };
+
+		bool	drawSkinningModel{ true };
+		bool	useSkinningRenderer{ true };
 	public:
 		bool CreateByLoader()
 		{
@@ -417,9 +420,15 @@ private:
 			Donya::Model::Renderer::Default::ActivateSampler();
 		}
 		// Activate shaders.
+		if ( data.useSkinningRenderer && data.drawSkinningModel )
 		{
 			Donya::Model::Renderer::Default::ActivateVertexShaderSkinning();
 			Donya::Model::Renderer::Default::ActivatePixelShaderSkinning();
+		}
+		else
+		{
+			Donya::Model::Renderer::Default::ActivateVertexShaderStatic();
+			Donya::Model::Renderer::Default::ActivatePixelShaderStatic();
 		}
 
 		// auto pSource = pModel->AcquireModelSource();
@@ -437,20 +446,70 @@ private:
 			Donya::Vector4x4::MakeTranslation( -data.translation );
 		
 		mcbPerModel.Activate( 1, true, true );*/
-		data.pRendererSkinning->Render
-		(
-			*data.pModelSkinning,
-			data.mActiveMotion,
-			Donya::Model::Renderer::Default::DescCBufferPerMesh(),
-			Donya::Model::Renderer::Default::DescCBufferPerSubset(),
-			Donya::Model::Renderer::Default::DescDiffuseMap()
-		);
+
+		const auto descPerMesh		= Donya::Model::Renderer::Default::DescCBufferPerMesh();
+		const auto descPerSubset	= Donya::Model::Renderer::Default::DescCBufferPerSubset();
+		const auto descDiffuse		= Donya::Model::Renderer::Default::DescDiffuseMap();
+		if ( data.useSkinningRenderer )
+		{
+			if ( data.drawSkinningModel )
+			{
+				data.pRendererSkinning->Render
+				(
+					*data.pModelSkinning,
+					data.mActiveMotion,
+					descPerMesh,
+					descPerSubset,
+					descDiffuse
+				);
+			}
+			else
+			{
+				data.pRendererSkinning->StaticRenderer::Render
+				(	
+					*data.pModelStatic,
+					descPerMesh,
+					descPerSubset,
+					descDiffuse
+				);
+			}
+		}
+		else
+		{
+			if ( data.drawSkinningModel )
+			{
+				data.pRendererStatic->Render
+				(
+					*data.pModelSkinning,
+					descPerMesh,
+					descPerSubset,
+					descDiffuse
+				);
+			}
+			else
+			{
+				data.pRendererStatic->Render
+				(
+					*data.pModelStatic,
+					descPerMesh,
+					descPerSubset,
+					descDiffuse
+				);
+			}
+		}
+
 		//mcbPerModel.Deactivate();
 
 		// Deactivate shaders.
+		if ( data.useSkinningRenderer && data.drawSkinningModel )
 		{
-			Donya::Model::Renderer::Default::DeactivatePixelShaderSkinning();
 			Donya::Model::Renderer::Default::DeactivateVertexShaderSkinning();
+			Donya::Model::Renderer::Default::DeactivatePixelShaderSkinning();
+		}
+		else
+		{
+			Donya::Model::Renderer::Default::DeactivateVertexShaderStatic();
+			Donya::Model::Renderer::Default::DeactivatePixelShaderStatic();
 		}
 		// Deactivate rendering states.
 		{
@@ -1100,6 +1159,10 @@ private:
 							ImGui::Text( "一時的な設定になります\n" );
 
 							ImGui::Checkbox( u8"隠す", &it->dontWannaDraw );
+							ImGui::Text( "" );
+
+							ImGui::Checkbox( u8"スキンモデルを使用する",		&it->drawSkinningModel );
+							ImGui::Checkbox( u8"スキンレンダラを使用する",		&it->useSkinningRenderer );
 							ImGui::Text( "" );
 
 							ImGui::DragFloat3( u8"スケール",			&it->scale.x,		0.1f		);
