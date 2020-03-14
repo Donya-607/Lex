@@ -96,6 +96,8 @@ namespace Donya
 				currentSeconds = fmodf( currentSeconds, wholeSeconds );
 			}
 
+			Animation::KeyFrame rv;
+
 			const size_t motionCount = motion.size();
 			for ( size_t i = 0; i < motionCount - 1; ++i )
 			{
@@ -106,9 +108,14 @@ namespace Donya
 
 				const float diffL = currentSeconds    - keyFrameL.seconds;
 				const float diffR = keyFrameR.seconds - keyFrameL.seconds;
-				const float percent = diffL / ( diffR + EPSILON );
+				const float percent = diffL / ( diffR + EPSILON/* Prevent zero-divide */ );
 
+				rv = Animation::KeyFrame::Interpolate( keyFrameL, keyFrameR, percent );
+
+				break;
 			}
+
+			return rv;
 		}
 		Animation::KeyFrame Animator::CalcCurrentPose( const Animation::Motion &motion ) const
 		{

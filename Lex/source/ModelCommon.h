@@ -137,7 +137,7 @@ namespace Donya
 				{
 					return Transform{};
 				}
-				static Transform Interpolate( const Transform &lhs, const Transform &rhs, float percent );
+				static Transform Interpolate( const Transform &lhs, const Transform &rhs, float time );
 			private:
 				friend class cereal::access;
 				template<class Archive>
@@ -169,7 +169,7 @@ namespace Donya
 				/// <summary>
 				/// Interpolates the Transform members only. The other members will be "lhs".
 				/// </summary>
-				static Bone Interpolate( const Bone &lhs, const Bone &rhs, float percent );
+				static Bone Interpolate( const Bone &lhs, const Bone &rhs, float time );
 			private:
 				friend class cereal::access;
 				template<class Archive>
@@ -200,7 +200,7 @@ namespace Donya
 				/// <summary>
 				/// Requires the two key-pose counts are the same.
 				/// </summary>
-				static KeyFrame Interpolate( const KeyFrame &lhs, const KeyFrame &rhs, float percent );
+				static KeyFrame Interpolate( const KeyFrame &lhs, const KeyFrame &rhs, float time );
 			private:
 				friend class cereal::access;
 				template<class Archive>

@@ -18,27 +18,37 @@ namespace Donya
 				m._43 = translation.z;
 				return m;
 			}
-			Transform Transform::Interpolate( const Transform &lhs, const Transform &rhs, float percent )
+			Transform Transform::Interpolate( const Transform &lhs, const Transform &rhs, float time )
 			{
 				Transform rv;
-				rv.scale		= Donya::Lerp( lhs.scale, rhs.scale, percent );
-				rv.rotation		= Donya::Quaternion::Slerp( lhs.rotation, rhs.rotation, percent );
-				rv.translation	= Donya::Lerp( lhs.translation, rhs.translation, percent );
+				rv.scale		= Donya::Lerp( lhs.scale, rhs.scale, time );
+				rv.rotation		= Donya::Quaternion::Slerp( lhs.rotation, rhs.rotation, time );
+				rv.translation	= Donya::Lerp( lhs.translation, rhs.translation, time );
 				return rv;
 			}
 
-			Bone Bone::Interpolate( const Bone &lhs, const Bone &rhs, float percent )
+			Bone Bone::Interpolate( const Bone &lhs, const Bone &rhs, float time )
 			{
 				Bone rv = lhs;
-				rv.transform			= Transform::Interpolate( lhs.transform,			rhs.transform,			percent );
-				rv.transformToParent	= Transform::Interpolate( lhs.transformToParent,	rhs.transformToParent,	percent );
+				rv.transform			= Transform::Interpolate( lhs.transform,			rhs.transform,			time );
+				rv.transformToParent	= Transform::Interpolate( lhs.transformToParent,	rhs.transformToParent,	time );
 				return rv;
 			}
 
-			KeyFrame KeyFrame::Interpolate( const KeyFrame &lhs, const KeyFrame &rhs, float percent )
+			KeyFrame KeyFrame::Interpolate( const KeyFrame &lhs, const KeyFrame &rhs, float time )
 			{
+				_ASSERT_EXPR( lhs.keyPose.size() == rhs.keyPose.size(), L"Error : We can not interpolate between the vectors that difference size!" );
+				const size_t boneCount = lhs.keyPose.size();
+
 				KeyFrame rv;
-				rv.seconds = ( lhs.seconds * ( 1.0f - percent ) ) + ( rhs.seconds * percent );
+				rv.seconds = lhs.seconds + ( time * ( rhs.seconds - lhs.seconds ) );
+				rv.keyPose.resize( boneCount );
+				for ( size_t i = 0; i < boneCount; ++i )
+				{
+					rv.keyPose[i] = Bone::Interpolate( lhs.keyPose[i], rhs.keyPose[i], time );
+				}
+
+				return rv;
 			}
 		}
 	}
