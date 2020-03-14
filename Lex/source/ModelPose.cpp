@@ -6,7 +6,7 @@ namespace Donya
 	{
 		const std::vector<Pose::Node> &Pose::GetCurrentPose() const { return skeletal; }
 
-		bool Pose::HasCompatibleWith( const std::vector<Animation::Bone> &validation )
+		bool Pose::HasCompatibleWith( const std::vector<Animation::Bone> &validation ) const
 		{
 			/*
 			Requirements:
@@ -30,7 +30,7 @@ namespace Donya
 
 			return true;
 		}
-		bool Pose::HasCompatibleWith( const Animation::KeyFrame &validation )
+		bool Pose::HasCompatibleWith( const Animation::KeyFrame &validation ) const
 		{
 			return HasCompatibleWith( validation.keyPose );
 		}

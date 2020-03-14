@@ -9,7 +9,7 @@ namespace Donya
 {
 	namespace Model
 	{
-		/// <summary>
+		/*/// <summary>
 		/// This class's role is calculation a motion frame.
 		/// </summary>
 		class Animator
@@ -69,6 +69,6 @@ namespace Donya
 			/// Returns an internal timer that updating at Update(). This does not represent a current frame.
 			/// </summary>
 			float GetInternalElapsedTime() const;
-		};
+		};*/
 	}
 }

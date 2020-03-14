@@ -10,7 +10,7 @@
 
 #include "ModelCommon.h"
 #include "ModelSource.h"
-#include "ModelRenderer.h" // For friend declaration.
+#include "ModelPose.h"
 
 namespace Donya
 {
@@ -119,6 +119,7 @@ namespace Donya
 		private:
 			std::string			fileDirectory;	// Use for making file path.
 			std::vector<Mesh>	meshes;
+			Pose				pose;
 		protected: // Prevent a user forgot to call the BuildMyself() when creation.
 			Model()								= default;
 		public:
@@ -130,21 +131,34 @@ namespace Donya
 		protected:
 			bool BuildMyself( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice );
 		private:
-			// These initialize method are built by "pSource".
-
 			bool InitMeshes( ID3D11Device *pDevice, const ModelSource &loadedSource );
 			bool CreateIndexBuffers( ID3D11Device *pDevice, const ModelSource &source );
 
 			bool InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDestination, const std::vector<ModelSource::Subset> &source );
 			bool InitSubset( ID3D11Device *pDevice, Model::Subset *pDestination, const ModelSource::Subset &source );
 			bool CreateMaterial( Model::Material *pDestination, ID3D11Device *pDevice );
+
+			bool InitPose( const ModelSource &loadedSource );
 		protected:
 			virtual bool CreateVertices( size_t meshCount ) = 0;
 			virtual bool CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source ) = 0;
 		public:
 			virtual void SetVertexBuffers( size_t meshIndex, ID3D11DeviceContext *pImmediateContext ) const = 0;
 		public:
-			const std::vector<Mesh> &GetMeshes() const
+			/// <summary>
+			/// Assign a skeletal if that has compatible with the skeletal of me. That result will return.
+			/// </summary>
+			bool UpdateSkeletal( const std::vector<Animation::Bone> &currentSkeletal );
+			/// <summary>
+			/// Assign a skeletal if that has compatible with the skeletal of me. That result will return.
+			/// </summary>
+			bool UpdateSkeletal( const Animation::KeyFrame &currentSkeletal );
+		public:
+			const Pose				&GetPose()		const
+			{
+				return pose;
+			}
+			const std::vector<Mesh>	&GetMeshes()	const
 			{
 				return meshes;
 			}

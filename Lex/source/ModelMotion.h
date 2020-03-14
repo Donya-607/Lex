@@ -37,57 +37,65 @@ namespace Donya
 		};
 
 		/// <summary>
-		/// Provides transform matrix of now focusing motion, that transforms: bone space -> current mesh space.		/// Provides transform matrix of now focusing motion that transforms: bone space -> current mesh space.
+		/// This class's role is calculation a motion frame.
 		/// </summary>
-		class FocusMotion
+		class Animator
 		{
-		public:
-			/// <summary>
-			/// Validate the motion has compatible to this class.
-			/// </summary>
-			static bool IsValidMotion( const Animation::Motion &motion );
-		public:
-			struct Node
-			{
-				Animation::Bone		bone;		// The source.
-				Donya::Vector4x4	local;		// Represents local transform only.
-				Donya::Vector4x4	global;		// Contain all parent's global transform. If the root bone, this matrix contains the local transform only.
-			};
 		private:
-			std::vector<Node>		skeletal;	// Provides the matrices of the current pose. That transforms space is bone -> mesh.
-			Animation::Motion		focus;
+			float	elapsedTime			= 0.0f;
+			float	FPS					= 1.0f / Animation::Motion::DEFAULT_SAMPLING_RATE;
+			bool	enableWrapAround	= true;
 		public:
 			/// <summary>
-			/// If the passed motion is invalid, this will be empty and then returns false.
+			/// Set zero to internal elapsed-timer.
 			/// </summary>
-			bool RegisterMotion( const Animation::Motion &targetMotion );
+			void ResetTimer();
+			/// <summary>
+			/// Update an internal elapsed-timer.
+			/// </summary>
+			void Update( float elapsedTime );
 		public:
-			Animation::Motion GetFocusingMotion() const;
-			const std::vector<Node> &GetCurrentSkeletal() const;
+			/// <summary>
+			/// Set some motion frame to internal elapsed-timer. That calculated in this way:"frame * ( 1.0f / FPS )".
+			/// </summary>
+			void AssignFrame( float frame );
+			/// <summary>
+			/// Calculate current motion frame by internal elapsed-timer. That calculated in this way:"internal-elapsed-timer / ( 1.0f / FPS )".
+			/// </summary>
+			float CalcCurrentFrame() const;
+			/// <summary>
+			/// Calculate current motion frame within the range [minFrame ~ maxFrame] by internal-timer.
+			/// </summary>
+			float CalcCurrentFrame( float minFrame, float maxFrame ) const;
+			/// <summary>
+			/// Calculate current motion frame within the range [0.0f ~ asFrameRange.size()] by internal-timer.
+			/// </summary>
+			float CalcCurrentFrame( const std::vector<Animation::KeyFrame> &asFrameRange ) const;
+		public:
+			Animation::KeyFrame CalcCurrentPose( const std::vector<Animation::KeyFrame> &motion ) const;
+			Animation::KeyFrame CalcCurrentPose( const Animation::Motion &motion ) const;
 		public:
 			/// <summary>
-			/// If the focusing motion is invalid, this does not update and returns false.
+			/// The calculate method returns frame will be wrap-around values within some range.
 			/// </summary>
-			bool UpdateCurrentSkeletal( float currentFrame );
+			void EnableWrapAround();
 			/// <summary>
-			/// If the focusing motion is invalid, this does not update and returns false.
+			/// The calculate method returns frame will be clamped within some range.
 			/// </summary>
-			bool UpdateCurrentSkeletal( const Animator &frameCalculator );
-		private:
+			void DisableWrapAround();
+		public:
 			/// <summary>
-			/// Re build the skeletal with focusing motion.
+			/// The method of frame calculation will use this FPS. The lower limit of FPS is 1.0f.
 			/// </summary>
-			void AdaptToFocus();
-
-			Animation::KeyFrame CalcCurrentPose( float currentFrame );
-
+			void SetFPS( float overwrite );
 			/// <summary>
-			/// This method expects the skeletal already adapted to the focus.
+			/// Overwrite an internal timer that updating at Update(). This does not represent a current frame.
 			/// </summary>
-			void UpdateSkeletal( const Animation::KeyFrame &assignFrame );
-
-			void CalcLocalMatrix();
-			void CalcGlobalMatrix();
+			void SetInternalElapsedTime( float overwrite );
+			/// <summary>
+			/// Returns an internal timer that updating at Update(). This does not represent a current frame.
+			/// </summary>
+			float GetInternalElapsedTime() const;
 		};
 	}
 }

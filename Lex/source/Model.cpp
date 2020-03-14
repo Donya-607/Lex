@@ -128,9 +128,17 @@ namespace Donya
 				pDevice = Donya::GetDevice();
 			}
 
-			fileDirectory = argFileDirectory;
+			fileDirectory	= argFileDirectory;
 
-			return InitMeshes( pDevice, source );
+			bool result		= true;
+			bool succeeded	= true;
+
+			result = InitMeshes( pDevice, source );
+			if ( !result ) { succeeded = false; }
+			result = InitPose( source );
+			if ( !result ) { succeeded = false; }
+
+			return succeeded;
 		}
 
 		bool Model::InitMeshes( ID3D11Device *pDevice, const ModelSource &source )
@@ -284,6 +292,29 @@ namespace Donya
 			}
 			return succeeded;
 		}
+
+		bool Model::InitPose( const ModelSource &source )
+		{
+			pose.AssignSkeletal( source.skeletal );
+			pose.UpdateTransformMatrices();
+
+			return true;
+		}
+
+		bool Model::UpdateSkeletal( const std::vector<Animation::Bone> &currentSkeletal )
+		{
+			if ( !pose.HasCompatibleWith( currentSkeletal ) ) { return false; }
+			// else
+
+			pose.AssignSkeletal( currentSkeletal );
+			pose.UpdateTransformMatrices();
+		}
+		bool Model::UpdateSkeletal( const Animation::KeyFrame &currentSkeletal )
+		{
+			return UpdateSkeletal( currentSkeletal.keyPose );
+		}
+
+
 
 		template<class StrategyVertex>
 		bool CreateVertexBuffersImpl( ID3D11Device *pDevice, std::vector<std::unique_ptr<StrategyVertex>> *ppVertices, const ModelSource &modelSource )

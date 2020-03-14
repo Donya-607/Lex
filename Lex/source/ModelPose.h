@@ -10,7 +10,7 @@ namespace Donya
 	namespace Model
 	{
 		/// <summary>
-		/// This class represents a skeletal, and this can update and provide a transform matrices of a skeletal.
+		/// This class represents a skeletal, and this can update and provide a transform matrices of a skeletal. That matrix transforms space is bone space -> current mesh space.
 		/// </summary>
 		class Pose
 		{
@@ -30,12 +30,12 @@ namespace Donya
 			/// The "compatible" means the argument is associate with internal skeletal.
 			/// e.g. the skeletal belong in the same motion, but another timing.
 			/// </summary>
-			bool HasCompatibleWith( const std::vector<Animation::Bone> &validation );
+			bool HasCompatibleWith( const std::vector<Animation::Bone> &validation ) const;
 			/// <summary>
 			/// The "compatible" means the argument is associate with internal skeletal.
 			/// e.g. the skeletal belong in the same motion, but another timing.
 			/// </summary>
-			bool HasCompatibleWith( const Animation::KeyFrame &validation );
+			bool HasCompatibleWith( const Animation::KeyFrame &validation ) const;
 		public:
 			/// <summary>
 			/// Assign the skeletal by the argument.

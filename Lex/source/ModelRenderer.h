@@ -331,15 +331,14 @@ namespace Donya
 			void Render
 			(
 				const SkinningModel	&model,
-				const FocusMotion	&activeMotion,
 				const RegisterDesc	&cbufferPerMesh,
 				const RegisterDesc	&cbufferPerSubset,
 				const RegisterDesc	&textureMapDiffuse,
 				ID3D11DeviceContext	*pImmediateContext = nullptr
 			);
 		private:
-			Constants::PerMesh::Bone MakeBoneConstants( const Model &model, size_t meshIndex, const FocusMotion &activeMotion ) const;
-			void UpdateCBPerMesh( const Model &model, size_t meshIndex, const FocusMotion &activeMotion, const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
+			Constants::PerMesh::Bone MakeBoneConstants( const Model &model, size_t meshIndex ) const;
+			void UpdateCBPerMesh( const Model &model, size_t meshIndex, const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
 			void ActivateCBPerMesh( const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
 			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext );
 		};
