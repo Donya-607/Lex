@@ -199,7 +199,7 @@ namespace Donya
 			/// </summary>
 			struct KeyFrame
 			{
-				float				seconds;
+				float				seconds;	// A begin seconds of some key-frame.
 				std::vector<Bone>	keyPose;	// A skeletal at some timing. That transform space is bone -> mesh.
 			private:
 				friend class cereal::access;

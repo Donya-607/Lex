@@ -107,8 +107,8 @@ namespace Donya
 				Donya::Vector4x4						coordinateConversion;
 				Donya::Vector4x4						globalTransform;
 
-				int										boneIndex;		// The index of this mesh's node.
-				std::vector<int>						boneIndices;	// The indices of associated nodes with this mesh and this mesh's node.
+				int										boneIndex;		// The index of this mesh's bone.
+				std::vector<int>						boneIndices;	// The indices of associated bone-offset matrix.
 				std::vector<Animation::Bone>			boneOffsets;	// Used as the bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
 				
 				// std::shared_ptr<Strategy::VertexBase>	pVertex;
