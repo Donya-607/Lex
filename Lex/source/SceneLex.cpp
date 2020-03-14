@@ -763,7 +763,7 @@ private:
 		Donya::Quaternion lookAt  = Donya::Quaternion::LookAt
 		(
 			Donya::Quaternion::Identity(),
-			( LOOK_POINT - DEFAULT_POS ).Normalized(),
+			( LOOK_POINT - DEFAULT_POS ).Unit(),
 			Donya::Quaternion::Freeze::Up
 		);
 		lookAt.RotateBy

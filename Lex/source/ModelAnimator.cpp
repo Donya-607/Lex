@@ -66,6 +66,55 @@ namespace Donya
 			return CalcCurrentFrame( 0.0f, scast<float>( frameCount ) );
 		}
 
+		Animation::KeyFrame Animator::CalcCurrentPose( const std::vector<Animation::KeyFrame> &motion ) const
+		{
+			if ( motion.empty()     ) { return Animation::KeyFrame{}; } // Returns empty.
+			if ( motion.size() == 1 ) { return motion.front(); }
+			// else
+
+			auto CalcWholeSeconds = []( const std::vector<Animation::KeyFrame> &motion )
+			{
+				// The "seconds" contain the begin seconds(not playing seconds).
+				return motion.back().seconds;
+				/*
+				float sum = 0.0f;
+				for ( const auto &it : motion )
+				{
+					sum += it.seconds;
+				}
+				return sum;
+				*/
+			};
+			const float wholeSeconds = CalcWholeSeconds( motion );
+
+			float currentSeconds = elapsedTime;
+			if ( wholeSeconds <= currentSeconds )
+			{
+				if ( !enableWrapAround ) { return motion.back(); }
+				// else
+
+				currentSeconds = fmodf( currentSeconds, wholeSeconds );
+			}
+
+			const size_t motionCount = motion.size();
+			for ( size_t i = 0; i < motionCount - 1; ++i )
+			{
+				const auto &keyFrameL = motion[i];
+				const auto &keyFrameR = motion[i + 1];
+				if ( currentSeconds < keyFrameL.seconds || keyFrameR.seconds <= currentSeconds ) { continue; }
+				// else
+
+				const float diffL = currentSeconds    - keyFrameL.seconds;
+				const float diffR = keyFrameR.seconds - keyFrameL.seconds;
+				const float percent = diffL / ( diffR + EPSILON );
+
+			}
+		}
+		Animation::KeyFrame Animator::CalcCurrentPose( const Animation::Motion &motion ) const
+		{
+			return CalcCurrentPose( motion.keyFrames );
+		}
+
 		void  Animator::EnableWrapAround()
 		{
 			enableWrapAround = true;

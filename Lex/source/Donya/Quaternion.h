@@ -134,7 +134,7 @@ namespace Donya
 		/// <summary>
 		/// Q /= |Q| (0 &lt; |Q|)
 		/// </summary>
-		Quaternion Normalized() const;
+		Quaternion Unit() const;
 
 		/// <summary>
 		/// Q* = s - v

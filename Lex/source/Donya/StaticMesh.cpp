@@ -763,7 +763,7 @@ namespace Donya
 		RayPickResult rpResult{};
 
 		const Donya::Vector3 rayVec  = rayEnd - rayStart;
-		const Donya::Vector3 nRayVec = rayVec.Normalized();
+		const Donya::Vector3 nRayVec = rayVec.Unit();
 
 		float nearestDistance = rayVec.Length();
 		Donya::Vector3 faceNormal{};			// Does not normalized.
@@ -821,7 +821,7 @@ namespace Donya
 			rpResult.materialIndex		= it.materialIndex;
 			rpResult.distanceToIP		= currentDistance;
 			rpResult.intersectionPoint	= intersection;
-			rpResult.normal				= faceNormal.Normalized();
+			rpResult.normal				= faceNormal.Unit();
 			rpResult.wasHit				= true;
 
 			if ( enoughOnlyPickFirst ) { return rpResult; }

@@ -20,7 +20,7 @@ namespace Donya
 
 		return *this;
 	}
-	Vector2 Vector2::Normalized() const
+	Vector2 Vector2::Unit() const
 	{
 		Vector2 normalized = *this;
 		normalized.Normalize();
@@ -37,6 +37,16 @@ namespace Donya
 	bool Vector2::IsZero() const
 	{
 		return ( ZeroEqual( LengthSq() ) ) ? true : false;
+	}
+	Vector2 Vector2::Rotate( float radian )
+	{
+		const float cos = cosf( radian );
+		const float sin = sinf( radian );
+		return Vector2
+		{
+			x * cos - y * sin,
+			x * sin + y * cos
+		};
 	}
 	bool operator == ( const Vector2 &L, const Vector2 &R )
 	{
@@ -60,7 +70,7 @@ namespace Donya
 
 		return *this;
 	}
-	Vector3 Vector3::Normalized() const
+	Vector3 Vector3::Unit() const
 	{
 		Vector3 normalized = *this;
 		normalized.Normalize();

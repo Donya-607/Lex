@@ -45,6 +45,9 @@ namespace Donya
 			/// </summary>
 			float CalcCurrentFrame( const std::vector<Animation::KeyFrame> &asFrameRange ) const;
 		public:
+			Animation::KeyFrame CalcCurrentPose( const std::vector<Animation::KeyFrame> &motion ) const;
+			Animation::KeyFrame CalcCurrentPose( const Animation::Motion &motion ) const;
+		public:
 			/// <summary>
 			/// The calculate method returns frame will be wrap-around values within some range.
 			/// </summary>

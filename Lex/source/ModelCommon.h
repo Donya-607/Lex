@@ -131,23 +131,13 @@ namespace Donya
 				Donya::Quaternion	rotation;
 				Donya::Vector3		translation;
 			public:
-				Donya::Vector4x4 ToWorldMatrix() const
-				{
-					Donya::Vector4x4 m{};
-					m._11 = scale.x;
-					m._22 = scale.y;
-					m._33 = scale.z;
-					m *= rotation.RequireRotationMatrix();
-					m._41 = translation.x;
-					m._42 = translation.y;
-					m._43 = translation.z;
-					return m;
-				}
+				Donya::Vector4x4 ToWorldMatrix() const;
 			public:
 				static Transform Identity()
 				{
 					return Transform{};
 				}
+				static Transform Interpolate( const Transform &lhs, const Transform &rhs, float percent );
 			private:
 				friend class cereal::access;
 				template<class Archive>
@@ -175,6 +165,11 @@ namespace Donya
 				int				parentIndex = -1;	// This will be -1 if myself has not parent.
 				Transform		transform;			// Local transform(bone -> mesh).
 				Transform		transformToParent;	// Transform to parent bone space. This will be identity if myself has not parent.
+			public:
+				/// <summary>
+				/// Interpolates the Transform members only. The other members will be "lhs".
+				/// </summary>
+				static Bone Interpolate( const Bone &lhs, const Bone &rhs, float percent );
 			private:
 				friend class cereal::access;
 				template<class Archive>
@@ -201,6 +196,11 @@ namespace Donya
 			{
 				float				seconds;	// A begin seconds of some key-frame.
 				std::vector<Bone>	keyPose;	// A skeletal at some timing. That transform space is bone -> mesh.
+			public:
+				/// <summary>
+				/// Requires the two key-pose counts are the same.
+				/// </summary>
+				static KeyFrame Interpolate( const KeyFrame &lhs, const KeyFrame &rhs, float percent );
 			private:
 				friend class cereal::access;
 				template<class Archive>

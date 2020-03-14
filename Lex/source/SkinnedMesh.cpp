@@ -113,7 +113,7 @@ namespace Donya
 				vertex.pos		= positions[i];
 
 				vertex.normal	= ( i < normalCount )
-				? ( positions[i] - Donya::Vector3::Zero() ).Normalized()	// Assign approximate normal.
+				? ( positions[i] - Donya::Vector3::Zero() ).Unit()	// Assign approximate normal.
 				: normals[i];
 
 				vertex.texCoord	= ( i < texCoordCount )
