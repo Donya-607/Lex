@@ -295,7 +295,7 @@ namespace Donya
 				/// </summary>
 				struct Common
 				{
-					Donya::Vector4x4 adjustMatrix; // Model space. This matrix contain a global-transform, and coordinate-conversion matrix.
+					Donya::Vector4x4 adjustMatrix; // This matrix transforms the space is global of a model -> local of the game. for example, that contain coordinate conversion matrix.
 				};
 
 				/// <summary>

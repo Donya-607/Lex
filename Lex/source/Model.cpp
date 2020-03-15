@@ -152,7 +152,6 @@ namespace Donya
 				{
 					pDest->name					= source.name;
 					pDest->coordinateConversion	= source.coordinateConversion;
-					pDest->globalTransform		= source.globalTransform;
 					pDest->boneIndex			= source.boneIndex;
 					pDest->boneIndices			= source.boneIndices;
 					pDest->boneOffsets			= source.boneOffsets;
@@ -308,6 +307,8 @@ namespace Donya
 
 			pose.AssignSkeletal( currentSkeletal );
 			pose.UpdateTransformMatrices();
+
+			return true;
 		}
 		bool Model::UpdateSkeletal( const Animation::KeyFrame &currentSkeletal )
 		{

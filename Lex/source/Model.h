@@ -61,6 +61,9 @@ namespace Donya
 			};
 		}
 
+		class StaticModel;
+		class SkinningModel;
+
 		/// <summary>
 		/// Build, and store a data of "ModelSource" to usable.
 		/// </summary>
@@ -102,19 +105,19 @@ namespace Donya
 			/// </summary>
 			struct Mesh
 			{
-				std::string								name;
+				std::string						name;
 
-				Donya::Vector4x4						coordinateConversion;
-				Donya::Vector4x4						globalTransform;
+				Donya::Vector4x4				coordinateConversion;
+				// Donya::Vector4x4				globalTransform;
 
-				int										boneIndex;		// The index of this mesh's bone.
-				std::vector<int>						boneIndices;	// The indices of associated bone-offset matrix.
-				std::vector<Animation::Bone>			boneOffsets;	// Used as the bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
+				int								boneIndex;		// The index of this mesh's bone.
+				std::vector<int>				boneIndices;	// The indices of associated bone-offset matrix.
+				std::vector<Animation::Bone>	boneOffsets;	// Used as the bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
 				
 				// std::shared_ptr<Strategy::VertexBase>	pVertex;
-				std::vector<Subset>						subsets;
+				std::vector<Subset>				subsets;
 
-				ComPtr<ID3D11Buffer>					indexBuffer;
+				ComPtr<ID3D11Buffer>			indexBuffer;
 			};
 		private:
 			std::string			fileDirectory;	// Use for making file path.

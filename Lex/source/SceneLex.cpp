@@ -30,6 +30,7 @@
 #include "ModelCommon.h"
 // #include "ModelMaker.h"
 #include "ModelMotion.h"
+#include "ModelRenderer.h"
 
 #pragma comment( lib, "comdlg32.lib" ) // For common-dialog.
 
@@ -56,7 +57,6 @@ public:
 		std::shared_ptr<Donya::Model::StaticRenderer>	pRendererStatic{ nullptr };
 		std::shared_ptr<Donya::Model::SkinningRenderer>	pRendererSkinning{ nullptr };
 		Donya::Model::MotionHolder	mHolder{};
-		Donya::Model::FocusMotion	mActiveMotion{};
 		Donya::Model::Animator		mAnimator{};
 		Donya::MotionChunk	motions{};
 		Donya::Animator		animator{};
@@ -95,15 +95,6 @@ public:
 			for ( const auto &motion : loader.GetModelSource().motions )
 			{
 				mHolder.AppendMotion( motion );
-			}
-			// Focus some motion.
-			{
-				const auto motionCount = mHolder.GetMotionCount();
-				const auto motion = mHolder.GetMotion( 0 );
-				if ( Donya::Model::FocusMotion::IsValidMotion( motion ) )
-				{
-					mActiveMotion.RegisterMotion( motion );
-				}
 			}
 
 			result = Donya::MotionChunk::Create( loader, &motions );
@@ -457,7 +448,6 @@ private:
 				data.pRendererSkinning->Render
 				(
 					*data.pModelSkinning,
-					data.mActiveMotion,
 					descPerMesh,
 					descPerSubset,
 					descDiffuse
@@ -953,7 +943,7 @@ private:
 			it.mAnimator.Update( elapsedTime * it.motionAccelPercent );
 			it.currentElapsedTime = it.animator.GetCurrentElapsedTime();
 
-			it.mActiveMotion.UpdateCurrentSkeletal( it.mAnimator );
+			it.pModelSkinning->UpdateSkeletal( it.mAnimator.CalcCurrentPose( it.mHolder.GetMotion( 0 ) ) );
 		}
 	}
 

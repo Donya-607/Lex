@@ -262,8 +262,6 @@ namespace Donya
 			void SetVertexBuffers( const Donya::Model::Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
 			void SetIndexBuffer( const Donya::Model::Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
 
-			Constants::PerMesh::Common MakeCommonConstantsPerMesh( const Model &model, size_t meshIndex ) const;
-
 			void DrawEachSubsets( const Donya::Model::Model &model, size_t meshIndex, const RegisterDesc &subsetSetting, const RegisterDesc &diffuseMapSetting, ID3D11DeviceContext *pImmediateContext );
 		private:
 			void UpdateCBPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
@@ -306,6 +304,7 @@ namespace Donya
 				ID3D11DeviceContext	*pImmediateContext = nullptr
 			);
 		private:
+			Constants::PerMesh::Common MakeCommonConstantsPerMesh( const Model &model, size_t meshIndex ) const;
 			void UpdateCBPerMesh( const Model &model, size_t meshIndex, const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
 			void ActivateCBPerMesh( const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
 			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext );
@@ -337,7 +336,8 @@ namespace Donya
 				ID3D11DeviceContext	*pImmediateContext = nullptr
 			);
 		private:
-			Constants::PerMesh::Bone MakeBoneConstants( const Model &model, size_t meshIndex ) const;
+			Constants::PerMesh::Common MakeCommonConstantsPerMesh( const Model &model, size_t meshIndex ) const;
+			Constants::PerMesh::Bone   MakeBoneConstants( const Model &model, size_t meshIndex ) const;
 			void UpdateCBPerMesh( const Model &model, size_t meshIndex, const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
 			void ActivateCBPerMesh( const RegisterDesc &meshSetting, ID3D11DeviceContext *pImmediateContext );
 			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext );

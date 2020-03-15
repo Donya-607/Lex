@@ -797,17 +797,6 @@ namespace Donya
 			pImmediateContext->IASetIndexBuffer( mesh.indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
 		}
 
-		Constants::PerMesh::Common Renderer::MakeCommonConstantsPerMesh( const Model &model, size_t meshIndex ) const
-		{
-			const auto &meshes	= model.GetMeshes();
-			const auto &mesh	= meshes[meshIndex];
-
-			Constants::PerMesh::Common constants{};
-			constants.adjustMatrix = mesh.globalTransform * mesh.coordinateConversion;
-
-			return constants;
-		}
-		
 		void Renderer::DrawEachSubsets( const Model &model, size_t meshIndex, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
 		{
 			const auto &meshes	= model.GetMeshes();
@@ -885,6 +874,24 @@ namespace Donya
 		}
 
 
+		namespace
+		{
+			Donya::Vector4x4 ExtractCoordinateConversion( const Model &model, size_t meshIndex )
+			{
+				const auto &meshes	= model.GetMeshes();
+				const auto &mesh	= meshes[meshIndex];
+				return mesh.coordinateConversion;
+			}
+			Donya::Vector4x4 ExtractInitialPose( const Model &model, size_t meshIndex )
+			{
+				const auto &meshes	= model.GetMeshes();
+				const auto &mesh	= meshes[meshIndex];
+				const auto &pose	= model.GetPose().GetCurrentPose();
+				return pose[mesh.boneIndex].global;
+			}
+		}
+
+
 		std::unique_ptr<StaticRenderer> StaticRenderer::Create( ID3D11Device *pDevice )
 		{
 			if ( !pDevice )
@@ -936,11 +943,17 @@ namespace Donya
 				DeactivateCBPerMesh( pImmediateContext );
 			}
 		}
+		Constants::PerMesh::Common StaticRenderer::MakeCommonConstantsPerMesh( const Model &model, size_t meshIndex ) const
+		{
+			Constants::PerMesh::Common constants;
+			constants.adjustMatrix =
+				ExtractInitialPose( model, meshIndex ) *
+				ExtractCoordinateConversion( model, meshIndex );
+			return constants;
+		}
 		void StaticRenderer::UpdateCBPerMesh( const Model &model, size_t meshIndex, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
-			Constants::PerMesh::Common constantsCommon = MakeCommonConstantsPerMesh( model, meshIndex );
-			
-			CBPerMesh.Update( constantsCommon );
+			CBPerMesh.Update( MakeCommonConstantsPerMesh( model, meshIndex ) );
 		}
 		void StaticRenderer::ActivateCBPerMesh( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
@@ -979,7 +992,7 @@ namespace Donya
 				throw std::runtime_error{ errMsg };
 			}
 		}
-		void SkinningRenderer::Render( const SkinningModel &model, const FocusMotion &activeMotion, const RegisterDesc &descMesh, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
+		void SkinningRenderer::Render( const SkinningModel &model, const RegisterDesc &descMesh, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
 		{
 			if ( !pImmediateContext )
 			{
@@ -991,7 +1004,7 @@ namespace Donya
 			const size_t meshCount = model.GetMeshes().size();
 			for ( size_t i = 0; i < meshCount; ++i )
 			{
-				UpdateCBPerMesh( model, i, activeMotion, descMesh, pImmediateContext );
+				UpdateCBPerMesh( model, i, descMesh, pImmediateContext );
 				ActivateCBPerMesh( descMesh, pImmediateContext );
 
 				SetVertexBuffers( model, i, pImmediateContext );
@@ -1002,12 +1015,28 @@ namespace Donya
 				DeactivateCBPerMesh( pImmediateContext );
 			}
 		}
-		Constants::PerMesh::Bone SkinningRenderer::MakeBoneConstants( const Model &model, size_t meshIndex, const FocusMotion &activeMotion ) const
+		Constants::PerMesh::Common SkinningRenderer::MakeCommonConstantsPerMesh( const Model &model, size_t meshIndex ) const
+		{
+			Constants::PerMesh::Common constants;
+			constants.adjustMatrix =
+				// This matrix is contained into a bone-transform matrix.
+				// ExtractInitialPose( model, meshIndex ) *
+				ExtractCoordinateConversion( model, meshIndex );
+			return constants;
+		}
+		Constants::PerMesh::Bone   SkinningRenderer::MakeBoneConstants( const Model &model, size_t meshIndex ) const
 		{
 			const auto &meshes		= model.GetMeshes();
 			const auto &mesh		= meshes[meshIndex];
-			const auto &currentPose	= activeMotion.GetCurrentSkeletal();
+			const auto &currentPose	= model.GetPose().GetCurrentPose();
 			Constants::PerMesh::Bone constants{};
+
+			if ( mesh.boneIndices.empty() )
+			{
+				constants.boneTransforms[0] = currentPose[mesh.boneIndex].global;
+				return constants;
+			}
+			// else
 
 			Donya::Vector4x4 meshToBone{}; // So-called "Bone offset matrix".
 			Donya::Vector4x4 boneToMesh{}; // Transform to mesh space of current pose.
@@ -1023,11 +1052,11 @@ namespace Donya
 
 			return constants;
 		}
-		void SkinningRenderer::UpdateCBPerMesh( const Model &model, size_t meshIndex, const FocusMotion &activeMotion, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
+		void SkinningRenderer::UpdateCBPerMesh( const Model &model, size_t meshIndex, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
 			Constants::PerMesh::Common	constantsCommon	= MakeCommonConstantsPerMesh( model, meshIndex );
-			Constants::PerMesh::Bone	constantsBone	= MakeBoneConstants( model, meshIndex, activeMotion );
-
+			Constants::PerMesh::Bone	constantsBone	= MakeBoneConstants( model, meshIndex );
+			
 			CBPerMesh.Update( constantsCommon, constantsBone );
 		}
 		void SkinningRenderer::ActivateCBPerMesh( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
