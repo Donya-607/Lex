@@ -507,7 +507,7 @@ namespace Donya
 		// Sampling criteria is 60fps.
 		FBX::FbxTime samplingStep;
 		samplingStep.SetTime( 0, 0, 1, 0, 0, timeMode );
-		samplingStep = scast<FBX::FbxLongLong>( samplingStep.Get() * samplingTime ); // You do not cast rhs to double or float. If you cast that, the samplingStep will be increased from the non-cast version.
+		samplingStep = scast<FBX::FbxLongLong>( samplingStep.Get() * samplingTime ); // Please ignore the C26451 warning. If you cast to something, the samplingStep will be increased from the non-cast version.
 
 		for ( int i = 0; i < animationStackCount; ++i )
 		{
