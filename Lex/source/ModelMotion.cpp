@@ -156,7 +156,8 @@ namespace Donya
 
 				const float diffL = currentSeconds    - keyFrameL.seconds;
 				const float diffR = keyFrameR.seconds - keyFrameL.seconds;
-				const float percent = diffL / ( diffR + EPSILON/* Prevent zero-divide */ );
+				// const float percent = diffL / ( diffR + EPSILON/* Prevent zero-divide */ );
+				const float percent = ( currentSeconds - keyFrameL.seconds / keyFrameR.seconds - keyFrameL.seconds );
 
 				rv = Animation::KeyFrame::Interpolate( keyFrameL, keyFrameR, percent );
 

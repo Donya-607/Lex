@@ -712,6 +712,13 @@ namespace Donya
 			const int controlPointCount = pFBXMesh->GetControlPointsCount();
 			boneInfluences.resize( scast<size_t>( controlPointCount ) );
 
+			const FBX::FbxAMatrix geometricTransform
+			{
+				pNode->GetGeometricTranslation	( FBX::FbxNode::eSourcePivot ),
+				pNode->GetGeometricRotation		( FBX::FbxNode::eSourcePivot ),
+				pNode->GetGeometricScaling		( FBX::FbxNode::eSourcePivot )
+			};
+
 			auto FetchInfluence		= [&boneInfluences]( const FBX::FbxCluster *pCluster, int clusterIndex )
 			{
 				const int		ctrlPointIndicesCount	= pCluster->GetControlPointIndicesCount();
@@ -729,13 +736,13 @@ namespace Donya
 					data.Append( weight, index );
 				}
 			};
-			auto FetchBoneOffset	= []( const FBX::FbxCluster *pCluster, std::vector<Model::Animation::Bone> *pBoneOffsets )
+			auto FetchBoneOffset	= [&geometricTransform]( const FBX::FbxCluster *pCluster, std::vector<Model::Animation::Bone> *pBoneOffsets )
 			{
 				const FBX::FbxAMatrix  boneOffset = FetchBoneOffsetMatrix( pCluster );
 				
 				Model::Animation::Bone bone{};
 				bone.name				= pCluster->GetLink()->GetName();
-				bone.transform			= SeparateSRT( boneOffset );
+				bone.transform			= SeparateSRT( boneOffset * geometricTransform );
 				bone.transformToParent	= Model::Animation::Transform::Identity(); // The bone offset matrix does not use this.
 				pBoneOffsets->emplace_back( std::move( bone ) );
 			};
