@@ -68,8 +68,7 @@ public:
 		bool	enableMotionInterpolation{ false };
 		bool	dontWannaDraw{ false };
 
-		bool	drawSkinningModel{ true };
-		bool	useSkinningRenderer{ true };
+		bool	useSkinningVersion{ true };
 	public:
 		bool CreateByLoader()
 		{
@@ -411,7 +410,7 @@ private:
 			Donya::Model::Renderer::Default::ActivateSampler();
 		}
 		// Activate shaders.
-		if ( data.useSkinningRenderer && data.drawSkinningModel )
+		if ( data.useSkinningVersion )
 		{
 			Donya::Model::Renderer::Default::ActivateVertexShaderSkinning();
 			Donya::Model::Renderer::Default::ActivatePixelShaderSkinning();
@@ -441,57 +440,31 @@ private:
 		const auto descPerMesh		= Donya::Model::Renderer::Default::DescCBufferPerMesh();
 		const auto descPerSubset	= Donya::Model::Renderer::Default::DescCBufferPerSubset();
 		const auto descDiffuse		= Donya::Model::Renderer::Default::DescDiffuseMap();
-		if ( data.useSkinningRenderer )
+		if ( data.useSkinningVersion )
 		{
-			if ( data.drawSkinningModel )
-			{
-				data.pRendererSkinning->Render
-				(
-					*data.pModelSkinning,
-					descPerMesh,
-					descPerSubset,
-					descDiffuse
-				);
-			}
-			else
-			{
-				data.pRendererSkinning->StaticRenderer::Render
-				(	
-					*data.pModelStatic,
-					descPerMesh,
-					descPerSubset,
-					descDiffuse
-				);
-			}
+			data.pRendererSkinning->Render
+			(
+				*data.pModelSkinning,
+				descPerMesh,
+				descPerSubset,
+				descDiffuse
+			);
 		}
 		else
 		{
-			if ( data.drawSkinningModel )
-			{
-				data.pRendererStatic->Render
-				(
-					*data.pModelSkinning,
-					descPerMesh,
-					descPerSubset,
-					descDiffuse
-				);
-			}
-			else
-			{
-				data.pRendererStatic->Render
-				(
-					*data.pModelStatic,
-					descPerMesh,
-					descPerSubset,
-					descDiffuse
-				);
-			}
+			data.pRendererStatic->Render
+			(
+				*data.pModelStatic,
+				descPerMesh,
+				descPerSubset,
+				descDiffuse
+			);
 		}
 
 		//mcbPerModel.Deactivate();
 
 		// Deactivate shaders.
-		if ( data.useSkinningRenderer && data.drawSkinningModel )
+		if ( data.useSkinningVersion )
 		{
 			Donya::Model::Renderer::Default::DeactivateVertexShaderSkinning();
 			Donya::Model::Renderer::Default::DeactivatePixelShaderSkinning();
@@ -1151,8 +1124,7 @@ private:
 							ImGui::Checkbox( u8"隠す", &it->dontWannaDraw );
 							ImGui::Text( "" );
 
-							ImGui::Checkbox( u8"スキンモデルを使用する",		&it->drawSkinningModel );
-							ImGui::Checkbox( u8"スキンレンダラを使用する",		&it->useSkinningRenderer );
+							ImGui::Checkbox( u8"スキン版を使用する", &it->useSkinningVersion );
 							ImGui::Text( "" );
 
 							ImGui::DragFloat3( u8"スケール",			&it->scale.x,		0.1f		);

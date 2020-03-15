@@ -788,7 +788,9 @@ namespace Donya
 
 		void Renderer::SetVertexBuffers( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext )
 		{
-			model.SetVertexBuffers( meshIndex, pImmediateContext );
+			const auto &meshes	= model.GetMeshes();
+			const auto &mesh	= meshes[meshIndex];
+			mesh.pVertex->SetVertexBuffers( pImmediateContext );
 		}
 		void Renderer::SetIndexBuffer( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext )
 		{

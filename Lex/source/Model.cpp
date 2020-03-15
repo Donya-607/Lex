@@ -166,7 +166,7 @@ namespace Donya
 			bool result		= true;
 			bool succeeded	= true;
 
-			result = CreateVertices( meshCount );
+			result = CreateVertices( &meshes );
 			if ( !result ) { succeeded = false; }
 			result = CreateVertexBuffers( pDevice, source );
 			if ( !result ) { succeeded = false; }
@@ -180,6 +180,33 @@ namespace Donya
 			}
 
 			return succeeded;
+		}
+		bool Model::CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &modelSource )
+		{
+			auto Assert = []( const std::string &kindName, size_t vertexIndex )
+			{
+				const std::string indexStr = "[" + std::to_string( vertexIndex ) + "]";
+				AssertCreation( "buffer", "Vertex::" + kindName + indexStr );
+			};
+
+			HRESULT hr = S_OK;
+			size_t  meshCount = meshes.size();
+			for ( size_t i = 0; i < meshCount; ++i )
+			{
+				const auto &source = modelSource.meshes[i];
+				auto &pVertex = meshes[i].pVertex;
+
+				hr = pVertex->CreateVertexBufferPos( pDevice, source.positions );
+				if ( FAILED( hr ) ) { Assert( "Pos", i ); return false; }
+				// else
+				hr = pVertex->CreateVertexBufferTex( pDevice, source.texCoords );
+				if ( FAILED( hr ) ) { Assert( "Tex", i ); return false; }
+				// else
+				hr = pVertex->CreateVertexBufferBone( pDevice, source.boneInfluences );
+				if ( FAILED( hr ) ) { Assert( "Bone", i ); return false; }
+			}
+
+			return true;
 		}
 		bool Model::CreateIndexBuffers( ID3D11Device *pDevice, const ModelSource &source )
 		{
@@ -316,106 +343,50 @@ namespace Donya
 		}
 
 
-
-		template<class StrategyVertex>
-		bool CreateVertexBuffersImpl( ID3D11Device *pDevice, std::vector<std::unique_ptr<StrategyVertex>> *ppVertices, const ModelSource &modelSource )
+		namespace
 		{
-			auto Assert = []( const std::string &kindName, size_t vertexIndex )
+			template<class StrategyVertex>
+			void CreateVerticesImpl( std::vector<Model::Mesh> *pDest )
 			{
-				const std::string indexStr = "[" + std::to_string( vertexIndex ) + "]";
-				AssertCreation( "buffer", "Vertex::" + kindName + indexStr );
-			};
-
-			HRESULT hr			= S_OK;
-			size_t  vertexCount	= ppVertices->size();
-			for (   size_t i = 0; i < vertexCount; ++i )
-			{
-				const auto &source = modelSource.meshes[i];
-				auto &pVertex = ( *ppVertices )[i];
-
-				hr = pVertex->CreateVertexBufferPos( pDevice, source.positions );
-				if ( FAILED( hr ) ) { Assert( "Pos", i ); return false; }
-				// else
-				hr = pVertex->CreateVertexBufferTex( pDevice, source.texCoords );
-				if ( FAILED( hr ) ) { Assert( "Tex", i ); return false; }
-				// else
-				hr = pVertex->CreateVertexBufferBone( pDevice, source.boneInfluences );
-				if ( FAILED( hr ) ) { Assert( "Bone", i ); return false; }
+				for ( auto &pIt : *pDest )
+				{
+					pIt.pVertex = std::make_unique<StrategyVertex>();
+				}
 			}
-
-			return true;
 		}
 
 
 		std::unique_ptr<StaticModel> StaticModel::Create( const ModelSource &source, const std::string &fileDirectory, ID3D11Device *pDevice )
 		{
 			class MakeUniqueEnabler : public StaticModel {};
-			MakeUniqueEnabler instance{};
+			MakeUniqueEnabler instance;
+
 			bool  result = instance.BuildMyself( source, fileDirectory, pDevice );
 			if ( !result ) { return nullptr; }
 			// else
 			return std::move( std::make_unique<MakeUniqueEnabler>( std::move( instance ) ) );
 		}
-
-		StaticModel::StaticModel() : Model(), pVertices()
-		{}
-		bool StaticModel::CreateVertices( size_t meshCount )
+		bool StaticModel::CreateVertices( std::vector<Mesh> *pDest )
 		{
-			pVertices.resize( meshCount );
-
-			for ( auto &pIt : pVertices )
-			{
-				pIt = std::make_unique<Strategy::StaticVertex>();
-			}
-
+			CreateVerticesImpl<Strategy::StaticVertex>( pDest );
 			return true;
 		}
-		bool StaticModel::CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source )
-		{
-			return CreateVertexBuffersImpl<Strategy::StaticVertex>( pDevice, &pVertices, source );
-		}
-		void StaticModel::SetVertexBuffers( size_t meshIndex, ID3D11DeviceContext *pImmediateContext ) const
-		{
-			_ASSERT_EXPR( meshIndex < pVertices.size(), L"Error : Passed index out of range!" );
-
-			// The "StaticVertex::" modifier to choose the Static version even if myself is SkinningModel.
-			// Because I want the model classes to support the Static version even if using Skinning version.
-			pVertices[meshIndex]->StaticVertex::SetVertexBuffers( pImmediateContext );
-		}
-
+		
 
 		std::unique_ptr<SkinningModel> SkinningModel::Create( const ModelSource &source, const std::string &fileDirectory, ID3D11Device *pDevice )
 		{
 			class MakeUniqueEnabler : public SkinningModel {};
-			MakeUniqueEnabler instance{};
+			MakeUniqueEnabler instance;
+
 			bool  result = instance.BuildMyself( source, fileDirectory, pDevice );
 			if ( !result ) { return nullptr; }
 			// else
 			return std::move( std::make_unique<MakeUniqueEnabler>( std::move( instance ) ) );
 		}
-
-		SkinningModel::SkinningModel() : StaticModel(), pVertices()
-		{}
-		bool SkinningModel::CreateVertices( size_t meshCount )
+		bool SkinningModel::CreateVertices( std::vector<Mesh> *pDest )
 		{
-			pVertices.resize( meshCount );
-
-			for ( auto &pIt : pVertices )
-			{
-				pIt = std::make_unique<Strategy::SkinningVertex>();
-			}
-
+			CreateVerticesImpl<Strategy::SkinningVertex>( pDest );
 			return true;
-		}
-		bool SkinningModel::CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source )
-		{
-			return CreateVertexBuffersImpl<Strategy::SkinningVertex>( pDevice, &pVertices, source );
-		}
-		void SkinningModel::SetVertexBuffers( size_t meshIndex, ID3D11DeviceContext *pImmediateContext ) const
-		{
-			_ASSERT_EXPR( meshIndex < pVertices.size(), L"Error : Passed index out of range!" );
-
-			pVertices[meshIndex]->SkinningVertex::SetVertexBuffers( pImmediateContext );
 		}
 	}
 }

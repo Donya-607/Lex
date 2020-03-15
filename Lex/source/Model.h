@@ -97,27 +97,21 @@ namespace Donya
 				Material		diffuse;
 				Material		specular;
 			};
-			/// <summary>
-			/// A vertex information is not contain here.<para></para>
-			/// Because I want to support what like this:<para></para>
-			/// Pattern A, pVertex->Static::SetVertexBuffers(...);<para></para>
-			/// Pattern B, pVertex->Skinning::SetVertexBuffers(...);
-			/// </summary>
 			struct Mesh
 			{
-				std::string						name;
+				std::string								name;
 
-				Donya::Vector4x4				coordinateConversion;
-				// Donya::Vector4x4				globalTransform;
+				Donya::Vector4x4						coordinateConversion;
+				// Donya::Vector4x4						globalTransform;
 
-				int								boneIndex;		// The index of this mesh's bone.
-				std::vector<int>				boneIndices;	// The indices of associated bone-offset matrix.
-				std::vector<Animation::Bone>	boneOffsets;	// Used as the bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
+				int										boneIndex;		// The index of this mesh's bone.
+				std::vector<int>						boneIndices;	// The indices of associated bone-offset matrix.
+				std::vector<Animation::Bone>			boneOffsets;	// Used as the bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
 				
-				// std::shared_ptr<Strategy::VertexBase>	pVertex;
-				std::vector<Subset>				subsets;
+				std::shared_ptr<Strategy::VertexBase>	pVertex;
+				std::vector<Subset>						subsets;
 
-				ComPtr<ID3D11Buffer>			indexBuffer;
+				ComPtr<ID3D11Buffer>					indexBuffer;
 			};
 		private:
 			std::string			fileDirectory;	// Use for making file path.
@@ -135,6 +129,7 @@ namespace Donya
 			bool BuildMyself( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice );
 		private:
 			bool InitMeshes( ID3D11Device *pDevice, const ModelSource &loadedSource );
+			bool CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source );
 			bool CreateIndexBuffers( ID3D11Device *pDevice, const ModelSource &source );
 
 			bool InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDestination, const std::vector<ModelSource::Subset> &source );
@@ -143,10 +138,7 @@ namespace Donya
 
 			bool InitPose( const ModelSource &loadedSource );
 		protected:
-			virtual bool CreateVertices( size_t meshCount ) = 0;
-			virtual bool CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source ) = 0;
-		public:
-			virtual void SetVertexBuffers( size_t meshIndex, ID3D11DeviceContext *pImmediateContext ) const = 0;
+			virtual bool CreateVertices( std::vector<Mesh> *pDest ) = 0;
 		public:
 			/// <summary>
 			/// Assign a skeletal if that has compatible with the skeletal of me. That result will return.
@@ -175,23 +167,10 @@ namespace Donya
 			/// </summary>
 			static std::unique_ptr<StaticModel> Create( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
 		private:
-			// Represent an array that the vertex of a Model's mesh.
-			// This array's index is linking to the index of Model's mesh. Also, these sizes are the same.
-			std::vector<std::unique_ptr<Strategy::StaticVertex>> pVertices;
-		protected:
-			StaticModel();
-		public:
-			StaticModel( StaticModel && )				= default;
-			StaticModel  &operator = ( StaticModel && )	= default;
-			virtual ~StaticModel() = default;
-		private:
-			bool CreateVertices( size_t meshCount ) override;
-			bool CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source ) override;
-		public:
-			void SetVertexBuffers( size_t meshIndex, ID3D11DeviceContext *pImmediateContext ) const override;
+			bool CreateVertices( std::vector<Mesh> *pDest ) override;
 		};
 
-		class SkinningModel : public StaticModel
+		class SkinningModel : public Model
 		{
 		public:
 			/// <summary>
@@ -199,20 +178,7 @@ namespace Donya
 			/// </summary>
 			static std::unique_ptr<SkinningModel> Create( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
 		private:
-			// Represent an array that the vertex of a Model's mesh.
-			// This array's index is linking to the index of Model's mesh. Also, these sizes are the same.
-			std::vector<std::unique_ptr<Strategy::SkinningVertex>> pVertices;
-		protected:
-			SkinningModel();
-		public:
-			SkinningModel( SkinningModel && )				= default;
-			SkinningModel  &operator = ( SkinningModel && )	= default;
-			virtual ~SkinningModel() = default;
-		private:
-			bool CreateVertices( size_t meshCount ) override;
-			bool CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source ) override;
-		public:
-			void SetVertexBuffers( size_t meshIndex, ID3D11DeviceContext *pImmediateContext ) const override;
+			bool CreateVertices( std::vector<Mesh> *pDest ) override;
 		};
 	}
 }
