@@ -5,6 +5,7 @@
 
 #undef max
 #undef min
+#include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
 
 #include "Donya/Quaternion.h"
@@ -31,13 +32,15 @@ namespace Donya
 				template<class Archive>
 				void serialize( Archive &archive, std::uint32_t version )
 				{
-					if ( version == 0 )
+					archive
+					(
+						CEREAL_NVP(	color		),
+						CEREAL_NVP(	textureName	)
+					);
+
+					if ( 1 <= version )
 					{
-						archive
-						(
-							CEREAL_NVP(	color		),
-							CEREAL_NVP(	textureName	)
-						);
+						// archive( CEREAL_NVP( x ) );
 					}
 				}
 			};
@@ -57,19 +60,21 @@ namespace Donya
 				template<class Archive>
 				void serialize( Archive &archive, std::uint32_t version )
 				{
-					if ( version == 0 )
+					archive
+					(
+						CEREAL_NVP( name		),
+						CEREAL_NVP(	indexCount	),
+						CEREAL_NVP(	indexStart	),
+						CEREAL_NVP( ambient		),
+						CEREAL_NVP( bump		),
+						CEREAL_NVP( diffuse		),
+						CEREAL_NVP( specular	),
+						CEREAL_NVP( emissive	)
+					);
+
+					if ( 1 <= version )
 					{
-						archive
-						(
-							CEREAL_NVP( name		).
-							CEREAL_NVP(	indexCount	),
-							CEREAL_NVP(	indexStart	),
-							CEREAL_NVP( ambient		),
-							CEREAL_NVP( bump		),
-							CEREAL_NVP( diffuse		),
-							CEREAL_NVP( specular	),
-							CEREAL_NVP( emissive	)
-						);
+						// archive( CEREAL_NVP( x ) );
 					}
 				}
 			};
@@ -98,22 +103,24 @@ namespace Donya
 				template<class Archive>
 				void serialize( Archive &archive, std::uint32_t version )
 				{
-					if ( version == 0 )
+					archive
+					(
+						CEREAL_NVP(	name			),
+						CEREAL_NVP(	coordinateConversion	),
+						CEREAL_NVP(	globalTransform			),
+						CEREAL_NVP(	boneIndex		),
+						CEREAL_NVP(	boneIndices		),
+						CEREAL_NVP(	boneOffsets		),
+						CEREAL_NVP(	positions		),
+						CEREAL_NVP(	texCoords		),
+						CEREAL_NVP(	boneInfluences	),
+						CEREAL_NVP(	indices			),
+						CEREAL_NVP(	subsets			)
+					);
+					
+					if ( 1 <= version )
 					{
-						archive
-						(
-							CEREAL_NVP(	name			),
-							CEREAL_NVP(	coordinateConversion	),
-							CEREAL_NVP(	globalTransform			),
-							CEREAL_NVP(	boneIndex		),
-							CEREAL_NVP(	boneIndices		),
-							CEREAL_NVP(	boneOffsets		),
-							CEREAL_NVP(	positions		),
-							CEREAL_NVP(	texCoords		),
-							CEREAL_NVP(	boneInfluences	),
-							CEREAL_NVP(	indices			),
-							CEREAL_NVP(	subsets			)
-						);
+						// archive( CEREAL_NVP( x ) );
 					}
 				}
 			};
@@ -126,14 +133,16 @@ namespace Donya
 			template<class Archive>
 			void serialize( Archive &archive, std::uint32_t version )
 			{
-				if ( version == 0 )
+				archive
+				(
+					CEREAL_NVP(	meshes		),
+					CEREAL_NVP(	skeletal	),
+					CEREAL_NVP(	motions		)
+				);
+				
+				if ( 1 <= version )
 				{
-					archive
-					(
-						CEREAL_NVP(	meshes		),
-						CEREAL_NVP(	skeletal	),
-						CEREAL_NVP(	motions		)
-					);
+					// archive( CEREAL_NVP( x ) );
 				}
 			}
 		};

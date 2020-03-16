@@ -319,6 +319,10 @@ namespace Donya
 			}
 			if ( 3 <= version )
 			{
+				archive( CEREAL_NVP( source ) );
+			}
+			if ( 4 <= version )
+			{
 				// archive( CEREAL_NVP( x ) );
 			}
 		}
@@ -385,7 +389,7 @@ namespace Donya
 
 }
 
-CEREAL_CLASS_VERSION( Donya::Loader,				2 )
+CEREAL_CLASS_VERSION( Donya::Loader,				3 )
 CEREAL_CLASS_VERSION( Donya::Loader::Material,		0 )
 CEREAL_CLASS_VERSION( Donya::Loader::Subset,		0 )
 CEREAL_CLASS_VERSION( Donya::Loader::Bone,			0 )
