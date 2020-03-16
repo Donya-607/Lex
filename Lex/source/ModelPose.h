@@ -3,7 +3,6 @@
 #include <vector>
 
 #include "ModelCommon.h"
-#include "ModelAnimator.h"
 
 namespace Donya
 {

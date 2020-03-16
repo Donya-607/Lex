@@ -198,16 +198,10 @@
     <ClInclude Include="Source\Model.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="Source\ModelMaker.h">
-      <Filter>Header</Filter>
-    </ClInclude>
     <ClInclude Include="Source\ModelRenderer.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\ModelCommon.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\ModelAnimator.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Source\ModelMotion.h">
@@ -347,13 +341,7 @@
     <ClCompile Include="Source\Model.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ModelMaker.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="Source\ModelRenderer.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ModelAnimator.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Source\ModelMotion.cpp">
