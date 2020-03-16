@@ -13,54 +13,50 @@ namespace Donya
 {
 	namespace Model
 	{
-		namespace Strategy
+		namespace Impl
 		{
-			template<typename  SomeConstants>
-			void AssignCommon( SomeConstants *pDest, const CBStructPerMesh::Common &source )
+			template<typename  SomeConstant>
+			void AssignCommon( SomeConstant *pDest, const Constants::PerMesh::Common &source )
 			{
 				pDest->common.adjustMatrix = source.adjustMatrix;
 			}
-			template<typename  SomeConstants>
-			void AssignBone  ( SomeConstants *pDest, const CBStructPerMesh::Bone   &source )
+			template<typename  SomeConstant>
+			void AssignBone  ( SomeConstant *pDest, const Constants::PerMesh::Bone   &source )
 			{
 				pDest->bone.boneTransforms = source.boneTransforms;
 			}
-
-			bool SkinningConstantsPerMesh::CreateBuffer( ID3D11Device *pDevice )
+		
+			bool StaticMeshConstant::CreateBuffer( ID3D11Device *pDevice )
 			{
 				return cbuffer.Create( pDevice );
 			}
-			void SkinningConstantsPerMesh::Update( const CBStructPerMesh::Common &source )
+			void StaticMeshConstant::Update( const Constants::PerMesh::Common &source )
 			{
 				AssignCommon( &cbuffer.data, source );
 			}
-			void SkinningConstantsPerMesh::Update( const CBStructPerMesh::Common &srcCommon, const CBStructPerMesh::Bone &srcBone )
+			void StaticMeshConstant::Activate( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext ) const
 			{
-				Update( srcCommon );
-				AssignBone( &cbuffer.data, srcBone );
+				cbuffer.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
 			}
-			void SkinningConstantsPerMesh::Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const
-			{
-				cbuffer.Activate( setSlot, setVS, setPS, pImmediateContext );
-			}
-			void SkinningConstantsPerMesh::Deactivate( ID3D11DeviceContext *pImmediateContext ) const
+			void StaticMeshConstant::Deactivate( ID3D11DeviceContext *pImmediateContext ) const
 			{
 				cbuffer.Deactivate( pImmediateContext );
 			}
-		
-			bool StaticConstantsPerMesh::CreateBuffer( ID3D11Device *pDevice )
+
+			bool SkinningMeshConstant::CreateBuffer( ID3D11Device *pDevice )
 			{
 				return cbuffer.Create( pDevice );
 			}
-			void StaticConstantsPerMesh::Update( const CBStructPerMesh::Common &source )
+			void SkinningMeshConstant::Update( const Constants::PerMesh::Common &srcCommon, const Constants::PerMesh::Bone &srcBone )
 			{
-				AssignCommon( &cbuffer.data, source );
+				AssignCommon( &cbuffer.data, srcCommon );
+				AssignBone  ( &cbuffer.data, srcBone   );
 			}
-			void StaticConstantsPerMesh::Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const
+			void SkinningMeshConstant::Activate( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext ) const
 			{
-				cbuffer.Activate( setSlot, setVS, setPS, pImmediateContext );
+				cbuffer.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
 			}
-			void StaticConstantsPerMesh::Deactivate( ID3D11DeviceContext *pImmediateContext ) const
+			void SkinningMeshConstant::Deactivate( ID3D11DeviceContext *pImmediateContext ) const
 			{
 				cbuffer.Deactivate( pImmediateContext );
 			}
@@ -945,7 +941,7 @@ namespace Donya
 		}
 		void StaticRenderer::ActivateCBPerMesh( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
-			CBPerMesh.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
+			CBPerMesh.Activate( desc, pImmediateContext );
 		}
 		void StaticRenderer::DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext )
 		{
@@ -1035,7 +1031,7 @@ namespace Donya
 		}
 		void SkinningRenderer::ActivateCBPerMesh( const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
 		{
-			CBPerMesh.Activate( desc.setSlot, desc.setVS, desc.setPS, pImmediateContext );
+			CBPerMesh.Activate( desc, pImmediateContext );
 		}
 		void SkinningRenderer::DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext )
 		{

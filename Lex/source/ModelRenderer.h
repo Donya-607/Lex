@@ -17,63 +17,51 @@ namespace Donya
 	{
 		template<typename T> using ComPtr = Microsoft::WRL::ComPtr<T>;
 
-		namespace Strategy
+		namespace Impl
 		{
-			namespace CBStructPerMesh = Constants::PerMesh;
-
-			/// <summary>
-			/// Use for toggle a constant-buffer by the specification of vertex type.<para></para>
-			/// But this must update also a member of constants because the actual constant-buffer type is known only this.<para></para>
-			/// So this uses also constant-buffer.
-			/// </summary>
-			class IConstantsPerMesh
+			class BaseMeshConstant
 			{
 			public:
 				virtual bool CreateBuffer( ID3D11Device *pDevice ) = 0;
 			public:
-				virtual void Update( const CBStructPerMesh::Common &source ) = 0;
-				virtual void Update( const CBStructPerMesh::Common &sourceCommon, const CBStructPerMesh::Bone &sourceBone ) {}
-			public:
-				virtual void Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const = 0;
+				virtual void Activate( const RegisterDesc &setting, ID3D11DeviceContext *pImmediateContext ) const = 0;
 				virtual void Deactivate( ID3D11DeviceContext *pImmediateContext ) const = 0;
 			};
 
-			class StaticConstantsPerMesh : public IConstantsPerMesh
+			class StaticMeshConstant : public BaseMeshConstant
 			{
 			public:
-				struct Constants
+				struct Constant
 				{
-					CBStructPerMesh::Common common;
+					Constants::PerMesh::Common common;
 				};
 			private:
-				Donya::CBuffer<Constants> cbuffer;
+				Donya::CBuffer<Constant> cbuffer;
 			public:
 				bool CreateBuffer( ID3D11Device *pDevice ) override;
 			public:
-				void Update( const CBStructPerMesh::Common &source ) override;
+				void Update( const Constants::PerMesh::Common &source );
 			public:
-				void Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const override;
+				void Activate( const RegisterDesc &setting, ID3D11DeviceContext *pImmediateContext ) const override;
 				void Deactivate( ID3D11DeviceContext *pImmediateContext ) const override;
 			};
-			class SkinningConstantsPerMesh : public IConstantsPerMesh
+
+			class SkinningMeshConstant : public BaseMeshConstant
 			{
 			public:
-				static constexpr unsigned int MAX_BONE_COUNT = 64U;
-			public:
-				struct Constants
+				struct Constant
 				{
-					CBStructPerMesh::Common common;
-					CBStructPerMesh::Bone   bone;
+					Constants::PerMesh::Common common;
+					Constants::PerMesh::Bone   bone;
 				};
 			private:
-				Donya::CBuffer<Constants> cbuffer;
+				Donya::CBuffer<Constant> cbuffer;
 			public:
 				bool CreateBuffer( ID3D11Device *pDevice ) override;
 			public:
-				void Update( const CBStructPerMesh::Common &source ) override;
-				void Update( const CBStructPerMesh::Common &sourceCommon, const CBStructPerMesh::Bone &sourceBone ) override;
+				void Update( const Constants::PerMesh::Common &sourceCommon, const Constants::PerMesh::Bone &sourceBone );
 			public:
-				void Activate( unsigned int setSlot, bool setVS, bool setPS, ID3D11DeviceContext *pImmediateContext ) const override;
+				void Activate( const RegisterDesc &setting, ID3D11DeviceContext *pImmediateContext ) const override;
 				void Deactivate( ID3D11DeviceContext *pImmediateContext ) const override;
 			};
 		}
@@ -274,7 +262,7 @@ namespace Donya
 		class StaticRenderer : public Renderer
 		{
 		private:
-			Strategy::StaticConstantsPerMesh CBPerMesh;
+			Impl::StaticMeshConstant CBPerMesh;
 		public:
 			/// <summary>
 			/// If you set nullptr to "pDevice", use default device.
@@ -304,7 +292,7 @@ namespace Donya
 		class SkinningRenderer : public Renderer
 		{
 		private:
-			Strategy::SkinningConstantsPerMesh CBPerMesh;
+			Impl::SkinningMeshConstant CBPerMesh;
 		public:
 			/// <summary>
 			/// If you set nullptr to "pDevice", use default device.
