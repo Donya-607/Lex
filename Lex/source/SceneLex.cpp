@@ -46,29 +46,40 @@ public:
 		Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };		// RGBA.
 		Donya::Vector4 direction{ 0.0f, 0.0f, 1.0f, 0.0f };
 	};
+	struct Renderer
+	{
+		std::unique_ptr<Donya::Model::StaticRenderer>	pStatic;
+		std::unique_ptr<Donya::Model::SkinningRenderer>	pSkinning;
+	};
 	struct MeshAndInfo
 	{
-		Donya::Loader		loader{};
+		struct Model
+		{
+			std::shared_ptr<Donya::Model::StaticModel>		pStatic;
+			std::shared_ptr<Donya::Model::SkinningModel>	pSkinning;
+		};
+
+		Donya::Loader				loader{};
+		Model						model{};
+		Donya::Model::MotionHolder	holder{};
+		Donya::Model::Animator		animator{};
+		Donya::Vector3				scale		{ 1.0f, 1.0f, 1.0f };
+		Donya::Vector3				rotation	{ 0.0f, 0.0f, 0.0f };	// Pitch, Yaw, Roll. Degree.
+		Donya::Vector3				translation	{ 0.0f, 0.0f, 0.0f };
+		std::string	addMotionResultInfo{};
+		int			usingMotionIndex{ 0 };
+		float		currentElapsedTime{};
+		float		motionAccelPercent{ 1.0f };		// Normal is 1.0f.
+		bool		dontWannaDraw{ false };
+		bool		useSkinningVersion{ true };
+		bool		playLoopMotion{ true };
+
+		// Old version. not supporting now.
+		/*
 		Donya::SkinnedMesh	mesh{};
-		size_t						modelID{ NULL };
-		size_t						rendererID{ NULL };
-		std::shared_ptr<Donya::Model::StaticModel>		pModelStatic{ nullptr };
-		std::shared_ptr<Donya::Model::SkinningModel>	pModelSkinning{ nullptr };
-		std::shared_ptr<Donya::Model::StaticRenderer>	pRendererStatic{ nullptr };
-		std::shared_ptr<Donya::Model::SkinningRenderer>	pRendererSkinning{ nullptr };
-		Donya::Model::MotionHolder	mHolder{};
-		Donya::Model::Animator		mAnimator{};
 		Donya::MotionChunk	motions{};
 		Donya::Animator		animator{};
-		Donya::Vector3		scale		{ 1.0f, 1.0f, 1.0f };
-		Donya::Vector3		rotation	{ 0.0f, 0.0f, 0.0f };	// Pitch, Yaw, Roll. Degree.
-		Donya::Vector3		translation	{ 0.0f, 0.0f, 0.0f };
-		float	currentElapsedTime{};
-		float	motionAccelPercent{ 1.0f };		// Normal is 1.0f.
-		bool	enableMotionInterpolation{ false };
-		bool	dontWannaDraw{ false };
-
-		bool	useSkinningVersion{ true };
+		*/
 	public:
 		bool CreateByLoader()
 		{
@@ -77,33 +88,29 @@ public:
 
 			const auto modelSource = loader.GetModelSource();
 
-			result = Donya::SkinnedMesh::Create( loader, &mesh );
-			if ( !result ) { succeeded = false; }
-			// modelID		= Donya::Model::MakeModel( loader, Donya::Model::ModelUsage::Skinned );
-			// if ( !modelID ) { succeeded = false; }
-			// rendererID	= Donya::Model::MakeRenderer( Donya::Model::ModelUsage::Skinned );
-			// if ( !rendererID ) { succeeded = false; }
-			pModelStatic = std::make_unique<Donya::Model::StaticModel>( Donya::Model::StaticModel::Create( modelSource, loader.GetFileDirectory() ) );
-			if ( !pModelStatic ) { succeeded = false; }
-			pModelSkinning = std::make_unique<Donya::Model::SkinningModel>( Donya::Model::SkinningModel::Create( modelSource, loader.GetFileDirectory() ) );
-			if ( !pModelSkinning ) { succeeded = false; }
-			pRendererStatic = std::make_unique<Donya::Model::StaticRenderer>();
-			if ( !pRendererStatic ) { succeeded = false; }
-			pRendererSkinning = std::make_unique<Donya::Model::SkinningRenderer>();
-			if ( !pRendererSkinning ) { succeeded = false; }
+			model.pStatic	= std::make_shared<Donya::Model::StaticModel>  ( Donya::Model::StaticModel::Create  ( modelSource, loader.GetFileDirectory() ) );
+			model.pSkinning	= std::make_shared<Donya::Model::SkinningModel>( Donya::Model::SkinningModel::Create( modelSource, loader.GetFileDirectory() ) );
+			if ( !model.pStatic->WasInitializeSucceeded()   ) { succeeded = false; }
+			if ( !model.pSkinning->WasInitializeSucceeded() ) { succeeded = false; }
 
 			// Assign to holder.
 			for ( const auto &motion : modelSource.motions )
 			{
-				mHolder.AppendMotion( motion );
+				holder.AppendMotion( motion );
 			}
 
-			result = Donya::MotionChunk::Create( loader, &motions );
-			if ( !result ) { succeeded = false; }
-
-			animator.Init();
+			animator.ResetTimer();
 
 			return succeeded;
+
+			// Old version. not supporting now.
+			/*
+			result = Donya::SkinnedMesh::Create( loader, &mesh );
+			if ( !result ) { succeeded = false; }
+			result = Donya::MotionChunk::Create( loader, &motions );
+			if ( !result ) { succeeded = false; }
+			animator.Init();
+			*/
 		}
 	};
 	struct AsyncLoad
@@ -155,6 +162,7 @@ public:
 
 	float							loadSamplingFPS;		// Use to Loader's sampling FPS.
 	std::vector<MeshAndInfo>		models;
+	Renderer						renderer;
 
 	GridLine						grid;
 
@@ -179,6 +187,7 @@ public:
 		nowPressMouseButton(), prevMouse(), currMouse(),
 		cameraOp(),
 		loadSamplingFPS( 0.0f ), models(),
+		renderer(),
 		grid(),
 		cbPerFrame(), cbPerModel(), VSSkinnedMesh(), PSSkinnedMesh(),
 		pLoadThread( nullptr ), pCurrentLoading( nullptr ),
@@ -198,10 +207,20 @@ public:
 public:
 	void Init()
 	{
-		bool result = ShaderInit();
+		bool result;
+		result = ShaderInit();
 		if ( !result )
 		{
 			_ASSERT_EXPR( 0, L"Failed : Create some shaders." );
+			exit( -1 );
+			return;
+		}
+		// else
+
+		result = RendererInit();
+		if ( !result )
+		{
+			_ASSERT_EXPR( 0, L"Failed : Create some renderers." );
 			exit( -1 );
 			return;
 		}
@@ -245,14 +264,6 @@ public:
 			if ( Donya::Keyboard::Trigger( 'T' ) )
 			{
 				Donya::ToggleShowStateOfImGui();
-			}
-
-			// bool isAccept = meshes.empty();
-			bool isAccept = true;
-			if ( Donya::Keyboard::Press( 'B' ) && Donya::Keyboard::Trigger( 'F' ) && isAccept )
-			{	// For hands-free access.
-				constexpr const char *BLUE_FALCON = "D:\\D-Download\\ASSET_Models\\Free\\Distribution_FBX\\BLue Falcon\\Blue Falcon.FBX";
-				ReserveLoadFileIfLoadable( BLUE_FALCON );
 			}
 
 			if ( Donya::Keyboard::Trigger( 'Q' ) && !models.empty() )
@@ -309,36 +320,33 @@ public:
 
 		Donya::Vector4x4 S{}, R{}, T{}, W{};
 		Donya::Vector4x4 WVP = W * V * P;
-		for ( auto &it : models )
-		{
-			if ( it.dontWannaDraw ) { continue; }
-			// else
-
-			const Donya::Vector3 eulerRadians
-			{
-				ToRadian( it.rotation.x ),
-				ToRadian( it.rotation.y ),
-				ToRadian( it.rotation.z ),
-			};
-
-			S = Donya::Vector4x4::MakeScaling( it.scale );
-			R = Donya::Vector4x4::MakeRotationEuler( eulerRadians );
-			T = Donya::Vector4x4::MakeTranslation( it.translation );
-			W = S * R * T;
-			WVP = W * V * P;
-
-			it.mesh.Render
-			(
-				it.motions,
-				it.animator,
-				WVP, W,
-				optionPerMesh,
-				optionPerSubset,
-				/* psSetSamplerSlot    = */ 0,
-				/* psSetDiffuseMapSlot = */ 0,
-				( drawWireFrame ) ? false : true
-			);
-		}
+		//for ( auto &it : models )
+		//{
+		//	if ( it.dontWannaDraw ) { continue; }
+		//	// else
+		//	const Donya::Vector3 eulerRadians
+		//	{
+		//		ToRadian( it.rotation.x ),
+		//		ToRadian( it.rotation.y ),
+		//		ToRadian( it.rotation.z ),
+		//	};
+		//	S = Donya::Vector4x4::MakeScaling( it.scale );
+		//	R = Donya::Vector4x4::MakeRotationEuler( eulerRadians );
+		//	T = Donya::Vector4x4::MakeTranslation( it.translation );
+		//	W = S * R * T;
+		//	WVP = W * V * P;
+		//	it.mesh.Render
+		//	(
+		//		it.motions,
+		//		it.animator,
+		//		WVP, W,
+		//		optionPerMesh,
+		//		optionPerSubset,
+		//		/* psSetSamplerSlot    = */ 0,
+		//		/* psSetDiffuseMapSlot = */ 0,
+		//		( drawWireFrame ) ? false : true
+		//	);
+		//}
 
 		PSSkinnedMesh.Deactivate();
 		VSSkinnedMesh.Deactivate();
@@ -365,16 +373,6 @@ private:
 
 	void DrawModelSource( const MeshAndInfo &data )
 	{
-		// auto  ppModel = Donya::Model::AcquireRawModel( data.modelID );
-		// if ( !ppModel ) { return; }
-		// // else
-		// auto &pModel = *ppModel;
-		// 
-		// auto  ppRenderer = Donya::Model::AcquireRawRenderer( data.rendererID );
-		// if ( !ppRenderer ) { return; }
-		// // else
-		// auto &pRenderer = *ppRenderer;
-
 		const Donya::Vector4x4 V = iCamera.CalcViewMatrix();
 		const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 		const Donya::Vector4   cameraPos{ iCamera.GetPosition(), 1.0f };
@@ -423,30 +421,14 @@ private:
 			Donya::Model::Renderer::Default::ActivatePixelShaderStatic();
 		}
 
-		// auto pSource = pModel->AcquireModelSource();
-		/*
-		const Donya::Vector3 eulerRadians
-		{
-			ToRadian( data.rotation.x ),
-			ToRadian( data.rotation.y ),
-			ToRadian( data.rotation.z ),
-		};
-		mcbPerModel.data.drawColor = Donya::Vector4{ 1.0f, 1.0f, 1.0f, 1.0f };
-		mcbPerModel.data.worldMatrix =
-			Donya::Vector4x4::MakeScaling( data.scale ) *
-			Donya::Vector4x4::MakeRotationEuler( eulerRadians ) *
-			Donya::Vector4x4::MakeTranslation( -data.translation );
-		
-		mcbPerModel.Activate( 1, true, true );*/
-
 		const auto descPerMesh		= Donya::Model::Renderer::Default::DescCBufferPerMesh();
 		const auto descPerSubset	= Donya::Model::Renderer::Default::DescCBufferPerSubset();
 		const auto descDiffuse		= Donya::Model::Renderer::Default::DescDiffuseMap();
 		if ( data.useSkinningVersion )
 		{
-			data.pRendererSkinning->Render
+			renderer.pSkinning->Render
 			(
-				*data.pModelSkinning,
+				*data.model.pSkinning,
 				descPerMesh,
 				descPerSubset,
 				descDiffuse
@@ -454,16 +436,14 @@ private:
 		}
 		else
 		{
-			data.pRendererStatic->Render
+			renderer.pStatic->Render
 			(
-				*data.pModelStatic,
+				*data.model.pStatic,
 				descPerMesh,
 				descPerSubset,
 				descDiffuse
 			);
 		}
-
-		//mcbPerModel.Deactivate();
 
 		// Deactivate shaders.
 		if ( data.useSkinningVersion )
@@ -533,6 +513,15 @@ private:
 		if ( !result ) { succeeded = false; }
 
 		return succeeded;
+	}
+	bool RendererInit()
+	{
+		renderer.pStatic	= std::make_unique<Donya::Model::StaticRenderer>();
+		renderer.pSkinning	= std::make_unique<Donya::Model::SkinningRenderer>();
+		if ( !renderer.pStatic   ) { return false; }
+		if ( !renderer.pSkinning ) { return false; }
+		// else
+		return true;
 	}
 
 	void MouseUpdate()
@@ -915,14 +904,15 @@ private:
 		for ( auto &it : models )
 		{
 			it.animator.Update( elapsedTime * it.motionAccelPercent );
-			it.mAnimator.Update( elapsedTime * it.motionAccelPercent );
-			it.currentElapsedTime = it.animator.GetCurrentElapsedTime();
+			it.currentElapsedTime	= it.animator.GetInternalElapsedTime();
 
-			it.pModelSkinning->UpdateSkeletal( it.mAnimator.CalcCurrentPose( it.mHolder.GetMotion( 0 ) ) );
+			const auto useMotion	= it.holder.GetMotion( it.usingMotionIndex );
+			const auto currentPose	= it.animator.CalcCurrentPose( useMotion );
+			it.model.pSkinning->UpdateSkeletal( currentPose );
 		}
 	}
 
-	bool OpenCommonDialogAndFile()
+	std::string GetOpenFileNameByCommonDialog()
 	{
 		char chosenFilesFullPath[MAX_PATH_COUNT] = { 0 };
 		char chosenFileName[MAX_PATH_COUNT] = { 0 };
@@ -943,14 +933,11 @@ private:
 		// TODO:Support multiple files.
 
 		auto  result = GetOpenFileNameA( &ofn );
-		if ( !result ) { return false; }
+		if ( !result ) { return std::string{}; }
 		// else
 
-		std::string filePath{ chosenFilesFullPath };
-
-		ReserveLoadFileIfLoadable( filePath );
-
-		return true;
+		std::string filePath{ ofn.lpstrFile };
+		return filePath;
 	}
 	std::string GetSaveFileNameByCommonDialog()
 	{
@@ -1134,10 +1121,39 @@ private:
 							ImGui::DragFloat3( u8"平行移動",			&it->translation.x,	1.0f		);
 
 							ImGui::DragFloat( u8"モーション再生速度（倍率）",	&it->motionAccelPercent, 0.01f, 0.0f );
-							ImGui::DragFloat( u8"モーションのフレーム",		&it->currentElapsedTime, 0.01f, 0.0f );
-							it->animator.SetCurrentElapsedTime( it->currentElapsedTime );
-							ImGui::Checkbox( u8"モーションの補間を有効にする", &it->enableMotionInterpolation );
-							it->animator.SetInterpolateFlag( it->enableMotionInterpolation );
+							ImGui::DragFloat( u8"モーションの経過時間",		&it->currentElapsedTime, 0.01f, 0.0f );
+
+							ImGui::Text( u8"登録されているモーションの数：%d", it->holder.GetMotionCount() );
+
+							{
+								if ( 0 && ImGui::Button( u8"別のファイルから，モーションを登録する" ) )
+								{
+									const std::string anotherFileName = GetOpenFileNameByCommonDialog();
+								}
+								if ( !it->addMotionResultInfo.empty() )
+							{
+								ImGui::Text( it->addMotionResultInfo.c_str() );
+								if ( ImGui::Button( u8"モーション追加の結果情報を削除" ) )
+								{
+									it->addMotionResultInfo = "";
+								}
+							}
+							}
+
+							if ( 2 <= it->holder.GetMotionCount() )
+							{
+								ImGui::SliderInt( u8"使用するモーション番号", &it->usingMotionIndex, 0, it->holder.GetMotionCount() - 1 );
+								it->usingMotionIndex = std::max( 0, std::min( scast<int>( it->holder.GetMotionCount() ) - 1, it->usingMotionIndex ) );
+							}
+							else
+							{
+								ImGui::Text( u8"使用するモーション番号：０" );
+								it->usingMotionIndex = 0;
+							}
+
+							ImGui::Checkbox ( u8"モーションをループ再生する",	&it->playLoopMotion );
+							it->animator.SetInternalElapsedTime( it->currentElapsedTime );
+							( it->playLoopMotion ) ? it->animator.EnableWrapAround() : it->animator.DisableWrapAround();
 
 							ImGui::TreePop();
 						}
@@ -1152,44 +1168,6 @@ private:
 				}
 
 				ImGui::TreePop();
-			}
-
-			if ( ImGui::TreeNode( u8"アニメーション交換テスト（モデル[0][1]間）" ) )
-			{
-				static bool nowChanged = false;
-				if ( models.size() < 2U )
-				{
-					ImGui::TreePop();
-				}
-				else
-				{
-					ImGui::Text( u8"交換%s", ( nowChanged ) ? u8"している状態" : u8"していない状態" );
-					if ( ImGui::Button( u8"モデル[0]と[1]のアニメーションを交換する" ) )
-					{
-						auto Swap = []( MeshAndInfo &lhs, MeshAndInfo &rhs )
-						{
-							const auto tmp = lhs;
-
-							lhs.animator					= rhs.animator;
-							lhs.motions						= rhs.motions;
-							lhs.currentElapsedTime			= rhs.currentElapsedTime;
-							lhs.motionAccelPercent			= rhs.motionAccelPercent;
-							lhs.enableMotionInterpolation	= rhs.enableMotionInterpolation;
-						
-							rhs.animator					= tmp.animator;
-							rhs.motions						= tmp.motions;
-							rhs.currentElapsedTime			= tmp.currentElapsedTime;
-							rhs.motionAccelPercent			= tmp.motionAccelPercent;
-							rhs.enableMotionInterpolation	= tmp.enableMotionInterpolation;
-						};
-
-						Swap( models[0], models[1] );
-					
-						nowChanged = !nowChanged;
-					}
-
-					ImGui::TreePop();
-				}
 			}
 
 			ImGui::End();

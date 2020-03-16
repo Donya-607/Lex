@@ -514,7 +514,7 @@ namespace Donya
 			return true;
 		}
 
-		void CreateUnicolorTexture( ID3D11Device *pDevice, ID3D11ShaderResourceView **pOutSRV, D3D11_TEXTURE2D_DESC *pOutTexDesc, unsigned int dimensions, float R, float G, float B, float A, bool isEnableCache )
+		void CreateUnicolorTexture( ID3D11Device *pDevice, ID3D11ShaderResourceView **pOutSRV, D3D11_TEXTURE2D_DESC *pOutTexDesc, bool isEnableCache, unsigned int dimensions, float R, float G, float B, float A )
 		{
 			unsigned int RGBA{};
 			{

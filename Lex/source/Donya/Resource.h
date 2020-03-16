@@ -107,12 +107,12 @@ namespace Donya
 			ID3D11Device *pDevice,
 			ID3D11ShaderResourceView **pOutputShaderResourceView,
 			D3D11_TEXTURE2D_DESC *pOutputTexture2DDesc,
+			bool isEnableCache = true,
 			unsigned int dimensions = 1,
 			float R = 1.0f,
 			float G = 1.0f,
 			float B = 1.0f,
-			float A = 1.0f,
-			bool isEnableCache = true
+			float A = 1.0f
 		);
 
 		void ReleaseAllTexture2DCaches();
