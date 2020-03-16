@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "ModelCommon.h"
+#include "ModelSource.h"
 
 namespace Donya
 {
@@ -32,6 +33,13 @@ namespace Donya
 			/// </summary>
 			Animation::Motion FindMotion( const std::string &motionName ) const;
 		public:
+			/// <summary>
+			/// Append all motions that the source has. The consistency with internal motion is not considered.
+			/// </summary>
+			void AppendSource( const ModelSource &source );
+			/// <summary>
+			/// The consistency with internal motion is not considered.
+			/// </summary>
 			void AppendMotion( const Animation::Motion &element );
 		};
 

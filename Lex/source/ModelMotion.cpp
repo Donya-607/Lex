@@ -74,6 +74,13 @@ namespace Donya
 			return EmptyMotion();
 		}
 
+		void MotionHolder::AppendSource( const ModelSource &source )
+		{
+			for ( const auto &it : source.motions )
+			{
+				AppendMotion( it );
+			}
+		}
 		void MotionHolder::AppendMotion( const Animation::Motion &element )
 		{
 			motions.emplace_back( element );

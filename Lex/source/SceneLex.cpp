@@ -94,10 +94,7 @@ public:
 			if ( !model.pSkinning->WasInitializeSucceeded() ) { succeeded = false; }
 
 			// Assign to holder.
-			for ( const auto &motion : modelSource.motions )
-			{
-				holder.AppendMotion( motion );
-			}
+			holder.AppendSource( modelSource );
 
 			animator.ResetTimer();
 
@@ -173,7 +170,7 @@ public:
 	Donya::PixelShader				PSSkinnedMesh;
 
 	std::unique_ptr<std::thread>	pLoadThread{};
-	std::unique_ptr<AsyncLoad>		pCurrentLoading;
+	std::unique_ptr<AsyncLoad>	pCurrentLoading;
 	std::string						currentLoadingFileNameUTF8;	// For UI.
 	std::queue<std::string>			reservedAbsFilePaths;
 	std::queue<std::string>			reservedFileNamesUTF8;		// For UI.
@@ -377,7 +374,7 @@ private:
 		const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
 		const Donya::Vector4   cameraPos{ iCamera.GetPosition(), 1.0f };
 
-		// Activate CB per frame to slot 0.
+		// Activate CB per frame.
 		{
 			Donya::Model::Constants::PerScene::Common constantsScene{};
 			constantsScene.directionalLight.direction	= directionalLight.direction;
@@ -396,7 +393,7 @@ private:
 			constantsModel.worldMatrix =
 				Donya::Vector4x4::MakeScaling( data.scale ) *
 				Donya::Vector4x4::MakeRotationEuler( eulerRadians ) *
-				Donya::Vector4x4::MakeTranslation( -data.translation );
+				Donya::Vector4x4::MakeTranslation( data.translation );
 
 			Donya::Model::Renderer::Default::UpdateCBufferScene( constantsScene );
 			Donya::Model::Renderer::Default::UpdateCBufferModel( constantsModel );
@@ -742,7 +739,7 @@ private:
 	}
 	void ReserveLoadFileIfLoadable( std::string filePath )
 	{
-		auto CanLoadFile = []( std::string filePath )->bool
+		auto  CanLoadFile = []( std::string filePath )->bool
 		{
 			constexpr std::array<const char *, 5> EXTENSIONS
 			{
@@ -761,20 +758,19 @@ private:
 
 			return false;
 		};
-
 		if ( !CanLoadFile( filePath ) ) { return; }
 		// else
 
 		reservedAbsFilePaths.push( filePath );
 
 		const std::string fileName = Donya::ExtractFileNameFromFullPath( filePath );
-		if ( !fileName.empty() )
-		{
-			reservedFileNamesUTF8.push( Donya::MultiToUTF8( fileName ) );
-		}
-		else // If the extract function failed.
+		if ( fileName.empty() ) // If the extract function failed.
 		{
 			reservedFileNamesUTF8.push( Donya::MultiToUTF8( filePath ) );
+		}
+		else
+		{
+			reservedFileNamesUTF8.push( Donya::MultiToUTF8( fileName ) );
 		}
 	}
 
@@ -879,7 +875,7 @@ private:
 		if ( ImGui::BeginIfAllowed( "Loading Files" ) )
 		{
 			std::queue<std::string> fileListUTF8 = reservedFileNamesUTF8;
-			ImGui::Text( "Reserving load file list : %d", fileListUTF8.size() + 1 );
+			ImGui::Text( "Reserving load file list : %d", fileListUTF8.size() + 1/*Current file*/ );
 
 			ImGui::BeginChild( ImGui::GetID( scast<void *>( NULL ) ), ImVec2( 0, 0 ) );
 
@@ -1071,14 +1067,20 @@ private:
 				size_t modelCount = models.size();
 				ImGui::Text( u8"モデル数:[%d]", modelCount );
 
-				std::string fileNameCaption{};
-				std::string uniquePostfix{};	// Prevent matching a caption at TreeNode().
-				int uniqueIndex = 0;
+				std::string caption{};
+
+				int  uniqueIndex = 0;
+				auto MakeCaption = [&uniqueIndex]( const Donya::Loader &source )
+				{
+					std::string fileName = "[" + source.GetOnlyFileName() + "]";
+					std::string postfix = "##" + std::to_string( uniqueIndex++ );
+					return fileName + postfix;
+				};
+
 				for ( auto &it = models.begin(); it != models.end(); )
 				{
-					fileNameCaption = "[" + it->loader.GetOnlyFileName() + "]";
-					uniquePostfix = "##" + std::to_string( uniqueIndex++ );
-					if ( ImGui::TreeNode( ( fileNameCaption + uniquePostfix ).c_str() ) )
+					caption = MakeCaption( it->loader );
+					if ( ImGui::TreeNode( caption.c_str() ) )
 					{
 						if ( ImGui::Button( u8"取り除く" ) )
 						{
@@ -1125,19 +1127,49 @@ private:
 
 							ImGui::Text( u8"登録されているモーションの数：%d", it->holder.GetMotionCount() );
 
+							if ( ImGui::TreeNode( u8"モーションを追加する" ) )
 							{
-								if ( 0 && ImGui::Button( u8"別のファイルから，モーションを登録する" ) )
+								ImGui::Text( u8"他のロード済みモデルからの追加になります" );
+
+								auto ShowPart = [&]( const MeshAndInfo &source )
 								{
-									const std::string anotherFileName = GetOpenFileNameByCommonDialog();
+									if ( &( *it ) == &source ) { return; } // Except the myself
+									if ( !ImGui::TreeNode( MakeCaption( source.loader ).c_str() ) ) { return; }
+									// else
+
+									const auto modelSource = source.loader.GetModelSource();
+									ImGui::Text( u8"モーションの数：[%d]", modelSource.motions.size() );
+
+									const std::string prompt{ u8"このモーション群を追加する" };
+
+									if ( modelSource.motions.empty() )
+									{
+										ImGui::TextDisabled( prompt.c_str() );
+										ImGui::Text( "モーションを持っていません" );
+									}
+									else if ( ImGui::Button( prompt.c_str() ) )
+									{
+										it->holder.AppendSource( modelSource );
+									}
+
+									ImGui::TreePop();
+								};
+
+								for ( const auto &itr : models )
+								{
+									ShowPart( itr );
 								}
+
 								if ( !it->addMotionResultInfo.empty() )
-							{
-								ImGui::Text( it->addMotionResultInfo.c_str() );
-								if ( ImGui::Button( u8"モーション追加の結果情報を削除" ) )
 								{
-									it->addMotionResultInfo = "";
+									ImGui::Text( it->addMotionResultInfo.c_str() );
+									if ( ImGui::Button( u8"モーション追加の結果情報を削除" ) )
+									{
+										it->addMotionResultInfo = "";
+									}
 								}
-							}
+
+								ImGui::TreePop();
 							}
 
 							if ( 2 <= it->holder.GetMotionCount() )
