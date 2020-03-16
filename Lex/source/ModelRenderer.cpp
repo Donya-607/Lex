@@ -69,7 +69,109 @@ namespace Donya
 			static constexpr const int   SlotSRV		= 0;
 			static constexpr const int   SlotSampler	= 0;
 
-			static constexpr const char *SkinnedCode()
+			// HACK: These shader codes have some same codes(struct, cbuffer), so I can unite them by std::string, but I want to constexpr.
+
+			/// <summary>
+			/// PS is common on Static and Skinning.
+			/// </summary>
+			static constexpr const char *PixelShaderCode()
+			{
+				return
+				"struct VS_OUT\n"
+				"{\n"
+				"	float4		svPos		: SV_POSITION;\n"
+				"	float4		wsPos		: POSITION;\n"
+				"	float4		normal		: NORMAL;\n"
+				"	float2		texCoord	: TEXCOORD0;\n"
+				"};\n"
+				"struct DirectionalLight\n"
+				"{\n"
+				"	float4		color;\n"
+				"	float4		direction;\n"
+				"};\n"
+				"cbuffer CBPerScene : register( b0 )\n"
+				"{\n"
+				"	DirectionalLight cbDirLight;\n"
+				"	float4		cbEyePosition;\n"
+				"	row_major\n"
+				"	float4x4	cbViewProj;\n"
+				"};\n"
+				"cbuffer CBPerModel : register( b1 )\n"
+				"{\n"
+				"	float4		cbDrawColor;\n"
+				"	row_major\n"
+				"	float4x4	cbWorld;\n"
+				"};\n"
+				"cbuffer CBPerSubset : register( b3 )\n"
+				"{\n"
+				"	float4		cbAmbient;\n"
+				"	float4		cbDiffuse;\n"
+				"	float4		cbSpecular;\n"
+				"};\n"
+				// See https://tech.cygames.co.jp/archives/2339/
+				"float4 SRGBToLinear( float4 colorSRGB )\n"
+				"{\n"
+				"	return pow( colorSRGB, 2.2f );\n"
+				"}\n"
+				// See https://tech.cygames.co.jp/archives/2339/
+				"float4 LinearToSRGB( float4 colorLinear )\n"
+				"{\n"
+				"	return pow( colorLinear, 1.0f / 2.2f );\n"
+				"}\n"
+				"float HalfLambert( float3 nwsNormal, float3 nwsToLightVec )\n"
+				"{\n"
+				"	float lambert = dot( nwsNormal, nwsToLightVec );\n"
+				"	return ( lambert * 0.5f ) + 0.5f;\n"
+				"}\n"
+				"float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec )\n"
+				"{\n"
+				"	float3 nwsReflection  = normalize( reflect( -nwsToLightVec, nwsNormal ) );\n"
+				"	float  specularFactor = max( 0.0f, dot( nwsToEyeVec, nwsReflection ) );\n"
+				"	return specularFactor;\n"
+				"}\n"
+				"float3 CalcLightInfluence( float4 lightColor, float3 nwsPixelToLightVec, float3 nwsPixelNormal, float3 nwsEyeVector )\n"
+				"{\n"
+				"	float3	ambientColor	= cbAmbient.rgb;\n"
+				"	float	diffuseFactor	= HalfLambert( nwsPixelNormal, nwsPixelToLightVec );\n"
+				// "		diffuseFactor	= pow( diffuseFactor, 2.0f );\n"
+				"	float3	diffuseColor	= cbDiffuse.rgb * diffuseFactor;\n"
+				"	float	specularFactor	= Phong( nwsPixelNormal, nwsPixelToLightVec, nwsEyeVector );\n"
+				"	float3	specularColor	= cbSpecular.rgb * specularFactor * cbSpecular.w;\n"
+
+				"	float3	Ka				= ambientColor;\n"
+				"	float3	Kd				= diffuseColor;\n"
+				"	float3	Ks				= specularColor;\n"
+				"	float3	light			= lightColor.rgb * lightColor.w;\n"
+				"	return	Ka + ( ( Kd + Ks ) * light );\n"
+				"}\n"
+
+				"Texture2D		diffuseMap			: register( t0 );\n"
+				"SamplerState	diffuseMapSampler	: register( s0 );\n"
+
+				"float4 PSMain( VS_OUT pin ) : SV_TARGET\n"
+				"{\n"
+				"			pin.normal		= normalize( pin.normal );\n"
+			
+				"	float3	nLightVec		= normalize( -cbDirLight.direction.rgb );	// Vector from position.\n"
+				"	float4	nEyeVector		= cbEyePosition - pin.wsPos;				// Vector from position.\n"
+
+				"	float4	diffuseMapColor	= diffuseMap.Sample( diffuseMapSampler, pin.texCoord );\n"
+				"			diffuseMapColor	= SRGBToLinear( diffuseMapColor );\n"
+				"	float	diffuseMapAlpha	= diffuseMapColor.a;\n"
+
+				"	float3	totalLight		= CalcLightInfluence( cbDirLight.color, nLightVec, pin.normal.rgb, nEyeVector.rgb );\n"
+
+				"	float3	resultColor		= diffuseMapColor.rgb * totalLight;\n"
+				"	float4	outputColor		= float4( resultColor, diffuseMapAlpha );\n"
+				"			outputColor		= outputColor * cbDrawColor;\n"
+
+				"	return	LinearToSRGB( outputColor );\n"
+				"}\n"
+				;
+			}
+			static constexpr const char *PixelShaderName = "Donya::DefaultModelPS";
+
+			static constexpr const char *SkinningCode()
 			{
 				return
 				"struct VS_IN\n"
@@ -113,12 +215,6 @@ namespace Donya
 				"	row_major\n"
 				"	float4x4	cbBoneTransforms[MAX_BONE_COUNT];\n"
 				"};\n"
-				"cbuffer CBPerSubset : register( b3 )\n"
-				"{\n"
-				"	float4		cbAmbient;\n"
-				"	float4		cbDiffuse;\n"
-				"	float4		cbSpecular;\n"
-				"};\n"
 				"void ApplyBoneMatrices( float4 boneWeights, uint4 boneIndices, inout float4 inoutPosition, inout float4 inoutNormal )\n"
 				"{\n"
 				"	const float4 inPosition	= float4( inoutPosition.xyz, 1.0f );\n"
@@ -153,70 +249,10 @@ namespace Donya
 				"	vout.texCoord	= vin.texCoord;\n"
 				"	return vout;\n"
 				"}\n"
-				// See https://tech.cygames.co.jp/archives/2339/
-				"float4 SRGBToLinear( float4 colorSRGB )\n"
-				"{\n"
-				"	return pow( colorSRGB, 2.2f );\n"
-				"}\n"
-				// See https://tech.cygames.co.jp/archives/2339/
-				"float4 LinearToSRGB( float4 colorLinear )\n"
-				"{\n"
-				"	return pow( colorLinear, 1.0f / 2.2f );\n"
-				"}\n"
-				"float HalfLambert( float3 nwsNormal, float3 nwsToLightVec )\n"
-				"{\n"
-				"	float lambert = dot( nwsNormal, nwsToLightVec );\n"
-				"	return ( lambert * 0.5f ) + 0.5f;\n"
-				"}\n"
-				"float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec )\n"
-				"{\n"
-				"	float3 nwsReflection  = normalize( reflect( -nwsToLightVec, nwsNormal ) );\n"
-				"	float  specularFactor = max( 0.0f, dot( nwsToEyeVec, nwsReflection ) );\n"
-				"	return specularFactor;\n"
-				"}\n"
-				"float3 CalcLightInfluence( float4 lightColor, float3 nwsPixelToLightVec, float3 nwsPixelNormal, float3 nwsEyeVector )\n"
-				"{\n"
-				"	float3	ambientColor	= cbAmbient.rgb;\n"
-				"	float	diffuseFactor	= HalfLambert( nwsPixelNormal, nwsPixelToLightVec );\n"
-				// "		diffuseFactor	= pow( diffuseFactor, 2.0f );\n"
-				"	float3	diffuseColor	= cbDiffuse.rgb * diffuseFactor;\n"
-				"	float	specularFactor	= Phong( nwsPixelNormal, nwsPixelToLightVec, nwsEyeVector );\n"
-				"	float3	specularColor	= cbSpecular.rgb * specularFactor * cbSpecular.w;\n"
-
-				"	float3	Ka				= ambientColor;\n"
-				"	float3	Kd				= diffuseColor;\n"
-				"	float3	Ks				= specularColor;\n"
-				"	float3	light			= lightColor.rgb * lightColor.w;\n"
-				"	return	Ka + ( ( Kd + Ks ) * light );\n"
-				"}\n"
-
-				"Texture2D		diffuseMap			: register( t0 );\n"
-				"SamplerState	diffuseMapSampler	: register( s0 );\n"
-
-				"float4 PSMain( VS_OUT pin ) : SV_TARGET\n"
-				"{\n"
-				"			pin.normal		= normalize( pin.normal );\n"
-			
-				"	float3	nLightVec		= normalize( -cbDirLight.direction.rgb );	// Vector from position.\n"
-				"	float4	nEyeVector		= cbEyePosition - pin.wsPos;				// Vector from position.\n"
-
-				"	float4	diffuseMapColor	= diffuseMap.Sample( diffuseMapSampler, pin.texCoord );\n"
-				"			diffuseMapColor	= SRGBToLinear( diffuseMapColor );\n"
-				"	float	diffuseMapAlpha	= diffuseMapColor.a;\n"
-
-				"	float3	totalLight		= CalcLightInfluence( cbDirLight.color, nLightVec, pin.normal.rgb, nEyeVector.rgb );\n"
-
-				"	float3	resultColor		= diffuseMapColor.rgb * totalLight;\n"
-				"	float4	outputColor		= float4( resultColor, diffuseMapAlpha );\n"
-				"			outputColor		= outputColor * cbDrawColor;\n"
-
-				"	return	LinearToSRGB( outputColor );\n"
-				"}\n"
 				;
 			}
-			static constexpr const char *SkinnedNameVS	= "Donya::DefaultModelSkinnedVS";
-			static constexpr const char *SkinnedNamePS	= "Donya::DefaultModelSkinnedPS";
-
+			static constexpr const char *SkinningNameVS	= "Donya::DefaultModelSkinningVS";
+			
 			static constexpr const char *StaticCode()
 			{
 				return
@@ -256,12 +292,6 @@ namespace Donya
 				"	row_major\n"
 				"	float4x4	cbAdjustMatrix;\n"
 				"};\n"
-				"cbuffer CBPerSubset : register( b3 )\n"
-				"{\n"
-				"	float4		cbAmbient;\n"
-				"	float4		cbDiffuse;\n"
-				"	float4		cbSpecular;\n"
-				"};\n"
 				"VS_OUT VSMain( VS_IN vin )\n"
 				"{\n"
 				"	vin.pos.w		= 1.0f;\n"
@@ -277,67 +307,9 @@ namespace Donya
 				"	vout.texCoord	= vin.texCoord;\n"
 				"	return vout;\n"
 				"}\n"
-				// See https://tech.cygames.co.jp/archives/2339/
-				"float4 SRGBToLinear( float4 colorSRGB )\n"
-				"{\n"
-				"	return pow( colorSRGB, 2.2f );\n"
-				"}\n"
-				// See https://tech.cygames.co.jp/archives/2339/
-				"float4 LinearToSRGB( float4 colorLinear )\n"
-				"{\n"
-				"	return pow( colorLinear, 1.0f / 2.2f );\n"
-				"}\n"
-				"float HalfLambert( float3 nwsNormal, float3 nwsToLightVec )\n"
-				"{\n"
-				"	float lambert = dot( nwsNormal, nwsToLightVec );\n"
-				"	return ( lambert * 0.5f ) + 0.5f;\n"
-				"}\n"
-				"float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec )\n"
-				"{\n"
-				"	float3 nwsReflection  = normalize( reflect( -nwsToLightVec, nwsNormal ) );\n"
-				"	float  specularFactor = max( 0.0f, dot( nwsToEyeVec, nwsReflection ) );\n"
-				"	return specularFactor;\n"
-				"}\n"
-				"float3 CalcLightInfluence( float4 lightColor, float3 nwsPixelToLightVec, float3 nwsPixelNormal, float3 nwsEyeVector )\n"
-				"{\n"
-				"	float3	ambientColor	= cbAmbient.rgb;\n"
-				"	float	diffuseFactor	= HalfLambert( nwsPixelNormal, nwsPixelToLightVec );\n"
-				// "		diffuseFactor	= pow( diffuseFactor, 2.0f );\n"
-				"	float3	diffuseColor	= cbDiffuse.rgb * diffuseFactor;\n"
-				"	float	specularFactor	= Phong( nwsPixelNormal, nwsPixelToLightVec, nwsEyeVector );\n"
-				"	float3	specularColor	= cbSpecular.rgb * specularFactor * cbSpecular.w;\n"
-
-				"	float3	Ka				= ambientColor;\n"
-				"	float3	Kd				= diffuseColor;\n"
-				"	float3	Ks				= specularColor;\n"
-				"	float3	light			= lightColor.rgb * lightColor.w;\n"
-				"	return	Ka + ( ( Kd + Ks ) * light );\n"
-				"}\n"
-				"Texture2D		diffuseMap			: register( t0 );\n"
-				"SamplerState	diffuseMapSampler	: register( s0 );\n"
-				"float4 PSMain( VS_OUT pin ) : SV_TARGET\n"
-				"{\n"
-				"			pin.normal		= normalize( pin.normal );\n"
-			
-				"	float3	nLightVec		= normalize( -cbDirLight.direction.rgb );	// Vector from position.\n"
-				"	float4	nEyeVector		= cbEyePosition - pin.wsPos;				// Vector from position.\n"
-
-				"	float4	diffuseMapColor	= diffuseMap.Sample( diffuseMapSampler, pin.texCoord );\n"
-				"			diffuseMapColor	= SRGBToLinear( diffuseMapColor );\n"
-				"	float	diffuseMapAlpha	= diffuseMapColor.a;\n"
-
-				"	float3	totalLight		= CalcLightInfluence( cbDirLight.color, nLightVec, pin.normal.rgb, nEyeVector.rgb );\n"
-
-				"	float3	resultColor		= diffuseMapColor.rgb * totalLight;\n"
-				"	float4	outputColor		= float4( resultColor, diffuseMapAlpha );\n"
-				"			outputColor		= outputColor * cbDrawColor;\n"
-
-				"	return	LinearToSRGB( outputColor );\n"
-				"}\n"
 				;
 			}
 			static constexpr const char *StaticNameVS	= "Donya::DefaultModelStaticVS";
-			static constexpr const char *StaticNamePS	= "Donya::DefaultModelStaticPS";
 		}
 
 		// TODO : To specifiable these configuration by arguments of render method.
@@ -595,7 +567,7 @@ namespace Donya
 				*/
 				result = pMember->shaderSkinning.VS.CreateByEmbededSourceCode
 				(
-					Source::SkinnedNameVS, Source::SkinnedCode(), Source::EntryPointVS,
+					Source::SkinningNameVS, Source::SkinningCode(), Source::EntryPointVS,
 					MakeInputElementsSkinned(),
 					pDevice
 				);
@@ -613,7 +585,7 @@ namespace Donya
 				*/
 				result = pMember->shaderSkinning.PS.CreateByEmbededSourceCode
 				(
-					Source::SkinnedNamePS, Source::SkinnedCode(), Source::EntryPointPS,
+					Source::PixelShaderName, Source::PixelShaderCode(), Source::EntryPointPS,
 					pDevice
 				);
 				if ( !result )
@@ -638,7 +610,7 @@ namespace Donya
 
 				succeeded = pMember->shaderStatic.PS.CreateByEmbededSourceCode
 				(
-					Source::StaticNamePS, Source::StaticCode(), Source::EntryPointPS,
+					Source::PixelShaderName, Source::PixelShaderCode(), Source::EntryPointPS,
 					pDevice
 				);
 				if ( !result )
