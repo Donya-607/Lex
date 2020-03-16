@@ -83,9 +83,9 @@ public:
 			// if ( !modelID ) { succeeded = false; }
 			// rendererID	= Donya::Model::MakeRenderer( Donya::Model::ModelUsage::Skinned );
 			// if ( !rendererID ) { succeeded = false; }
-			pModelStatic = Donya::Model::StaticModel::Create( modelSource, loader.GetFileDirectory() );
+			pModelStatic = std::make_unique<Donya::Model::StaticModel>( Donya::Model::StaticModel::Create( modelSource, loader.GetFileDirectory() ) );
 			if ( !pModelStatic ) { succeeded = false; }
-			pModelSkinning = Donya::Model::SkinningModel::Create( modelSource, loader.GetFileDirectory() );
+			pModelSkinning = std::make_unique<Donya::Model::SkinningModel>( Donya::Model::SkinningModel::Create( modelSource, loader.GetFileDirectory() ) );
 			if ( !pModelSkinning ) { succeeded = false; }
 			pRendererStatic = std::make_unique<Donya::Model::StaticRenderer>();
 			if ( !pRendererStatic ) { succeeded = false; }

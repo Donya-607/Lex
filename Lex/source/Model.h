@@ -74,12 +74,12 @@ namespace Donya
 			/// This method is equivalent to call StaticModel::Create().<para></para>
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
-			static std::unique_ptr<StaticModel> CreateStatic( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
+			static StaticModel   CreateStatic( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
 			/// <summary>
 			/// This method is equivalent to call SkinningModel::Create().<para></para>
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
-			static std::unique_ptr<SkinningModel> CreateSkinning( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
+			static SkinningModel CreateSkinning( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
 		public:
 			struct Material
 			{
@@ -117,6 +117,7 @@ namespace Donya
 			std::string			fileDirectory;	// Use for making file path.
 			std::vector<Mesh>	meshes;
 			Pose				pose;
+			bool				initializeResult = false;
 		protected: // Prevent a user forgot to call the BuildMyself() when creation.
 			Model()								= default;
 		public:
@@ -149,6 +150,7 @@ namespace Donya
 			/// </summary>
 			bool UpdateSkeletal( const Animation::KeyFrame &currentSkeletal );
 		public:
+			bool WasInitializeSucceeded()			const { return initializeResult; }
 			const Pose				&GetPose()		const
 			{
 				return pose;
@@ -165,7 +167,7 @@ namespace Donya
 			/// <summary>
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
-			static std::unique_ptr<StaticModel> Create( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
+			static StaticModel Create( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
 		private:
 			bool CreateVertices( std::vector<Mesh> *pDest ) override;
 		};
@@ -176,7 +178,7 @@ namespace Donya
 			/// <summary>
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
-			static std::unique_ptr<SkinningModel> Create( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
+			static SkinningModel Create( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
 		private:
 			bool CreateVertices( std::vector<Mesh> *pDest ) override;
 		};

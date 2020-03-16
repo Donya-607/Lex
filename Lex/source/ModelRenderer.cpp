@@ -762,11 +762,14 @@ namespace Donya
 			return RegisterDesc::Make( 0, false, true );
 		}
 
-		void SetDefaultIfNullptr( ID3D11Device **ppDevice )
+		namespace
+		{
+			void SetDefaultIfNullptr( ID3D11Device **ppDevice )
 		{
 			if ( !ppDevice || *ppDevice ) { return; }
 			// else
 			*ppDevice = Donya::GetDevice();
+		}
 		}
 
 		Renderer::Renderer( ID3D11Device *pDevice ) :

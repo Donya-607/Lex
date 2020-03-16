@@ -8,7 +8,7 @@
 
 namespace
 {
-	void AssertCreation( const std::string &contentName, const std::string &identityName )
+	void AssertBaseCreation( const std::string &contentName, const std::string &identityName )
 	{
 		const std::string errMsg =
 			"Failed : The creation of model's " + contentName +
@@ -112,11 +112,11 @@ namespace Donya
 		}
 
 
-		std::unique_ptr<StaticModel> Model::CreateStatic( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice )
+		StaticModel   Model::CreateStatic( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice )
 		{
 			return StaticModel::Create( loadedSource, fileDirectory, pDevice );
 		}
-		std::unique_ptr<SkinningModel> Model::CreateSkinning( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice )
+		SkinningModel Model::CreateSkinning( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice )
 		{
 			return SkinningModel::Create( loadedSource, fileDirectory, pDevice );
 		}
@@ -138,7 +138,8 @@ namespace Donya
 			result = InitPose( source );
 			if ( !result ) { succeeded = false; }
 
-			return succeeded;
+			initializeResult = succeeded;
+			return initializeResult;
 		}
 
 		bool Model::InitMeshes( ID3D11Device *pDevice, const ModelSource &source )
@@ -186,7 +187,7 @@ namespace Donya
 			auto Assert = []( const std::string &kindName, size_t vertexIndex )
 			{
 				const std::string indexStr = "[" + std::to_string( vertexIndex ) + "]";
-				AssertCreation( "buffer", "Vertex::" + kindName + indexStr );
+				AssertBaseCreation( "buffer", "Vertex::" + kindName + indexStr );
 			};
 
 			HRESULT hr = S_OK;
@@ -224,7 +225,7 @@ namespace Donya
 				);
 				if ( FAILED( hr ) )
 				{
-					AssertCreation( "buffer", "Index" );
+					AssertBaseCreation( "buffer", "Index" );
 					return false;
 				}
 			}
@@ -286,7 +287,7 @@ namespace Donya
 			isEnableCache = true;
 		#endif // DEBUG_MODE
 
-			bool succeeded = true;
+			bool succeeded  = true;
 			bool hasTexture = ( pDest->textureName.empty() ) ? false : true;
 			if ( hasTexture )
 			{
@@ -311,10 +312,9 @@ namespace Donya
 				);
 			}
 
-
 			if ( !succeeded )
 			{
-				AssertCreation( "texture", fileDirectory + pDest->textureName );
+				AssertBaseCreation( "texture", fileDirectory + pDest->textureName );
 			}
 			return succeeded;
 		}
@@ -345,6 +345,19 @@ namespace Donya
 
 		namespace
 		{
+			void SetDefaultIfNullptr( ID3D11Device **ppDevice )
+			{
+				if ( !ppDevice || *ppDevice ) { return; }
+				// else
+				*ppDevice = Donya::GetDevice();
+			}
+
+			void AssertDerivedCreation( const std::wstring &modelName )
+			{
+				const std::wstring errMsg = L"Failed : The creation of " + modelName + L"is failed.";
+				_ASSERT_EXPR( 0, errMsg.c_str() );
+			}
+
 			template<class StrategyVertex>
 			void CreateVerticesImpl( std::vector<Model::Mesh> *pDest )
 			{
@@ -356,15 +369,15 @@ namespace Donya
 		}
 
 
-		std::unique_ptr<StaticModel> StaticModel::Create( const ModelSource &source, const std::string &fileDirectory, ID3D11Device *pDevice )
+		StaticModel StaticModel::Create( const ModelSource &source, const std::string &fileDirectory, ID3D11Device *pDevice )
 		{
-			class MakeUniqueEnabler : public StaticModel {};
-			MakeUniqueEnabler instance;
+			SetDefaultIfNullptr( &pDevice );
 
+			StaticModel    instance;
 			bool  result = instance.BuildMyself( source, fileDirectory, pDevice );
-			if ( !result ) { return nullptr; }
-			// else
-			return std::move( std::make_unique<MakeUniqueEnabler>( std::move( instance ) ) );
+			if ( !result ) { AssertDerivedCreation( L"StaticModel" ); }
+			
+			return std::move( instance );
 		}
 		bool StaticModel::CreateVertices( std::vector<Mesh> *pDest )
 		{
@@ -373,15 +386,15 @@ namespace Donya
 		}
 		
 
-		std::unique_ptr<SkinningModel> SkinningModel::Create( const ModelSource &source, const std::string &fileDirectory, ID3D11Device *pDevice )
+		SkinningModel SkinningModel::Create( const ModelSource &source, const std::string &fileDirectory, ID3D11Device *pDevice )
 		{
-			class MakeUniqueEnabler : public SkinningModel {};
-			MakeUniqueEnabler instance;
+			SetDefaultIfNullptr( &pDevice );
 
+			SkinningModel  instance;
 			bool  result = instance.BuildMyself( source, fileDirectory, pDevice );
-			if ( !result ) { return nullptr; }
-			// else
-			return std::move( std::make_unique<MakeUniqueEnabler>( std::move( instance ) ) );
+			if ( !result ) { AssertDerivedCreation( L"SkinningModel" ); }
+
+			return std::move( instance );
 		}
 		bool SkinningModel::CreateVertices( std::vector<Mesh> *pDest )
 		{
