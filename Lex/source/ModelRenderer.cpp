@@ -5,6 +5,7 @@
 
 #include "Donya/Donya.h"			// GetDevice().
 #include "Donya/RenderingStates.h"	// For default shading.
+#include "Donya/Constant.h"			// Use scast macro.
 
 #include "Model.h"
 
@@ -420,15 +421,6 @@ namespace Donya
 		}
 
 
-		std::unique_ptr<SkinningRenderer> Renderer::CreateSkinning( ID3D11Device *pDevice )
-		{
-			return SkinningRenderer::Create( pDevice );
-		}
-		std::unique_ptr<StaticRenderer>   Renderer::CreateStatic  ( ID3D11Device *pDevice )
-		{
-			return StaticRenderer::Create( pDevice );
-		}
-
 		std::unique_ptr<Renderer::Default::Member> Renderer::Default::pMember = nullptr;
 		bool Renderer::Default::Initialize( ID3D11Device *pDevice )
 		{
@@ -774,9 +766,18 @@ namespace Donya
 			return RegisterDesc::Make( 0, false, true );
 		}
 
+		void SetDefaultIfNullptr( ID3D11Device **ppDevice )
+		{
+			if ( !ppDevice || *ppDevice ) { return; }
+			// else
+			*ppDevice = Donya::GetDevice();
+		}
+
 		Renderer::Renderer( ID3D11Device *pDevice ) :
 			CBPerSubset()
 		{
+			SetDefaultIfNullptr( &pDevice );
+
 			bool  result = CBPerSubset.Create( pDevice );
 			if ( !result )
 			{
@@ -842,15 +843,15 @@ namespace Donya
 			CBPerSubset.Deactivate( pImmediateContext );
 		}
 
-		void Renderer::SetTexture( const RegisterDesc &descDiffuse, SRVType diffuseSRV, ID3D11DeviceContext *pImmediateContext ) const
+		void Renderer::SetTexture( const RegisterDesc &desc, SRVType SRV, ID3D11DeviceContext *pImmediateContext ) const
 		{
-			if ( descDiffuse.setVS )
+			if ( desc.setVS )
 			{
-				pImmediateContext->VSSetShaderResources( descDiffuse.setSlot, 1U, diffuseSRV );
+				pImmediateContext->VSSetShaderResources( desc.setSlot, 1U, SRV );
 			}
-			if ( descDiffuse.setPS )
+			if ( desc.setPS )
 			{
-				pImmediateContext->PSSetShaderResources( descDiffuse.setSlot, 1U, diffuseSRV );
+				pImmediateContext->PSSetShaderResources( desc.setSlot, 1U, SRV );
 			}
 		}
 		void Renderer::UnsetTexture( const RegisterDesc &descDiffuse, ID3D11DeviceContext *pImmediateContext ) const
@@ -894,25 +895,11 @@ namespace Donya
 		}
 
 
-		std::unique_ptr<StaticRenderer> StaticRenderer::Create( ID3D11Device *pDevice )
-		{
-			if ( !pDevice )
-			{
-				pDevice = Donya::GetDevice();
-			}
-
-			class MakeUniqueEnabler : public StaticRenderer
-			{
-			public:
-				MakeUniqueEnabler( ID3D11Device *pDevice ) : StaticRenderer( pDevice ) {}
-			};
-			return std::move( std::make_unique<MakeUniqueEnabler>( pDevice ) );
-		}
-
-		StaticRenderer::StaticRenderer( ID3D11Device *pDevice ) :
-			Renderer( pDevice ),
+		StaticRenderer::StaticRenderer( ID3D11Device *pDevice ) : Renderer( pDevice ),
 			CBPerMesh()
 		{
+			SetDefaultIfNullptr( &pDevice );
+
 			bool  result = CBPerMesh.CreateBuffer( pDevice );
 			if ( !result )
 			{
@@ -921,7 +908,6 @@ namespace Donya
 				throw std::runtime_error{ errMsg };
 			}
 		}
-		StaticRenderer::~StaticRenderer() = default;
 		void StaticRenderer::Render( const StaticModel &model, const RegisterDesc &descMesh, const RegisterDesc &descSubset, const RegisterDesc &descDiffuseMap, ID3D11DeviceContext *pImmediateContext )
 		{
 			if ( !pImmediateContext )
@@ -967,25 +953,11 @@ namespace Donya
 		}
 
 
-		std::unique_ptr<SkinningRenderer> SkinningRenderer::Create( ID3D11Device *pDevice )
-		{
-			if ( !pDevice )
-			{
-				pDevice = Donya::GetDevice();
-			}
-
-			class MakeUniqueEnabler : public SkinningRenderer
-			{
-			public:
-				MakeUniqueEnabler( ID3D11Device *pDevice ) : SkinningRenderer( pDevice ) {}
-			};
-			return std::move( std::make_unique<MakeUniqueEnabler>( pDevice ) );
-		}
-
-		SkinningRenderer::SkinningRenderer( ID3D11Device *pDevice ) :
-			StaticRenderer( pDevice ),
+		SkinningRenderer::SkinningRenderer( ID3D11Device *pDevice ) : Renderer( pDevice ),
 			CBPerMesh()
 		{
+			SetDefaultIfNullptr( &pDevice );
+
 			bool  result = CBPerMesh.CreateBuffer( pDevice );
 			if ( !result )
 			{

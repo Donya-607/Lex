@@ -75,23 +75,25 @@ public:
 			bool result{};
 			bool succeeded = true;
 
+			const auto modelSource = loader.GetModelSource();
+
 			result = Donya::SkinnedMesh::Create( loader, &mesh );
 			if ( !result ) { succeeded = false; }
 			// modelID		= Donya::Model::MakeModel( loader, Donya::Model::ModelUsage::Skinned );
 			// if ( !modelID ) { succeeded = false; }
 			// rendererID	= Donya::Model::MakeRenderer( Donya::Model::ModelUsage::Skinned );
 			// if ( !rendererID ) { succeeded = false; }
-			pModelStatic = Donya::Model::StaticModel::Create( loader.GetModelSource(), loader.GetFileDirectory() );
+			pModelStatic = Donya::Model::StaticModel::Create( modelSource, loader.GetFileDirectory() );
 			if ( !pModelStatic ) { succeeded = false; }
-			pModelSkinning = Donya::Model::SkinningModel::Create( loader.GetModelSource(), loader.GetFileDirectory() );
+			pModelSkinning = Donya::Model::SkinningModel::Create( modelSource, loader.GetFileDirectory() );
 			if ( !pModelSkinning ) { succeeded = false; }
-			pRendererStatic = Donya::Model::StaticRenderer::Create();
+			pRendererStatic = std::make_unique<Donya::Model::StaticRenderer>();
 			if ( !pRendererStatic ) { succeeded = false; }
-			pRendererSkinning = Donya::Model::SkinningRenderer::Create();
+			pRendererSkinning = std::make_unique<Donya::Model::SkinningRenderer>();
 			if ( !pRendererSkinning ) { succeeded = false; }
 
 			// Assign to holder.
-			for ( const auto &motion : loader.GetModelSource().motions )
+			for ( const auto &motion : modelSource.motions )
 			{
 				mHolder.AppendMotion( motion );
 			}

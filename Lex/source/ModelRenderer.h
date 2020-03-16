@@ -8,8 +8,7 @@
 #include "Donya/Shader.h"
 #include "Donya/Vector.h"
 
-#include "ModelAnimator.h"
-#include "ModelMaker.h"		// Use for ModelUsage, and specify to friend to making function.
+#include "ModelCommon.h"
 #include "ModelMotion.h"
 
 namespace Donya
@@ -79,10 +78,11 @@ namespace Donya
 			};
 		}
 
+		class Model;			// Use for a reference at Render() method.
 		class StaticModel;		// Use for a reference at Render() method.
 		class SkinningModel;	// Use for a reference at Render() method.
-		class SkinningRenderer;	// Use for the return value of making method.
-		class StaticRenderer;	// Use for the return value of making method.
+		class SkinningRenderer;	// Use for the return value of creating method.
+		class StaticRenderer;	// Use for the return value of creating method.
 
 		/// <summary>
 		/// Renderer of the Model class.<para></para>
@@ -91,17 +91,6 @@ namespace Donya
 		/// </summary>
 		class Renderer
 		{
-		public:
-			/// <summary>
-			/// This method is equivalent to call SkinningRenderer::Create().<para></para>
-			/// If you set nullptr to "pDevice", use default device.
-			/// </summary>
-			static std::unique_ptr<SkinningRenderer> CreateSkinning( ID3D11Device *pDevice = nullptr );
-			/// <summary>
-			/// This method is equivalent to call StaticRenderer::Create().<para></para>
-			/// If you set nullptr to "pDevice", use default device.
-			/// </summary>
-			static std::unique_ptr<StaticRenderer> CreateStatic( ID3D11Device *pDevice = nullptr );
 		public:
 			/// <summary>
 			/// Provides a default shading and settings.<para></para>
@@ -254,41 +243,43 @@ namespace Donya
 			};
 		private:
 			Donya::CBuffer<Constants::PerSubset::Common> CBPerSubset;
-		protected:
-			Renderer( ID3D11Device *pDevice );
-			DELETE_COPY_AND_ASSIGN( Renderer );
+		public:
+			/// <summary>
+			/// If you set nullptr to "pDevice", use default device.
+			/// </summary>
+			Renderer( ID3D11Device *pDevice = nullptr );
+			Renderer( const Renderer & )				= default;
+			Renderer &operator = ( const Renderer & )	= default;
+			Renderer( Renderer && )						= default;
+			Renderer &operator = ( Renderer && )		= default;
 			virtual ~Renderer() = 0;
 		protected:
-			void SetVertexBuffers( const Donya::Model::Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
-			void SetIndexBuffer( const Donya::Model::Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
+			void SetVertexBuffers( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
+			void SetIndexBuffer( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
 
-			void DrawEachSubsets( const Donya::Model::Model &model, size_t meshIndex, const RegisterDesc &subsetSetting, const RegisterDesc &diffuseMapSetting, ID3D11DeviceContext *pImmediateContext );
+			void DrawEachSubsets( const Model &model, size_t meshIndex, const RegisterDesc &subsetSetting, const RegisterDesc &diffuseMapSetting, ID3D11DeviceContext *pImmediateContext );
 		private:
-			void UpdateCBPerSubset( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
+			void UpdateCBPerSubset( const Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
 			void ActivateCBPerSubset( const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
 			void DeactivateCBPerSubset( ID3D11DeviceContext *pImmediateContext );
 
 			using SRVType = ID3D11ShaderResourceView * const *;
-			void SetTexture( const RegisterDesc &diffuseSettings, SRVType diffuseSRV, ID3D11DeviceContext *pImmediateContext ) const;
-			void UnsetTexture( const RegisterDesc &diffuseSettings, ID3D11DeviceContext *pImmediateContext ) const;
+			void SetTexture( const RegisterDesc &mapSettings, SRVType mapSRV, ID3D11DeviceContext *pImmediateContext ) const;
+			void UnsetTexture( const RegisterDesc &mapSettings, ID3D11DeviceContext *pImmediateContext ) const;
 
-			void DrawIndexed( const Donya::Model::Model &model, size_t meshIndex, size_t subsetIndex, ID3D11DeviceContext *pImmediateContext ) const;
+			void DrawIndexed( const Model &model, size_t meshIndex, size_t subsetIndex, ID3D11DeviceContext *pImmediateContext ) const;
 		};
 		inline Renderer::~Renderer() {}
 
 		class StaticRenderer : public Renderer
 		{
+		private:
+			Strategy::StaticConstantsPerMesh CBPerMesh;
 		public:
 			/// <summary>
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
-			static std::unique_ptr<StaticRenderer> Create( ID3D11Device *pDevice = nullptr );
-		private:
-			Strategy::StaticConstantsPerMesh CBPerMesh;
-		protected:
-			StaticRenderer( ID3D11Device *pDevice );
-		public:
-			virtual ~StaticRenderer();
+			StaticRenderer( ID3D11Device *pDevice = nullptr );
 		public:
 			/// <summary>
 			/// The "cbufferPerMesh" and "cbufferPerSubset" are used as a cbuffer's slot in HLSL.<para></para>
@@ -310,17 +301,15 @@ namespace Donya
 			void DeactivateCBPerMesh( ID3D11DeviceContext *pImmediateContext );
 		};
 
-		class SkinningRenderer : public StaticRenderer
+		class SkinningRenderer : public Renderer
 		{
+		private:
+			Strategy::SkinningConstantsPerMesh CBPerMesh;
 		public:
 			/// <summary>
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
-			static std::unique_ptr<SkinningRenderer> Create( ID3D11Device *pDevice = nullptr );
-		private:
-			Strategy::SkinningConstantsPerMesh CBPerMesh;
-		private:
-			SkinningRenderer( ID3D11Device *pDevice );
+			SkinningRenderer( ID3D11Device *pDevice = nullptr );
 		public:
 			/// <summary>
 			/// The "cbufferPerMesh" and "cbufferPerSubset" are used as a cbuffer's slot in HLSL.<para></para>
