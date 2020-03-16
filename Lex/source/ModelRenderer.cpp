@@ -82,7 +82,7 @@ namespace Donya
 				"};\n"
 				"struct VS_OUT\n"
 				"{\n"
-				"	float4		pos			: SV_POSITION;\n"
+				"	float4		svPos		: SV_POSITION;\n"
 				"	float4		wsPos		: POSITION;\n"
 				"	float4		normal		: NORMAL;\n"
 				"	float2		texCoord	: TEXCOORD0;\n"
@@ -148,7 +148,7 @@ namespace Donya
 
 				"	VS_OUT vout		= ( VS_OUT )0;\n"
 				"	vout.wsPos		= mul( vin.pos, W );\n"
-				"	vout.pos		= mul( vin.pos, WVP );\n"
+				"	vout.svPos		= mul( vin.pos, WVP );\n"
 				"	vout.normal		= normalize( mul( vin.normal, W ) );\n"
 				"	vout.texCoord	= vin.texCoord;\n"
 				"	return vout;\n"
@@ -189,12 +189,12 @@ namespace Donya
 				"	float3	light			= lightColor.rgb * lightColor.w;\n"
 				"	return	Ka + ( ( Kd + Ks ) * light );\n"
 				"}\n"
+
 				"Texture2D		diffuseMap			: register( t0 );\n"
 				"SamplerState	diffuseMapSampler	: register( s0 );\n"
+
 				"float4 PSMain( VS_OUT pin ) : SV_TARGET\n"
 				"{\n"
-				"	return 1;\n"
-				"	if( isnan( pin.normal.x ) ) { return float4(0.0f, 1.0f, 0.0f, 1.0f); }\n"
 				"			pin.normal		= normalize( pin.normal );\n"
 			
 				"	float3	nLightVec		= normalize( -cbDirLight.direction.rgb );	// Vector from position.\n"
@@ -228,7 +228,7 @@ namespace Donya
 				"};\n"
 				"struct VS_OUT\n"
 				"{\n"
-				"	float4		pos			: SV_POSITION;\n"
+				"	float4		svPos		: SV_POSITION;\n"
 				"	float4		wsPos		: POSITION;\n"
 				"	float4		normal		: NORMAL;\n"
 				"	float2		texCoord	: TEXCOORD0;\n"
@@ -270,10 +270,10 @@ namespace Donya
 				"	float4x4 W		= mul( cbAdjustMatrix, cbWorld );\n"
 				"	float4x4 WVP	= mul( W, cbViewProj );\n"
 
-				"	VS_OUT vout		= ( VS_OUT )0;\n"
+				"	VS_OUT vout		= ( VS_OUT )( 0 );\n"
 				"	vout.wsPos		= mul( vin.pos, W );\n"
-				"	vout.pos		= mul( vin.pos, WVP );\n"
-				"	vout.normal		= normalize( mul( vin.normal, cbWorld ) );\n"
+				"	vout.svPos		= mul( vin.pos, WVP );\n"
+				"	vout.normal		= normalize( mul( vin.normal, W ) );\n"
 				"	vout.texCoord	= vin.texCoord;\n"
 				"	return vout;\n"
 				"}\n"
@@ -585,37 +585,37 @@ namespace Donya
 
 			// For Skinning.
 			{
+				/*
 				result = pMember->shaderSkinning.VS.CreateByCSO
 				(
 					"./Data/Shader/SourceSkinnedMeshVS.cso",
 					MakeInputElementsSkinned(),
 					pDevice
 				);
-				/*
-				result = pMember->shaderSkinned.VS.CreateByEmbededSourceCode
+				*/
+				result = pMember->shaderSkinning.VS.CreateByEmbededSourceCode
 				(
 					Source::SkinnedNameVS, Source::SkinnedCode(), Source::EntryPointVS,
 					MakeInputElementsSkinned(),
 					pDevice
 				);
-				*/
 				if ( !result )
 				{
 					AssertFailedCreation( L"Skinned_VS" );
 					succeeded = false;
 				}
 
+				/*
 				result = pMember->shaderSkinning.PS.CreateByCSO
 				(
 					"./Data/Shader/SourceSkinnedMeshPS.cso", pDevice
 				);
-				/*
-				result = pMember->shaderSkinned.PS.CreateByEmbededSourceCode
+				*/
+				result = pMember->shaderSkinning.PS.CreateByEmbededSourceCode
 				(
 					Source::SkinnedNamePS, Source::SkinnedCode(), Source::EntryPointPS,
 					pDevice
 				);
-				*/
 				if ( !result )
 				{
 					AssertFailedCreation( L"Skinned_PS" );
