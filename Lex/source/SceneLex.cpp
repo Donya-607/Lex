@@ -320,34 +320,6 @@ public:
 
 		Donya::Vector4x4 S{}, R{}, T{}, W{};
 		Donya::Vector4x4 WVP = W * V * P;
-		//for ( auto &it : models )
-		//{
-		//	if ( it.dontWannaDraw ) { continue; }
-		//	// else
-		//	const Donya::Vector3 eulerRadians
-		//	{
-		//		ToRadian( it.rotation.x ),
-		//		ToRadian( it.rotation.y ),
-		//		ToRadian( it.rotation.z ),
-		//	};
-		//	S = Donya::Vector4x4::MakeScaling( it.scale );
-		//	R = Donya::Vector4x4::MakeRotationEuler( eulerRadians );
-		//	T = Donya::Vector4x4::MakeTranslation( it.translation );
-		//	W = S * R * T;
-		//	WVP = W * V * P;
-		//	it.mesh.Render
-		//	(
-		//		it.motions,
-		//		it.animator,
-		//		WVP, W,
-		//		optionPerMesh,
-		//		optionPerSubset,
-		//		/* psSetSamplerSlot    = */ 0,
-		//		/* psSetDiffuseMapSlot = */ 0,
-		//		( drawWireFrame ) ? false : true
-		//	);
-		//}
-
 		PSSkinnedMesh.Deactivate();
 		VSSkinnedMesh.Deactivate();
 
@@ -363,6 +335,37 @@ public:
 		}
 
 		DrawOriginCube( V * P );
+
+		// Old version. not supporting now.
+		/*
+		for ( auto &it : models )
+		{
+			if ( it.dontWannaDraw ) { continue; }
+			// else
+			const Donya::Vector3 eulerRadians
+			{
+				ToRadian( it.rotation.x ),
+				ToRadian( it.rotation.y ),
+				ToRadian( it.rotation.z ),
+			};
+			S = Donya::Vector4x4::MakeScaling( it.scale );
+			R = Donya::Vector4x4::MakeRotationEuler( eulerRadians );
+			T = Donya::Vector4x4::MakeTranslation( it.translation );
+			W = S * R * T;
+			WVP = W * V * P;
+			it.mesh.Render
+			(
+				it.motions,
+				it.animator,
+				WVP, W,
+				optionPerMesh,
+				optionPerSubset,
+				/ psSetSamplerSlot     /=  0,
+				/ psSetDiffuseMapSlot  /=  0,
+				( drawWireFrame ) ? false : true
+			);
+		}
+		*/
 	}
 private:
 	void ClearBackGround() const
@@ -1071,151 +1074,176 @@ private:
 				ImGui::TreePop();
 			}
 				
-			if ( ImGui::TreeNode( u8"モデル一覧" ) )
-			{
-				size_t modelCount = models.size();
-				ImGui::Text( u8"モデル数:[%d]", modelCount );
-
-				std::string caption{};
-
-				int  uniqueIndex = 0;
-				auto MakeCaption = [&uniqueIndex]( const Donya::Loader &source )
-				{
-					std::string fileName = "[" + source.GetOnlyFileName() + "]";
-					std::string postfix = "##" + std::to_string( uniqueIndex++ );
-					return fileName + postfix;
-				};
-
-				for ( auto &it = models.begin(); it != models.end(); )
-				{
-					caption = MakeCaption( it->loader );
-					if ( ImGui::TreeNode( caption.c_str() ) )
-					{
-						if ( ImGui::Button( u8"取り除く" ) )
-						{
-							it = models.erase( it );
-
-							ImGui::TreePop();
-							continue;
-						}
-						// else
-						if ( ImGui::Button( u8"保存" ) )
-						{
-							std::string saveName = GetSaveFileNameByCommonDialog();
-							if ( saveName.empty() )
-							{
-								// Cancel the save process.
-							}
-							else
-							{
-								if ( saveName.find( ".bin" ) == std::string::npos )
-								{
-									saveName += ".bin";
-								}
-								it->loader.SaveByCereal( saveName );
-							}
-						}
-						ImGui::Text( "" );
-
-						if ( ImGui::TreeNode( u8"描画設定" ) )
-						{
-							ImGui::Text( "一時的な設定になります\n" );
-
-							ImGui::Checkbox( u8"隠す", &it->dontWannaDraw );
-							ImGui::Text( "" );
-
-							ImGui::Checkbox( u8"スキン版を使用する", &it->useSkinningVersion );
-							ImGui::Text( "" );
-
-							ImGui::DragFloat3( u8"スケール",			&it->scale.x,		0.1f		);
-							ImGui::DragFloat3( u8"回転量（Degree）",	&it->rotation.x,	1.0f		);
-							ImGui::DragFloat3( u8"平行移動",			&it->translation.x,	1.0f		);
-
-							ImGui::DragFloat( u8"モーション再生速度（倍率）",	&it->motionAccelPercent, 0.01f, 0.0f );
-							ImGui::DragFloat( u8"モーションの経過時間",		&it->currentElapsedTime, 0.01f, 0.0f );
-
-							ImGui::Text( u8"登録されているモーションの数：%d", it->holder.GetMotionCount() );
-
-							if ( ImGui::TreeNode( u8"モーションを追加する" ) )
-							{
-								ImGui::Text( u8"他のロード済みモデルからの追加になります" );
-
-								auto ShowPart = [&]( const MeshAndInfo &source )
-								{
-									if ( &( *it ) == &source ) { return; } // Except the myself
-									if ( !ImGui::TreeNode( MakeCaption( source.loader ).c_str() ) ) { return; }
-									// else
-
-									const auto modelSource = source.loader.GetModelSource();
-									ImGui::Text( u8"モーションの数：[%d]", modelSource.motions.size() );
-
-									const std::string prompt{ u8"このモーション群を追加する" };
-
-									if ( modelSource.motions.empty() )
-									{
-										ImGui::TextDisabled( prompt.c_str() );
-										ImGui::Text( "モーションを持っていません" );
-									}
-									else if ( ImGui::Button( prompt.c_str() ) )
-									{
-										it->holder.AppendSource( modelSource );
-									}
-
-									ImGui::TreePop();
-								};
-
-								for ( const auto &itr : models )
-								{
-									ShowPart( itr );
-								}
-
-								if ( !it->addMotionResultInfo.empty() )
-								{
-									ImGui::Text( it->addMotionResultInfo.c_str() );
-									if ( ImGui::Button( u8"モーション追加の結果情報を削除" ) )
-									{
-										it->addMotionResultInfo = "";
-									}
-								}
-
-								ImGui::TreePop();
-							}
-
-							if ( 2 <= it->holder.GetMotionCount() )
-							{
-								ImGui::SliderInt( u8"使用するモーション番号", &it->usingMotionIndex, 0, it->holder.GetMotionCount() - 1 );
-								it->usingMotionIndex = std::max( 0, std::min( scast<int>( it->holder.GetMotionCount() ) - 1, it->usingMotionIndex ) );
-							}
-							else
-							{
-								ImGui::Text( u8"使用するモーション番号：０" );
-								it->usingMotionIndex = 0;
-							}
-
-							ImGui::Checkbox ( u8"モーションをループ再生する",	&it->playLoopMotion );
-							it->animator.SetInternalElapsedTime( it->currentElapsedTime );
-							( it->playLoopMotion ) ? it->animator.EnableWrapAround() : it->animator.DisableWrapAround();
-
-							ImGui::TreePop();
-						}
-						ImGui::Text( "" );
-
-						it->loader.AdjustParameterByImGuiNode();
-						it->loader.EnumPreservingDataToImGui();
-						ImGui::TreePop();
-					}
-
-					++it;
-				}
-
-				ImGui::TreePop();
-			}
+			const std::string strModelCount = u8"[" + std::to_string( models.size() ) + u8"]";
+			const std::string modelsCaption = u8"モデル一覧：" + strModelCount + u8"（個）";
+			ShowModelNode( modelsCaption );
 
 			ImGui::End();
 		}
 
 	#endif // USE_IMGUI
 	}
+#if USE_IMGUI
+	void ShowModelNode( const std::string &caption )
+	{
+		if ( !ImGui::TreeNode( caption.c_str() ) ) { return; }
+		// else
+
+		int  uniqueIndex		= 0;
+		auto MakeCaption		= [&uniqueIndex]( const Donya::Loader &source )
+		{
+			std::string fileName = "[" + source.GetOnlyFileName() + "]";
+			std::string postfix = "##" + std::to_string( uniqueIndex++ );
+			return fileName + postfix;
+		};
+
+		auto ShowDrawConfig		= [&]( MeshAndInfo &target )
+		{
+			if ( !ImGui::TreeNode( u8"描画設定" ) ) { return; }
+			// else
+			
+			ImGui::Checkbox( u8"隠す", &target.dontWannaDraw );
+
+			ImGui::DragFloat3( u8"スケール", &target.scale.x, 0.1f );
+			ImGui::DragFloat3( u8"回転量（Degree）", &target.rotation.x, 1.0f );
+			ImGui::DragFloat3( u8"平行移動", &target.translation.x, 1.0f );
+
+			ImGui::TreePop();
+		};
+		auto ShowMotionConfig	= [&]( MeshAndInfo &target )
+		{
+			if ( !ImGui::TreeNode( u8"モーション設定" ) ) { return; }
+			// else
+			
+			ImGui::Checkbox( u8"スキン版を使用する", &target.useSkinningVersion );
+			ImGui::Text( "" );
+
+			ImGui::DragFloat( u8"モーション再生速度（倍率）",	&target.motionAccelPercent, 0.01f, 0.0f );
+			ImGui::DragFloat( u8"モーションの経過時間",		&target.currentElapsedTime, 0.01f, 0.0f );
+			ImGui::Checkbox ( u8"モーションをループ再生する",	&target.playLoopMotion );
+			target.animator.SetInternalElapsedTime( target.currentElapsedTime );
+			( target.playLoopMotion )
+			? target.animator.EnableWrapAround()
+			: target.animator.DisableWrapAround();
+
+			ImGui::Text( u8"登録されているモーションの数：%d", target.holder.GetMotionCount() );
+
+			if ( ImGui::TreeNode( u8"モーションを追加する" ) )
+			{
+				ImGui::Text( u8"他のロード済みモデルからの追加になります" );
+
+				auto ShowPart = [&]( const MeshAndInfo &source )
+				{
+					if ( &target == &source ) { return; } // Except the myself.
+					if ( !ImGui::TreeNode( MakeCaption( source.loader ).c_str() ) ) { return; }
+					// else
+
+					const auto modelSource = source.loader.GetModelSource();
+					ImGui::Text( u8"モーションの数：[%d]", modelSource.motions.size() );
+
+					const std::string prompt{ u8"このモーション群を追加する" };
+
+					if ( modelSource.motions.empty() )
+					{
+						ImGui::TextDisabled( prompt.c_str() );
+						ImGui::Text( "モーションを持っていません" );
+					}
+					else if ( ImGui::Button( prompt.c_str() ) )
+					{
+						target.holder.AppendSource( modelSource );
+					}
+
+					ImGui::TreePop();
+				};
+
+				for ( const auto &itr : models )
+				{
+					ShowPart( itr );
+				}
+
+				if ( !target.addMotionResultInfo.empty() )
+				{
+					ImGui::Text( target.addMotionResultInfo.c_str() );
+					if ( ImGui::Button( u8"モーション追加の結果情報を削除" ) )
+					{
+						target.addMotionResultInfo = "";
+					}
+				}
+
+				ImGui::TreePop();
+			}
+
+			const size_t motionCount = target.holder.GetMotionCount();
+			if ( 2 <= motionCount )
+			{
+				ImGui::SliderInt( u8"使用するモーション番号", &target.usingMotionIndex, 0, motionCount - 1 );
+				target.usingMotionIndex = std::max( 0, std::min( scast<int>( motionCount ) - 1, target.usingMotionIndex ) );
+			}
+			else
+			{
+				ImGui::Text( u8"使用するモーション番号：０" );
+				target.usingMotionIndex = 0;
+			}
+
+			ImGui::TreePop();
+		};
+		auto ShowLoaderConfig	= [&]( MeshAndInfo &target )
+		{
+			if ( !ImGui::TreeNode( u8"詳細" ) ) { return; }
+			// else
+
+			target.loader.AdjustParameterByImGuiNode();
+			target.loader.EnumPreservingDataToImGui();
+
+			ImGui::TreePop();
+		};
+
+		for ( auto &it = models.begin(); it != models.end(); )
+		{
+			if ( !ImGui::TreeNode( MakeCaption( it->loader ).c_str() ) )
+			{
+				++it;
+				continue;
+			}
+			// else
+
+			if ( ImGui::Button( u8"取り除く" ) )
+			{
+				it = models.erase( it );
+
+				ImGui::TreePop();
+				continue;
+			}
+			// else
+			if ( ImGui::Button( u8"保存" ) )
+			{
+				std::string saveName = GetSaveFileNameByCommonDialog();
+				if ( saveName.empty() )
+				{
+					// Cancel the save process.
+				}
+				else
+				{
+					if ( saveName.find( ".bin" ) == std::string::npos )
+					{
+						saveName += ".bin";
+					}
+					it->loader.SaveByCereal( saveName );
+				}
+			}
+			ImGui::Text( "" );
+
+			ShowDrawConfig( *it );
+			ShowMotionConfig( *it );
+			ShowLoaderConfig( *it );
+
+			ImGui::TreePop();
+			++it;
+		}
+
+		ImGui::TreePop();
+	}
+#endif // USE_IMGUI
 };
 
 SceneLex::SceneLex() : pImpl( std::make_unique<Impl>() )
