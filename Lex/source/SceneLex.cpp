@@ -1223,6 +1223,7 @@ private:
 				ImGui::Text( u8"描画するモーション番号：０" );
 				target.usingMotionIndex = 0;
 			}
+			ImGui::Text( u8"描画するモーション名：%s", ( !motionCount ? "[EMPTY]" : target.holder.GetMotion( target.usingMotionIndex ).name.c_str() ) );
 
 			ImGui::TreePop();
 		};
