@@ -30,7 +30,7 @@ namespace fbxsdk
 }
 #endif // USE_FBX_SDK
 
-// Program version : 6
+// Program version : 7
 
 namespace Donya
 {
@@ -350,7 +350,7 @@ namespace Donya
 		void SaveByCereal( const std::string &filePath ) const;
 	public:
 		Model::ModelSource GetModelSource() const	{ return source; }
-		Model::ModelSource &GetModelSource()		{ return source; }
+		void SetModelSource( const Model::ModelSource &newSource ) { source = newSource; }
 
 		std::string GetAbsoluteFilePath()					const { return absFilePath;		}
 		std::string GetOnlyFileName()						const { return fileName;		}

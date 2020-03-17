@@ -61,6 +61,7 @@ public:
 
 		Donya::Loader				loader{};
 		Model						model{};
+		Donya::Model::ModelSource	source{};
 		Donya::Model::MotionHolder	holder{};
 		Donya::Model::Animator		animator{};
 		Donya::Model::Pose			pose{};
@@ -86,19 +87,19 @@ public:
 			bool result{};
 			bool succeeded = true;
 
-			const auto modelSource = loader.GetModelSource();
+			source = loader.GetModelSource();
 
-			model.pStatic	= std::make_shared<Donya::Model::StaticModel>  ( Donya::Model::StaticModel::Create  ( modelSource, loader.GetFileDirectory() ) );
-			model.pSkinning	= std::make_shared<Donya::Model::SkinningModel>( Donya::Model::SkinningModel::Create( modelSource, loader.GetFileDirectory() ) );
+			model.pStatic	= std::make_shared<Donya::Model::StaticModel>  ( Donya::Model::StaticModel::Create  ( source, loader.GetFileDirectory() ) );
+			model.pSkinning	= std::make_shared<Donya::Model::SkinningModel>( Donya::Model::SkinningModel::Create( source, loader.GetFileDirectory() ) );
 			if ( !model.pStatic->WasInitializeSucceeded()   ) { succeeded = false; }
 			if ( !model.pSkinning->WasInitializeSucceeded() ) { succeeded = false; }
 
 			// Assign to holder.
-			holder.AppendSource( modelSource );
+			holder.AppendSource( source );
 
 			animator.ResetTimer();
 			
-			pose.AssignSkeletal( modelSource.skeletal );
+			pose.AssignSkeletal( source.skeletal );
 
 			return succeeded;
 
@@ -1101,11 +1102,11 @@ private:
 			if ( !ImGui::TreeNode( u8"描画設定" ) ) { return; }
 			// else
 			
-			ImGui::Checkbox( u8"隠す", &target.dontWannaDraw );
+			ImGui::Checkbox  ( u8"隠す", &target.dontWannaDraw );
 
-			ImGui::DragFloat3( u8"スケール", &target.scale.x, 0.1f );
-			ImGui::DragFloat3( u8"回転量（Degree）", &target.rotation.x, 1.0f );
-			ImGui::DragFloat3( u8"平行移動", &target.translation.x, 1.0f );
+			ImGui::DragFloat3( u8"スケール",			&target.scale.x,		0.1f );
+			ImGui::DragFloat3( u8"回転量（Degree）",	&target.rotation.x,		1.0f );
+			ImGui::DragFloat3( u8"平行移動",			&target.translation.x,	1.0f );
 
 			ImGui::TreePop();
 		};
@@ -1128,23 +1129,36 @@ private:
 			ImGui::Text( u8"登録されているモーションの数：%d", target.holder.GetMotionCount() );
 
 			// I should apply the appending/erasing of motion to loader's source also, because of the Lex outputs the loader.
+			// But the accessing to loader's source is heavy, so now I do not apply that. That application will do at saving timing.
+
+			auto AppendMotion = []( MeshAndInfo &target, const Donya::Model::Animation::Motion &addition )
+			{
+				target.holder.AppendMotion( addition );
+				target.source.motions.emplace_back( addition );
+			};
+			auto EraseMotion  = []( MeshAndInfo &target, size_t eraseIndex )
+			{
+				target.holder.EraseMotion( scast<int>( eraseIndex ) );
+
+				auto &sourceMotions = target.source.motions;
+				sourceMotions.erase( sourceMotions.begin() + eraseIndex );
+			};
+
 			if ( ImGui::TreeNode( u8"モーションを追加する" ) )
 			{
 				ImGui::Text( u8"他のロード済みモデルからの追加になります" );
 
-				auto ShowPart = [&]( const MeshAndInfo &source )
+				auto ShowPart = [&]( const MeshAndInfo &from )
 				{
-					if ( &target == &source ) { return; } // Except the myself.
+					if ( &target == &from ) { return; } // Except the myself.
 					// else
 
-					Donya::Model::ModelSource &modelSource = source.loader.GetModelSource();
-
-					const std::string strModelName = MakeCaption( source.loader );
-					const std::string strMotionCount = u8"モーション数：" + std::to_string( modelSource.motions.size() );
-					if ( !ImGui::TreeNode( ( strModelName + u8"・" + strMotionCount ).c_str() ) ) { return; }
+					const std::string srcModelName = MakeCaption( from.loader );
+					const std::string srcMotionCount = u8"モーション数：" + std::to_string( from.source.motions.size() );
+					if ( !ImGui::TreeNode( ( srcModelName + u8"・" + srcMotionCount ).c_str() ) ) { return; }
 					// else
 
-					if ( modelSource.motions.empty() )
+					if ( from.source.motions.empty() )
 					{
 						ImGui::Text( u8"モーションを持っていません" );
 						return;
@@ -1153,7 +1167,7 @@ private:
 
 					const std::string prefix{ u8"追加：" };
 					std::string buttonCaption;
-					for ( const auto &it : modelSource.motions )
+					for ( const auto &it : from.source.motions )
 					{
 						if ( it.keyFrames.empty() )
 						{
@@ -1171,8 +1185,7 @@ private:
 						if ( !ImGui::Button( buttonCaption.c_str() ) ) { continue; }
 						// else
 
-						target.holder.AppendMotion( it );
-						target.loader.GetModelSource().motions.emplace_back( it );
+						AppendMotion( target, it );
 					}
 
 					ImGui::TreePop();
@@ -1194,7 +1207,7 @@ private:
 				size_t eraseIndex = motionCount;
 				for ( size_t i = 0; i < motionCount; ++i )
 				{
-					buttonCaption = prefix + target.holder.GetMotion( i ).name;
+					buttonCaption = prefix + target.source.motions[i].name;
 					if ( !ImGui::Button( buttonCaption.c_str() ) ) { continue; }
 					// else
 
@@ -1203,27 +1216,25 @@ private:
 
 				if ( eraseIndex < motionCount )
 				{
-					target.holder.EraseMotion( scast<int>( eraseIndex ) );
-					
-					auto &sourceMotions = target.loader.GetModelSource().motions;
-					sourceMotions.erase( sourceMotions.begin() + eraseIndex );
+					EraseMotion( target, eraseIndex );
 				}
 
 				ImGui::TreePop();
 			}
 
-			const size_t motionCount = target.holder.GetMotionCount();
+			const size_t motionCount = target.source.motions.size();
 			if ( 2 <= motionCount )
 			{
-				ImGui::SliderInt( u8"描画するモーション番号", &target.usingMotionIndex, 0, motionCount - 1 );
-				target.usingMotionIndex = std::max( 0, std::min( scast<int>( motionCount ) - 1, target.usingMotionIndex ) );
+				const size_t max = motionCount - 1;
+				ImGui::SliderInt( u8"描画するモーション番号", &target.usingMotionIndex, 0, max );
+				target.usingMotionIndex = std::max( 0, std::min( scast<int>( max ), target.usingMotionIndex ) );
 			}
 			else
 			{
 				ImGui::Text( u8"描画するモーション番号：０" );
 				target.usingMotionIndex = 0;
 			}
-			ImGui::Text( u8"描画するモーション名：%s", ( !motionCount ? "[EMPTY]" : target.holder.GetMotion( target.usingMotionIndex ).name.c_str() ) );
+			ImGui::Text( u8"描画するモーション名：%s", ( !motionCount ? "[EMPTY]" : target.source.motions[target.usingMotionIndex].name.c_str() ) );
 
 			ImGui::TreePop();
 		};
@@ -1257,6 +1268,9 @@ private:
 			// else
 			if ( ImGui::Button( u8"保存" ) )
 			{
+				// Apply the changes of motion that when ShowMotionConfig().
+				it->loader.SetModelSource( it->source );
+
 				std::string saveName = GetSaveFileNameByCommonDialog();
 				if ( saveName.empty() )
 				{
