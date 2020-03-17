@@ -67,7 +67,6 @@ public:
 		Donya::Vector3				scale		{ 1.0f, 1.0f, 1.0f };
 		Donya::Vector3				rotation	{ 0.0f, 0.0f, 0.0f };	// Pitch, Yaw, Roll. Degree.
 		Donya::Vector3				translation	{ 0.0f, 0.0f, 0.0f };
-		std::string	addMotionResultInfo{};
 		int			usingMotionIndex{ 0 };
 		float		currentElapsedTime{};
 		float		motionAccelPercent{ 1.0f };		// Normal is 1.0f.
@@ -1128,6 +1127,7 @@ private:
 
 			ImGui::Text( u8"登録されているモーションの数：%d", target.holder.GetMotionCount() );
 
+			// I should apply the appending/erasing of motion to loader's source also, because of the Lex outputs the loader.
 			if ( ImGui::TreeNode( u8"モーションを追加する" ) )
 			{
 				ImGui::Text( u8"他のロード済みモデルからの追加になります" );
@@ -1135,22 +1135,44 @@ private:
 				auto ShowPart = [&]( const MeshAndInfo &source )
 				{
 					if ( &target == &source ) { return; } // Except the myself.
-					if ( !ImGui::TreeNode( MakeCaption( source.loader ).c_str() ) ) { return; }
 					// else
 
-					const auto modelSource = source.loader.GetModelSource();
-					ImGui::Text( u8"モーションの数：[%d]", modelSource.motions.size() );
+					Donya::Model::ModelSource &modelSource = source.loader.GetModelSource();
 
-					const std::string prompt{ u8"このモーション群を追加する" };
+					const std::string strModelName = MakeCaption( source.loader );
+					const std::string strMotionCount = u8"モーション数：" + std::to_string( modelSource.motions.size() );
+					if ( !ImGui::TreeNode( ( strModelName + u8"・" + strMotionCount ).c_str() ) ) { return; }
+					// else
 
 					if ( modelSource.motions.empty() )
 					{
-						ImGui::TextDisabled( prompt.c_str() );
-						ImGui::Text( "モーションを持っていません" );
+						ImGui::Text( u8"モーションを持っていません" );
+						return;
 					}
-					else if ( ImGui::Button( prompt.c_str() ) )
+					// else
+
+					const std::string prefix{ u8"追加：" };
+					std::string buttonCaption;
+					for ( const auto &it : modelSource.motions )
 					{
-						target.holder.AppendSource( modelSource );
+						if ( it.keyFrames.empty() )
+						{
+							ImGui::Text( u8"中身が空っぽです：%s", it.name.c_str() ); continue;
+						}
+						// else
+
+						if ( !target.pose.HasCompatibleWith( it.keyFrames.front() ) )
+						{
+							ImGui::Text( u8"追加先の骨格との互換性がありません：%s", it.name.c_str() ); continue;
+						}
+						// else
+
+						buttonCaption = prefix + it.name;
+						if ( !ImGui::Button( buttonCaption.c_str() ) ) { continue; }
+						// else
+
+						target.holder.AppendMotion( it );
+						target.loader.GetModelSource().motions.emplace_back( it );
 					}
 
 					ImGui::TreePop();
@@ -1161,13 +1183,30 @@ private:
 					ShowPart( itr );
 				}
 
-				if ( !target.addMotionResultInfo.empty() )
+				ImGui::TreePop();
+			}
+			if ( ImGui::TreeNode( u8"モーションを削除する" ) )
+			{
+				const std::string prefix{ u8"削除：" };;
+				const size_t motionCount = target.holder.GetMotionCount();
+
+				std::string buttonCaption{};
+				size_t eraseIndex = motionCount;
+				for ( size_t i = 0; i < motionCount; ++i )
 				{
-					ImGui::Text( target.addMotionResultInfo.c_str() );
-					if ( ImGui::Button( u8"モーション追加の結果情報を削除" ) )
-					{
-						target.addMotionResultInfo = "";
-					}
+					buttonCaption = prefix + target.holder.GetMotion( i ).name;
+					if ( !ImGui::Button( buttonCaption.c_str() ) ) { continue; }
+					// else
+
+					eraseIndex = i;
+				}
+
+				if ( eraseIndex < motionCount )
+				{
+					target.holder.EraseMotion( scast<int>( eraseIndex ) );
+					
+					auto &sourceMotions = target.loader.GetModelSource().motions;
+					sourceMotions.erase( sourceMotions.begin() + eraseIndex );
 				}
 
 				ImGui::TreePop();
@@ -1176,12 +1215,12 @@ private:
 			const size_t motionCount = target.holder.GetMotionCount();
 			if ( 2 <= motionCount )
 			{
-				ImGui::SliderInt( u8"使用するモーション番号", &target.usingMotionIndex, 0, motionCount - 1 );
+				ImGui::SliderInt( u8"描画するモーション番号", &target.usingMotionIndex, 0, motionCount - 1 );
 				target.usingMotionIndex = std::max( 0, std::min( scast<int>( motionCount ) - 1, target.usingMotionIndex ) );
 			}
 			else
 			{
-				ImGui::Text( u8"使用するモーション番号：０" );
+				ImGui::Text( u8"描画するモーション番号：０" );
 				target.usingMotionIndex = 0;
 			}
 

@@ -34,6 +34,15 @@ namespace Donya
 			Animation::Motion FindMotion( const std::string &motionName ) const;
 		public:
 			/// <summary>
+			/// Erase a motion by index of array.
+			/// </summary>
+			void EraseMotion( int motionIndex );
+			/// <summary>
+			/// Erase a motion that found first by name. This method erases only once even if I contain multiple names.
+			/// </summary>
+			void EraseMotion( const std::string &motionName );
+		public:
+			/// <summary>
 			/// Append all motions that the source has. The consistency with internal motion is not considered.
 			/// </summary>
 			void AppendSource( const ModelSource &source );

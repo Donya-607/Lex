@@ -48,6 +48,25 @@ namespace Donya
 			return EmptyMotion();
 		}
 
+		void MotionHolder::EraseMotion( int motionIndex )
+		{
+			if ( IsOutOfRange( motionIndex ) ) { return; }
+			// else
+			motions.erase( motions.begin() + motionIndex );
+		}
+		void MotionHolder::EraseMotion( const std::string &motionName )
+		{
+			for ( auto &it = motions.begin(); it != motions.end(); ++it )
+			{
+				if ( it->name == motionName )
+				{
+					// Erases only once.
+					motions.erase( it );
+					return;
+				}
+			}
+		}
+
 		void MotionHolder::AppendSource( const ModelSource &source )
 		{
 			for ( const auto &it : source.motions )
