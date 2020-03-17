@@ -1074,9 +1074,7 @@ private:
 				ImGui::TreePop();
 			}
 				
-			const std::string strModelCount = u8"[" + std::to_string( models.size() ) + u8"]";
-			const std::string modelsCaption = u8"モデル一覧：" + strModelCount + u8"（個）";
-			ShowModelNode( modelsCaption );
+			ShowModelNode( u8"モデル一覧" );
 
 			ImGui::End();
 		}
@@ -1088,6 +1086,8 @@ private:
 	{
 		if ( !ImGui::TreeNode( caption.c_str() ) ) { return; }
 		// else
+
+		ImGui::Text( u8"モデル数：[%d]", models.size() );
 
 		int  uniqueIndex		= 0;
 		auto MakeCaption		= [&uniqueIndex]( const Donya::Loader &source )
