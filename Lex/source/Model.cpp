@@ -128,17 +128,9 @@ namespace Donya
 				pDevice = Donya::GetDevice();
 			}
 
-			fileDirectory	= argFileDirectory;
+			fileDirectory		= argFileDirectory;
+			initializeResult	= InitMeshes( pDevice, source );
 
-			bool result		= true;
-			bool succeeded	= true;
-
-			result = InitMeshes( pDevice, source );
-			if ( !result ) { succeeded = false; }
-			result = InitPose( source );
-			if ( !result ) { succeeded = false; }
-
-			initializeResult = succeeded;
 			return initializeResult;
 		}
 
@@ -319,30 +311,7 @@ namespace Donya
 			return succeeded;
 		}
 
-		bool Model::InitPose( const ModelSource &source )
-		{
-			pose.AssignSkeletal( source.skeletal );
-			pose.UpdateTransformMatrices();
-
-			return true;
-		}
-
-		bool Model::UpdateSkeletal( const std::vector<Animation::Bone> &currentSkeletal )
-		{
-			if ( !pose.HasCompatibleWith( currentSkeletal ) ) { return false; }
-			// else
-
-			pose.AssignSkeletal( currentSkeletal );
-			pose.UpdateTransformMatrices();
-
-			return true;
-		}
-		bool Model::UpdateSkeletal( const Animation::KeyFrame &currentSkeletal )
-		{
-			return UpdateSkeletal( currentSkeletal.keyPose );
-		}
-
-
+		
 		namespace
 		{
 			void SetDefaultIfNullptr( ID3D11Device **ppDevice )

@@ -116,7 +116,6 @@ namespace Donya
 		private:
 			std::string			fileDirectory;	// Use for making file path.
 			std::vector<Mesh>	meshes;
-			Pose				pose;
 			bool				initializeResult = false;
 		protected: // Prevent a user forgot to call the BuildMyself() when creation.
 			Model()								= default;
@@ -136,25 +135,10 @@ namespace Donya
 			bool InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDestination, const std::vector<ModelSource::Subset> &source );
 			bool InitSubset( ID3D11Device *pDevice, Model::Subset *pDestination, const ModelSource::Subset &source );
 			bool CreateMaterial( Model::Material *pDestination, ID3D11Device *pDevice );
-
-			bool InitPose( const ModelSource &loadedSource );
 		protected:
 			virtual bool CreateVertices( std::vector<Mesh> *pDest ) = 0;
 		public:
-			/// <summary>
-			/// Assign a skeletal if that has compatible with the skeletal of me. That result will return.
-			/// </summary>
-			bool UpdateSkeletal( const std::vector<Animation::Bone> &currentSkeletal );
-			/// <summary>
-			/// Assign a skeletal if that has compatible with the skeletal of me. That result will return.
-			/// </summary>
-			bool UpdateSkeletal( const Animation::KeyFrame &currentSkeletal );
-		public:
 			bool WasInitializeSucceeded()			const { return initializeResult; }
-			const Pose				&GetPose()		const
-			{
-				return pose;
-			}
 			const std::vector<Mesh>	&GetMeshes()	const
 			{
 				return meshes;

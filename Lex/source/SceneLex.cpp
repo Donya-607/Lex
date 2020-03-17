@@ -28,8 +28,8 @@
 
 #include "Model.h"
 #include "ModelCommon.h"
-// #include "ModelMaker.h"
 #include "ModelMotion.h"
+#include "ModelPose.h"
 #include "ModelRenderer.h"
 
 #pragma comment( lib, "comdlg32.lib" ) // For common-dialog.
@@ -63,6 +63,7 @@ public:
 		Model						model{};
 		Donya::Model::MotionHolder	holder{};
 		Donya::Model::Animator		animator{};
+		Donya::Model::Pose			pose{};
 		Donya::Vector3				scale		{ 1.0f, 1.0f, 1.0f };
 		Donya::Vector3				rotation	{ 0.0f, 0.0f, 0.0f };	// Pitch, Yaw, Roll. Degree.
 		Donya::Vector3				translation	{ 0.0f, 0.0f, 0.0f };
@@ -97,6 +98,8 @@ public:
 			holder.AppendSource( modelSource );
 
 			animator.ResetTimer();
+			
+			pose.AssignSkeletal( modelSource.skeletal );
 
 			return succeeded;
 
@@ -426,6 +429,7 @@ private:
 			renderer.pSkinning->Render
 			(
 				*data.model.pSkinning,
+				data.pose,
 				descPerMesh,
 				descPerSubset,
 				descDiffuse
@@ -436,6 +440,7 @@ private:
 			renderer.pStatic->Render
 			(
 				*data.model.pStatic,
+				data.pose,
 				descPerMesh,
 				descPerSubset,
 				descDiffuse
@@ -904,7 +909,11 @@ private:
 
 			const auto useMotion	= it.holder.GetMotion( it.usingMotionIndex );
 			const auto currentPose	= it.animator.CalcCurrentPose( useMotion );
-			it.model.pSkinning->UpdateSkeletal( currentPose );
+			if ( it.pose.HasCompatibleWith( currentPose ) )
+			{
+				it.pose.AssignSkeletal( currentPose );
+				it.pose.UpdateTransformMatrices();
+			}
 		}
 	}
 
