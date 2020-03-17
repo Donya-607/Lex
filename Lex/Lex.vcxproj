@@ -206,6 +206,7 @@
     <ClInclude Include="Source\Model.h" />
     <ClInclude Include="Source\ModelCommon.h" />
     <ClInclude Include="Source\ModelMotion.h" />
+    <ClInclude Include="Source\ModelPolygon.h" />
     <ClInclude Include="Source\ModelPose.h" />
     <ClInclude Include="Source\ModelRenderer.h" />
     <ClInclude Include="Source\ModelSource.h" />
@@ -258,6 +259,7 @@
     <ClCompile Include="Source\Model.cpp" />
     <ClCompile Include="Source\ModelCommon.cpp" />
     <ClCompile Include="Source\ModelMotion.cpp" />
+    <ClCompile Include="Source\ModelPolygon.cpp" />
     <ClCompile Include="Source\ModelPose.cpp" />
     <ClCompile Include="Source\ModelRenderer.cpp" />
     <ClCompile Include="Source\Motion.cpp" />
