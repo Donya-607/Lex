@@ -21,7 +21,7 @@ namespace Donya
 		/// <summary>
 		/// Store a data of model as it is.
 		/// </summary>
-		struct ModelSource
+		struct Source
 		{
 			struct Material
 			{
@@ -149,7 +149,7 @@ namespace Donya
 	}
 }
 
-CEREAL_CLASS_VERSION( Donya::Model::ModelSource,			0 )
-CEREAL_CLASS_VERSION( Donya::Model::ModelSource::Subset,	0 )
-CEREAL_CLASS_VERSION( Donya::Model::ModelSource::Mesh,		0 )
-CEREAL_CLASS_VERSION( Donya::Model::ModelSource::Material,	0 )
+CEREAL_CLASS_VERSION( Donya::Model::Source,			0 )
+CEREAL_CLASS_VERSION( Donya::Model::Source::Subset,	0 )
+CEREAL_CLASS_VERSION( Donya::Model::Source::Mesh,		0 )
+CEREAL_CLASS_VERSION( Donya::Model::Source::Material,	0 )

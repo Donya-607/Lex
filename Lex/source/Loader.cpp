@@ -377,12 +377,12 @@ namespace Donya
 		return true;
 	}
 
-	void AttachGlobalTransform( Model::ModelSource::Mesh *pMesh, FBX::FbxMesh *pFBXMesh )
+	void AttachGlobalTransform( Model::Source::Mesh *pMesh, FBX::FbxMesh *pFBXMesh )
 	{
 		FBX::FbxAMatrix globalTransform = pFBXMesh->GetNode()->EvaluateGlobalTransform( 0 );
 		pMesh->globalTransform = Convert( globalTransform );
 	}
-	void AdjustCoordinate( Model::ModelSource::Mesh *pMesh )
+	void AdjustCoordinate( Model::Source::Mesh *pMesh )
 	{
 		// Convert right-hand space to left-hand space.
 		pMesh->coordinateConversion._11 = -1.0f;
@@ -548,14 +548,14 @@ namespace Donya
 		ReleaseAnimationStackNames();
 	}
 
-	void BuildSubsets( std::vector<Model::ModelSource::Subset> *pSubsets, FBX::FbxMesh *pMesh, const std::string &fileDirectory )
+	void BuildSubsets( std::vector<Model::Source::Subset> *pSubsets, FBX::FbxMesh *pMesh, const std::string &fileDirectory )
 	{
 		FBX::FbxNode *pNode = pMesh->GetNode();
 
 		const int mtlCount = pNode->GetMaterialCount();
 		pSubsets->resize( ( !mtlCount ) ? 1 : mtlCount );
 
-		auto FetchMaterial = [&fileDirectory]( Model::ModelSource::Material *pMaterial, const char *strProperty, const char *strFactor, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
+		auto FetchMaterial = [&fileDirectory]( Model::Source::Material *pMaterial, const char *strProperty, const char *strFactor, const FBX::FbxSurfaceMaterial *pSurfaceMaterial )
 		{
 			const FBX::FbxProperty property	= pSurfaceMaterial->FindProperty( strProperty	);
 			const FBX::FbxProperty factor	= pSurfaceMaterial->FindProperty( strFactor		);
@@ -563,7 +563,7 @@ namespace Donya
 			if ( !property.IsValid() ) { return; }
 			// else
 
-			auto AssignColor	= [&property, &factor]( Model::ModelSource::Material *pMaterial )
+			auto AssignColor	= [&property, &factor]( Model::Source::Material *pMaterial )
 			{
 				Donya::Vector3	color	= Convert( property.Get<FBX::FbxDouble3>() );
 				float			bias	= scast<float>( factor.Get<FBX::FbxDouble>() );
@@ -677,7 +677,7 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMesh( Model::ModelSource::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
+	void BuildMesh( Model::Source::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
 	{
 		AttachGlobalTransform( pMesh, pFBXMesh );
 		AdjustCoordinate( pMesh );
@@ -955,7 +955,7 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMeshes( std::vector<Model::ModelSource::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
+	void BuildMeshes( std::vector<Model::Source::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
 	{
 		const size_t meshCount = meshNodes.size();
 		pMeshes->resize( meshCount );
@@ -968,7 +968,7 @@ namespace Donya
 		}
 	}
 
-	void BuildModelSource( Model::ModelSource *pSource, FBX::FbxScene *pScene, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes, float animationSamplingFPS, const std::string &fileDirectory )
+	void BuildModelSource( Model::Source *pSource, FBX::FbxScene *pScene, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes, float animationSamplingFPS, const std::string &fileDirectory )
 	{
 		BuildSkeletal( &pSource->skeletal, motionNodes );
 
@@ -1670,7 +1670,7 @@ namespace Donya
 	{
 		ImVec2 childFrameSize( 0.0f, 0.0f );
 
-		// Show ModelSource.
+		// Show Model::Source.
 		if ( ImGui::TreeNode( u8"モデルソース" ) )
 		{
 			const size_t meshCount = source.meshes.size();
@@ -1733,7 +1733,7 @@ namespace Donya
 							std::string subsetCaption = "Subset[" + std::to_string( j ) + "]";
 							if ( ImGui::TreeNode( subsetCaption.c_str() ) )
 							{
-								auto ShowMaterialContain = [this]( const Model::ModelSource::Material &mtl )
+								auto ShowMaterialContain = [this]( const Model::Source::Material &mtl )
 								{
 									ImGui::Text
 									(

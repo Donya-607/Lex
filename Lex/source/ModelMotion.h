@@ -45,7 +45,7 @@ namespace Donya
 			/// <summary>
 			/// Append all motions that the source has. The consistency with internal motion is not considered.
 			/// </summary>
-			void AppendSource( const ModelSource &source );
+			void AppendSource( const Source &source );
 			/// <summary>
 			/// The consistency with internal motion is not considered.
 			/// </summary>

@@ -112,16 +112,16 @@ namespace Donya
 		}
 
 
-		StaticModel   Model::CreateStatic( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice )
+		StaticModel   Model::CreateStatic( const Source &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice )
 		{
 			return StaticModel::Create( loadedSource, fileDirectory, pDevice );
 		}
-		SkinningModel Model::CreateSkinning( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice )
+		SkinningModel Model::CreateSkinning( const Source &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice )
 		{
 			return SkinningModel::Create( loadedSource, fileDirectory, pDevice );
 		}
 
-		bool Model::BuildMyself( const ModelSource &source, const std::string &argFileDirectory, ID3D11Device *pDevice )
+		bool Model::BuildMyself( const Source &source, const std::string &argFileDirectory, ID3D11Device *pDevice )
 		{
 			if ( !pDevice )
 			{
@@ -134,14 +134,14 @@ namespace Donya
 			return initializeResult;
 		}
 
-		bool Model::InitMeshes( ID3D11Device *pDevice, const ModelSource &source )
+		bool Model::InitMeshes( ID3D11Device *pDevice, const Source &source )
 		{
 			const size_t meshCount = source.meshes.size();
 			meshes.resize( meshCount );
 
 			// Assign source data.
 			{
-				auto Assign = []( Model::Mesh *pDest, const ModelSource::Mesh &source )
+				auto Assign = []( Model::Mesh *pDest, const Source::Mesh &source )
 				{
 					pDest->name					= source.name;
 					pDest->coordinateConversion	= source.coordinateConversion;
@@ -174,7 +174,7 @@ namespace Donya
 
 			return succeeded;
 		}
-		bool Model::CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &modelSource )
+		bool Model::CreateVertexBuffers( ID3D11Device *pDevice, const Source &modelSource )
 		{
 			auto Assert = []( const std::string &kindName, size_t vertexIndex )
 			{
@@ -201,7 +201,7 @@ namespace Donya
 
 			return true;
 		}
-		bool Model::CreateIndexBuffers( ID3D11Device *pDevice, const ModelSource &source )
+		bool Model::CreateIndexBuffers( ID3D11Device *pDevice, const Source &source )
 		{
 			HRESULT hr = S_OK;
 
@@ -225,7 +225,7 @@ namespace Donya
 			return true;
 		}
 
-		bool Model::InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDest, const std::vector<ModelSource::Subset> &source )
+		bool Model::InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDest, const std::vector<Source::Subset> &source )
 		{
 			const size_t subsetCount = source.size();
 			pDest->subsets.resize( subsetCount );
@@ -238,19 +238,19 @@ namespace Donya
 			}
 			return succeeded;
 		}
-		bool Model::InitSubset( ID3D11Device *pDevice, Model::Subset *pDest, const ModelSource::Subset &source )
+		bool Model::InitSubset( ID3D11Device *pDevice, Model::Subset *pDest, const Source::Subset &source )
 		{
 			pDest->name			= source.name;
 			pDest->indexCount	= source.indexCount;
 			pDest->indexStart	= source.indexStart;
 
-			auto AssignMaterial = []( Model::Material *pDest, const ModelSource::Material &source )
+			auto AssignMaterial = []( Model::Material *pDest, const Source::Material &source )
 			{
 				pDest->color		= source.color;
 				pDest->textureName	= source.textureName;
 			};
 			
-			struct Bundle { Model::Material *dest; const ModelSource::Material &source; };
+			struct Bundle { Model::Material *dest; const Source::Material &source; };
 			Bundle createList[]
 			{
 				{ &pDest->ambient,  source.ambient  },
@@ -338,7 +338,7 @@ namespace Donya
 		}
 
 
-		StaticModel StaticModel::Create( const ModelSource &source, const std::string &fileDirectory, ID3D11Device *pDevice )
+		StaticModel StaticModel::Create( const Source &source, const std::string &fileDirectory, ID3D11Device *pDevice )
 		{
 			SetDefaultIfNullptr( &pDevice );
 
@@ -355,7 +355,7 @@ namespace Donya
 		}
 		
 
-		SkinningModel SkinningModel::Create( const ModelSource &source, const std::string &fileDirectory, ID3D11Device *pDevice )
+		SkinningModel SkinningModel::Create( const Source &source, const std::string &fileDirectory, ID3D11Device *pDevice )
 		{
 			SetDefaultIfNullptr( &pDevice );
 

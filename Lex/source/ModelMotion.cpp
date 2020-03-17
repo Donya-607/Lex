@@ -67,7 +67,7 @@ namespace Donya
 			}
 		}
 
-		void MotionHolder::AppendSource( const ModelSource &source )
+		void MotionHolder::AppendSource( const Source &source )
 		{
 			for ( const auto &it : source.motions )
 			{

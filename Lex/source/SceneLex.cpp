@@ -61,7 +61,7 @@ public:
 
 		Donya::Loader				loader{};
 		Model						model{};
-		Donya::Model::ModelSource	source{};
+		Donya::Model::Source	source{};
 		Donya::Model::MotionHolder	holder{};
 		Donya::Model::Animator		animator{};
 		Donya::Model::Pose			pose{};

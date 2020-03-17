@@ -65,7 +65,7 @@ namespace Donya
 		class SkinningModel;
 
 		/// <summary>
-		/// Build, and store a data of "ModelSource" to usable.
+		/// Build, and store a data of "Model::Source" to usable.
 		/// </summary>
 		class Model
 		{
@@ -74,12 +74,12 @@ namespace Donya
 			/// This method is equivalent to call StaticModel::Create().<para></para>
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
-			static StaticModel   CreateStatic( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
+			static StaticModel   CreateStatic( const Source &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
 			/// <summary>
 			/// This method is equivalent to call SkinningModel::Create().<para></para>
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
-			static SkinningModel CreateSkinning( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
+			static SkinningModel CreateSkinning( const Source &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
 		public:
 			struct Material
 			{
@@ -126,14 +126,14 @@ namespace Donya
 			Model &operator = ( Model && )		= default;
 			virtual ~Model()					= default;
 		protected:
-			bool BuildMyself( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice );
+			bool BuildMyself( const Source &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice );
 		private:
-			bool InitMeshes( ID3D11Device *pDevice, const ModelSource &loadedSource );
-			bool CreateVertexBuffers( ID3D11Device *pDevice, const ModelSource &source );
-			bool CreateIndexBuffers( ID3D11Device *pDevice, const ModelSource &source );
+			bool InitMeshes( ID3D11Device *pDevice, const Source &loadedSource );
+			bool CreateVertexBuffers( ID3D11Device *pDevice, const Source &source );
+			bool CreateIndexBuffers( ID3D11Device *pDevice, const Source &source );
 
-			bool InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDestination, const std::vector<ModelSource::Subset> &source );
-			bool InitSubset( ID3D11Device *pDevice, Model::Subset *pDestination, const ModelSource::Subset &source );
+			bool InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDestination, const std::vector<Source::Subset> &source );
+			bool InitSubset( ID3D11Device *pDevice, Model::Subset *pDestination, const Source::Subset &source );
 			bool CreateMaterial( Model::Material *pDestination, ID3D11Device *pDevice );
 		protected:
 			virtual bool CreateVertices( std::vector<Mesh> *pDest ) = 0;
@@ -151,7 +151,7 @@ namespace Donya
 			/// <summary>
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
-			static StaticModel Create( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
+			static StaticModel Create( const Source &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
 		private:
 			bool CreateVertices( std::vector<Mesh> *pDest ) override;
 		};
@@ -162,7 +162,7 @@ namespace Donya
 			/// <summary>
 			/// If you set nullptr to "pDevice", use default device.
 			/// </summary>
-			static SkinningModel Create( const ModelSource &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
+			static SkinningModel Create( const Source &loadedSource, const std::string &fileDirectory, ID3D11Device *pDevice = nullptr );
 		private:
 			bool CreateVertices( std::vector<Mesh> *pDest ) override;
 		};
