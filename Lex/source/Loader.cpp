@@ -943,9 +943,7 @@ namespace Donya
 					if ( v < scast<int>( polygon.points.size() ) )
 					{
 						Donya::Vector4 transformedPos = globalTransform.Mul( pos.position, 1.0f );
-						polygon.points[v].x = transformedPos.x;
-						polygon.points[v].y = transformedPos.y;
-						polygon.points[v].z = transformedPos.z;
+						polygon.points[v] = transformedPos.XYZ();
 					}
 
 					pMesh->positions.emplace_back( pos );

@@ -15,7 +15,7 @@ namespace Donya
 			polygons = source;
 		}
 
-		RaycastResult PolygonGroup::Raycast( const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool onlyWantIsIntersect )
+		RaycastResult PolygonGroup::Raycast( const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool onlyWantIsIntersect ) const
 		{
 			RaycastResult result;
 

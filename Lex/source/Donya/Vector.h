@@ -365,6 +365,10 @@ namespace Donya
 			return DirectX::XMVectorSet( x, y, z, fourthParam );
 		}
 	public:
+		constexpr Vector2 XY() const { return Vector2{ x, y }; }
+		constexpr Vector2 XZ() const { return Vector2{ x, z }; }
+		constexpr Vector2 YX() const { return Vector2{ y, x }; }
+	public:
 		/// <summary>
 		/// Multiply each element.
 		/// </summary>
@@ -543,6 +547,8 @@ namespace Donya
 			return DirectX::XMVectorSet( x, y, z, w );
 		}
 	public:
+		constexpr Vector3 XYZ() const { return Vector3{ x, y, z }; }
+	public:
 		/// <summary>
 		/// Multiply each element.
 		/// </summary>
@@ -581,6 +587,8 @@ namespace Donya
 #pragma endregion
 
 #pragma region Vector4x4
+
+	class Quaternion;
 
 	/// <summary>
 	/// This class is wrapper of DirectX::XMFLOAT4X4, DirectX::XMMATRIX.<para></para>
@@ -764,7 +772,7 @@ namespace Donya
 		/// <summary>
 		/// Make rotation matrix in Vector4x4 from "RightAxis", "UpAxis" and "FrontAxis". these axis should be normalized.
 		/// </summary>
-		constexpr static Vector4x4 MakeRotationOrthogonalAxis( const Vector3 &rightAxis, const Vector3 &upAxis, const Vector3 &frontAxis )
+		static constexpr Vector4x4 MakeRotationOrthogonalAxis( const Vector3 &rightAxis, const Vector3 &upAxis, const Vector3 &frontAxis )
 		{
 			return Vector4x4
 			{
@@ -780,6 +788,8 @@ namespace Donya
 		{
 			return MakeTranslation( { ofsX, ofsY, ofsZ } );
 		}
+
+		static Vector4x4 MakeTransformation( const Vector3 &scaling, const Quaternion &rotation, const Vector3 translation );
 	};
 
 	static Vector4x4			operator * ( const Vector4x4 &lhs, const Vector4x4 &rhs ) { return lhs.Mul( rhs ); }

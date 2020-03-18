@@ -1,6 +1,7 @@
 #include "Vector.h"
 
-#include "Useful.h" // Use ToDegree(), Equal().
+#include "Quaternion.h"
+#include "Useful.h"		// Use ToDegree(), Equal().
 
 using namespace DirectX;
 
@@ -296,6 +297,20 @@ namespace Donya
 			XMMatrixTranslation( offset.x, offset.y, offset.z )
 		);
 	}
+
+	Vector4x4 Vector4x4::MakeTransformation( const Vector3 &scaling, const Quaternion &rotation, const Vector3 translation )
+	{
+		Vector4x4 M;
+		M._11 = scaling.x;
+		M._22 = scaling.y;
+		M._33 = scaling.z;
+		M *= rotation.RequireRotationMatrix();
+		M._41 = translation.x;
+		M._42 = translation.y;
+		M._43 = translation.z;
+		return M;
+	}
+
 
 	bool operator == ( const Vector4x4 &L, const Vector4x4 &R )
 	{

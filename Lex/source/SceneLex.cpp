@@ -61,10 +61,11 @@ public:
 
 		Donya::Loader				loader{};
 		Model						model{};
-		Donya::Model::Source	source{};
+		Donya::Model::Source		source{};
 		Donya::Model::MotionHolder	holder{};
 		Donya::Model::Animator		animator{};
 		Donya::Model::Pose			pose{};
+		Donya::Model::PolygonGroup	polyGroup{};
 		Donya::Vector3				scale		{ 1.0f, 1.0f, 1.0f };
 		Donya::Vector3				rotation	{ 0.0f, 0.0f, 0.0f };	// Pitch, Yaw, Roll. Degree.
 		Donya::Vector3				translation	{ 0.0f, 0.0f, 0.0f };
@@ -100,6 +101,8 @@ public:
 			animator.ResetTimer();
 			
 			pose.AssignSkeletal( source.skeletal );
+
+			polyGroup.Assign( loader.GetPolygons() );
 
 			return succeeded;
 
@@ -166,20 +169,22 @@ public:
 
 	GridLine						grid;
 
-	Donya::CBuffer<Donya::Model::Constants::PerModel::Common>	mcbPerModel{};
+	Donya::CBuffer<Donya::Model::Constants::PerModel::Common>	mcbPerModel;
 	Donya::CBuffer<CBufferPerFrame>	cbPerFrame;
 	Donya::CBuffer<CBufferPerModel>	cbPerModel;
 	Donya::VertexShader				VSSkinnedMesh;
 	Donya::PixelShader				PSSkinnedMesh;
 
-	std::unique_ptr<std::thread>	pLoadThread{};
-	std::unique_ptr<AsyncLoad>	pCurrentLoading;
+	std::unique_ptr<std::thread>	pLoadThread;
+	std::unique_ptr<AsyncLoad>		pCurrentLoading;
 	std::string						currentLoadingFileNameUTF8;	// For UI.
 	std::queue<std::string>			reservedAbsFilePaths;
 	std::queue<std::string>			reservedFileNamesUTF8;		// For UI.
 
 	bool							drawWireFrame;
 	bool							drawOriginCube;
+
+	bool useRaycast = false;
 public:
 	Impl() :
 		iCamera(), directionalLight(),
@@ -336,6 +341,25 @@ public:
 
 		DrawOriginCube( V * P );
 
+		if ( useRaycast && !models.empty() )
+		{
+			constexpr Donya::Vector3	TEST_SCALE{ 2.5f, 2.5f, 2.5f };
+			constexpr Donya::Quaternion	TEST_ROTATION{};
+			constexpr Donya::Vector4	TEST_COLOR{ 1.0f, 0.7f, 0.0f, 0.8f };
+			constexpr float RAY_LENGTH = 65535.0f;
+
+			const Donya::Vector3 rayStart	= ScreenToWorld( currMouse.Float() );
+			const Donya::Vector3 rayEnd		= rayStart + ( RAY_LENGTH * iCamera.GetOrientation().LocalFront() );
+			
+			const auto result = CalcRaycastPos( models.front(), rayStart, rayEnd );
+			if ( result.wasHit )
+			{
+				const Donya::Vector3   drawPos	= result.wsIntersectPos;
+				const Donya::Vector4x4 world	= Donya::Vector4x4::MakeTransformation( TEST_SCALE, TEST_ROTATION, drawPos );
+				DrawCube( world, V * P, TEST_COLOR );
+			}
+		}
+
 		// Old version. not supporting now.
 		/*
 		for ( auto &it : models )
@@ -474,6 +498,11 @@ private:
 		}
 	}
 
+	void DrawCube( const Donya::Vector4x4 &W, const Donya::Vector4x4 &VP, const Donya::Vector4 &color ) const
+	{
+		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
+		cube.Render( nullptr, true, true, W *VP, W, directionalLight.direction, color );
+	}
 	void DrawOriginCube(  const Donya::Vector4x4 &matVP ) const
 	{
 		if ( !drawOriginCube ) { return; }
@@ -481,11 +510,9 @@ private:
 		
 		// Show a cube to origin with unit scale.
 
-		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
-
-		constexpr Donya::Vector4 COLOR{ 0.8f, 1.0f, 0.9f, 0.6f };
+		constexpr Donya::Vector4 COLOR{ 0.8f, 1.0f, 0.8f, 0.6f };
 		constexpr Donya::Vector4x4 W = Donya::Vector4x4::Identity();
-		cube.Render( nullptr, true, true, W * matVP, W, directionalLight.direction, COLOR );
+		DrawCube( W, matVP, COLOR );
 	}
 private:
 	bool ShaderInit()
@@ -611,6 +638,40 @@ private:
 		const Donya::Vector3 vCameraToScreen = wsScreenPos - cameraPos;
 		const Donya::Vector3 onPlanePos = cameraPos + ( vCameraToScreen * rayLength );
 		return onPlanePos;
+	}
+
+	struct CalcRaycastResult
+	{
+		bool wasHit = false;
+		Donya::Vector3 wsIntersectPos;
+	};
+	CalcRaycastResult CalcRaycastPos( const MeshAndInfo &target, const Donya::Vector3 &wsRayStart, const Donya::Vector3 &wsRayEnd ) const
+	{
+		auto MakeWorldMatrix = []( const MeshAndInfo &source )
+		{
+			const Donya::Quaternion rotation = Donya::Quaternion::Make( source.rotation.x, source.rotation.y, source.rotation.z );
+			return Donya::Vector4x4::MakeTransformation( source.scale, rotation, source.translation );
+		};
+		const Donya::Vector4x4 targetMatrix = MakeWorldMatrix( target );
+		const Donya::Vector4x4 invTargetMat = targetMatrix.Inverse();
+
+		// Target Space.
+		const Donya::Vector3 tsRayStart	= invTargetMat.Mul( wsRayStart,	1.0f ).XYZ();
+		const Donya::Vector3 tsRayEnd	= invTargetMat.Mul( wsRayEnd,	1.0f ).XYZ();
+
+		CalcRaycastResult rv;
+
+		const auto result = target.polyGroup.Raycast( tsRayStart, tsRayEnd );
+		if ( !result.wasHit )
+		{
+			rv.wasHit = false;
+			return rv;
+		}
+		// else
+
+		rv.wasHit = true;
+		rv.wsIntersectPos = targetMatrix.Mul( result.intersection, 1.0f ).XYZ();
+		return rv;
 	}
 
 	void CameraInit()

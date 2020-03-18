@@ -364,6 +364,7 @@ namespace Donya
 		const std::vector<Mesh>		*GetMeshes()			const { return &meshes;			}
 		const std::vector<Motion>	*GetMotions()			const { return &motions;		}
 		const std::vector<Face>		*GetCollisionFaces()	const { return &collisionFaces;	}
+		const std::vector<Model::Polygon> &GetPolygons()	const { return polygons; }
 	private:
 		bool LoadByCereal( const std::string &filePath, std::string *outputErrorString, bool outputDebugProgress );
 		

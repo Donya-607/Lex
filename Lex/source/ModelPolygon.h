@@ -74,7 +74,7 @@ namespace Donya
 			/// <summary>
 			/// If you set true to "onlyWantIsIntersect", This method will stop as soon if the ray intersects anything. This is a convenience if you just want to know the ray will intersection.
 			/// </summary>
-			RaycastResult Raycast( const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool onlyWantIsIntersect = false );
+			RaycastResult Raycast( const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool onlyWantIsIntersect = false ) const;
 		};
 	}
 }
