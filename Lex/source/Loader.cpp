@@ -377,11 +377,6 @@ namespace Donya
 		return true;
 	}
 
-	void AttachGlobalTransform( Model::Source::Mesh *pMesh, FBX::FbxMesh *pFBXMesh )
-	{
-		FBX::FbxAMatrix globalTransform = pFBXMesh->GetNode()->EvaluateGlobalTransform( 0 );
-		pMesh->globalTransform = Convert( globalTransform );
-	}
 	void AdjustCoordinate( Model::Source::Mesh *pMesh )
 	{
 		// Convert right-hand space to left-hand space.
@@ -677,9 +672,8 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMesh( Model::Source::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
+	void BuildMesh( Model::Source::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, std::vector<Model::Polygon> *pPolygons, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
 	{
-		AttachGlobalTransform( pMesh, pFBXMesh );
 		AdjustCoordinate( pMesh );
 
 		constexpr	int EXPECT_POLYGON_SIZE	= 3;
@@ -854,7 +848,8 @@ namespace Donya
 				return result;
 			};
 
-			const FBX::FbxVector4 *pControlPointsArray = pFBXMesh->GetControlPoints();
+			const FBX::FbxVector4 *pControlPointsArray	= pFBXMesh->GetControlPoints();
+			const Donya::Vector4x4 globalTransform		= Convert( pNode->EvaluateGlobalTransform( 0 ) );
 
 			FBX::FbxStringList uvSetName;
 			pFBXMesh->GetUVSetNames( uvSetName );
@@ -877,6 +872,9 @@ namespace Donya
 				Model::Vertex::Pos	pos{};
 				Model::Vertex::Tex	tex{};
 				Model::Vertex::Bone	infl{};
+
+				Model::Polygon		polygon{};
+				polygon.materialIndex = mtlIndex;
 
 				const int polygonSize = pFBXMesh->GetPolygonSize( polyIndex );
 				_ASSERT_EXPR( polygonSize == EXPECT_POLYGON_SIZE, L"Error : A mesh did not triangulated!" );
@@ -942,6 +940,14 @@ namespace Donya
 						}
 					};
 
+					if ( v < polygon.points.size() )
+					{
+						Donya::Vector4 transformedPos = globalTransform.Mul( pos.position, 1.0f );
+						polygon.points[v].x = transformedPos.x;
+						polygon.points[v].y = transformedPos.y;
+						polygon.points[v].z = transformedPos.z;
+					}
+
 					pMesh->positions.emplace_back( pos );
 					pMesh->texCoords.emplace_back( tex );
 
@@ -952,10 +958,12 @@ namespace Donya
 					vertexCount++;
 				}
 				subset.indexCount += EXPECT_POLYGON_SIZE;
+
+				pPolygons->emplace_back( std::move( polygon ) );
 			}
 		}
 	}
-	void BuildMeshes( std::vector<Model::Source::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
+	void BuildMeshes( std::vector<Model::Source::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, std::vector<Model::Polygon> *pPolygons, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
 	{
 		const size_t meshCount = meshNodes.size();
 		pMeshes->resize( meshCount );
@@ -964,16 +972,16 @@ namespace Donya
 			FBX::FbxMesh *pFBXMesh = meshNodes[i]->GetMesh();
 			_ASSERT_EXPR( pFBXMesh, L"Error : A mesh-node that passed mesh-nodes is not mesh!" );
 
-			BuildMesh( &( *pMeshes )[i], meshNodes[i], pFBXMesh, pScene, fileDirectory, modelSkeletal, animationSamplingFPS );
+			BuildMesh( &( *pMeshes )[i], meshNodes[i], pFBXMesh, pPolygons, pScene, fileDirectory, modelSkeletal, animationSamplingFPS );
 		}
 	}
 
-	void BuildModelSource( Model::Source *pSource, FBX::FbxScene *pScene, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes, float animationSamplingFPS, const std::string &fileDirectory )
+	void BuildModelSource( Model::Source *pSource, std::vector<Model::Polygon> *pPolygons, FBX::FbxScene *pScene, const std::vector<FBX::FbxNode *> &meshNodes, const std::vector<FBX::FbxNode *> &motionNodes, float animationSamplingFPS, const std::string &fileDirectory )
 	{
 		BuildSkeletal( &pSource->skeletal, motionNodes );
 
 		// The meshes building function is using the skeletal, so we should build after building of the skeletal.
-		BuildMeshes( &pSource->meshes, meshNodes, pScene, fileDirectory, pSource->skeletal, animationSamplingFPS );
+		BuildMeshes( &pSource->meshes, meshNodes, pPolygons, pScene, fileDirectory, pSource->skeletal, animationSamplingFPS );
 
 		BuildMotions( &pSource->motions, motionNodes, pScene, animationSamplingFPS );
 	}
@@ -1176,7 +1184,7 @@ namespace Donya
 		OutputDebugProgress( "Start Building model-source.", outputProgress );
 		BuildModelSource
 		(
-			&source,
+			&source, &polygons,
 			pScene, fetchedMeshNodes, fetchedAnimNodes,
 			sampleFPS, fileDirectory
 		);

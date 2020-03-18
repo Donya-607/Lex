@@ -19,6 +19,7 @@
 #include "Donya/Vector.h"
 
 #include "ModelSource.h"
+#include "ModelPolygon.h"
 
 #define USE_FBX_SDK ( true )
 
@@ -291,7 +292,8 @@ namespace Donya
 		std::vector<Motion> motions;
 		std::vector<Face>	collisionFaces;
 
-		Model::Source	source;
+		Model::Source				source;
+		std::vector<Model::Polygon>	polygons;
 	private:
 		float				sampleFPS;		// Use to sampling-rate of an all motions. If set value of lower-equal than zero, use a model's sampling-rate.
 	public:
