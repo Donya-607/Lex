@@ -940,7 +940,7 @@ namespace Donya
 						}
 					};
 
-					if ( v < polygon.points.size() )
+					if ( v < scast<int>( polygon.points.size() ) )
 					{
 						Donya::Vector4 transformedPos = globalTransform.Mul( pos.position, 1.0f );
 						polygon.points[v].x = transformedPos.x;
