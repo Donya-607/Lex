@@ -695,24 +695,11 @@ private:
 				Donya::Vector4x4::MakeTransformation
 				( source.scale, rotation, source.translation );
 		};
-		const Donya::Vector4x4 targetMatrix = MakeWorldMatrix( target );
-		const Donya::Vector4x4 invTargetMat = targetMatrix.Inverse();
-
-		auto Transform = []( const Donya::Vector3 &v, float fourthParam, const Donya::Vector4x4 &m )
-		{
-			Donya::Vector4 transformed = m.Mul( v, fourthParam );
-			transformed /= transformed.w;
-			return transformed.XYZ();
-		};
-
-		// Target Space.
-		const Donya::Vector3 tsRayStart	= Transform( wsRayStart,	1.0f, invTargetMat );
-		const Donya::Vector3 tsRayEnd	= Transform( wsRayEnd,		1.0f, invTargetMat );
 
 		CalcRaycastResult rv;
 
-		const auto result = target.polyGroup.Raycast( tsRayStart, tsRayEnd );
-		if ( !result.wasHit )
+		const auto raycast = target.polyGroup.RaycastWorldSpace( MakeWorldMatrix( target ), wsRayStart, wsRayEnd );
+		if ( !raycast.wasHit )
 		{
 			rv.wasHit = false;
 			return rv;
@@ -720,7 +707,7 @@ private:
 		// else
 
 		rv.wasHit = true;
-		rv.wsIntersectPos = targetMatrix.Mul( result.intersection, 1.0f ).XYZ();
+		rv.wsIntersectPos = raycast.intersection;
 		return rv;
 	}
 

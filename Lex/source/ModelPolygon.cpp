@@ -89,5 +89,55 @@ namespace Donya
 
 			return result;
 		}
+		RaycastResult PolygonGroup::RaycastWorldSpace( const Donya::Vector4x4 &transform, const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool onlyWantIsIntersect ) const
+		{
+			const Donya::Vector4x4 invTransform = transform.Inverse();
+
+			auto Multiply = []( const Donya::Vector3 &v, float fourthParam, const Donya::Vector4x4 &m )
+			{
+				Donya::Vector4 transformed = m.Mul( v, fourthParam );
+				transformed /= transformed.w;
+				return transformed.XYZ();
+			};
+
+			// Transformed space.
+			const Donya::Vector3 tsRayStart	= Multiply( rayStart,	1.0f, invTransform );
+			const Donya::Vector3 tsRayEnd	= Multiply( rayEnd,		1.0f, invTransform );
+
+			auto  result = Raycast( tsRayStart, tsRayEnd, onlyWantIsIntersect );
+			if ( !result.wasHit ) { return result; }
+			// else
+
+			struct VecFloat
+			{
+				Donya::Vector3 *v = nullptr;
+				float f = 0.0f;
+			};
+
+			VecFloat applyList[]
+			{
+				{ &result.intersection,				1.0f },
+				{ &result.nearestPolygon.points[0],	1.0f },
+				{ &result.nearestPolygon.points[1],	1.0f },
+				{ &result.nearestPolygon.points[2],	1.0f }
+			};
+
+			auto ToWorldSpace = [&]( VecFloat *pTarget )
+			{
+				*pTarget->v = Multiply( *pTarget->v, pTarget->f, transform );
+			};
+			for ( auto &it : applyList )
+			{
+				ToWorldSpace( &it );
+			}
+
+			const Donya::Vector3  edgeAB = result.nearestPolygon.points[1] - result.nearestPolygon.points[0];
+			const Donya::Vector3  edgeAC = result.nearestPolygon.points[2] - result.nearestPolygon.points[0];
+			result.nearestPolygon.normal = Donya::Cross( edgeAB, edgeAC ).Unit();
+
+			result.distance = Donya::Vector3{ result.intersection - rayStart }.Length();
+
+			return result;
+		}
 	}
 }

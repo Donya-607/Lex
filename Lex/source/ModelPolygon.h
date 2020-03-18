@@ -75,6 +75,11 @@ namespace Donya
 			/// If you set true to "onlyWantIsIntersect", This method will stop as soon if the ray intersects anything. This is a convenience if you just want to know the ray will intersection.
 			/// </summary>
 			RaycastResult Raycast( const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool onlyWantIsIntersect = false ) const;
+			/// <summary>
+			/// Doing the Raycast in the space that represented by "worldTransform". The belong space of the members of the return value is "worldTransform" also.<para></para>
+			/// If you set true to "onlyWantIsIntersect", This method will stop as soon if the ray intersects anything. This is a convenience if you just want to know the ray will intersection.
+			/// </summary>
+			RaycastResult RaycastWorldSpace( const Donya::Vector4x4 &worldTransform, const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool onlyWantIsIntersect = false ) const;
 		};
 	}
 }
