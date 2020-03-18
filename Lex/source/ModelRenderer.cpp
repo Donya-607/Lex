@@ -982,8 +982,8 @@ namespace Donya
 			const size_t boneCount = std::min( mesh.boneIndices.size(), scast<size_t>( Constants::PerMesh::Bone::MAX_BONE_COUNT ) );
 			for ( size_t i = 0; i < boneCount; ++i )
 			{
-				size_t poseIndex = mesh.boneIndices[i]; // This index was fetched with boneOffset's name.
-				meshToBone = mesh.boneOffsets[i].transform.ToWorldMatrix();
+				const size_t poseIndex = mesh.boneIndices[i]; // This index was fetched with boneOffset's name.
+				meshToBone = mesh.boneOffsets[i].global;
 				boneToMesh = currentPose[poseIndex].global;
 				
 				constants.boneTransforms[i] = meshToBone * boneToMesh;

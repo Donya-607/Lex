@@ -101,7 +101,6 @@ public:
 			animator.ResetTimer();
 			
 			pose.AssignSkeletal( source.skeletal );
-			pose.UpdateTransformMatrices();
 
 			polyGroup.Assign( loader.GetPolygons() );
 
@@ -1013,7 +1012,6 @@ private:
 			if ( it.pose.HasCompatibleWith( currentPose ) )
 			{
 				it.pose.AssignSkeletal( currentPose );
-				it.pose.UpdateTransformMatrices();
 			}
 		}
 	}

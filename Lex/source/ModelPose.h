@@ -13,23 +13,16 @@ namespace Donya
 		/// </summary>
 		class Pose
 		{
-		public:
-			struct Node
-			{
-				Animation::Bone		bone;		// The source.
-				Donya::Vector4x4	local;		// Represents local transform only.
-				Donya::Vector4x4	global;		// Contain all parent's global transform. If the root bone, this matrix contains the local transform only.
-			};
 		private:
-			std::vector<Node>		skeletal;	// Provides the matrices of the current pose. That transforms space is bone -> mesh.
+			std::vector<Animation::Node> skeletal;	// Provides the matrices of the current pose. That transforms space is bone -> mesh.
 		public:
-			const std::vector<Node> &GetCurrentPose() const;
+			const std::vector<Animation::Node> &GetCurrentPose() const;
 
 			/// <summary>
 			/// The "compatible" means the argument is associate with internal skeletal.
 			/// e.g. the skeletal belong in the same motion, but another timing.
 			/// </summary>
-			bool HasCompatibleWith( const std::vector<Animation::Bone> &validation ) const;
+			bool HasCompatibleWith( const std::vector<Animation::Node> &validation ) const;
 			/// <summary>
 			/// The "compatible" means the argument is associate with internal skeletal.
 			/// e.g. the skeletal belong in the same motion, but another timing.
@@ -39,15 +32,14 @@ namespace Donya
 			/// <summary>
 			/// Assign the skeletal by the argument.
 			/// </summary>
-			void AssignSkeletal( const std::vector<Animation::Bone> &newSkeletal );
+			void AssignSkeletal( const std::vector<Animation::Node> &newSkeletal );
 			/// <summary>
 			/// Assign the skeletal by key-pose of the argument.
 			/// </summary>
 			void AssignSkeletal( const Animation::KeyFrame &newSkeletal );
 		public:
 			/// <summary>
-			/// Calculate the transform matrix of each node of internal skeletal.<para></para>
-			/// Please call this after "AssignSkeletal()". Do not need to call when every frame.
+			/// Calculate the transform matrix of each node of internal skeletal. So it is heavy,
 			/// </summary>
 			void UpdateTransformMatrices();
 		private:

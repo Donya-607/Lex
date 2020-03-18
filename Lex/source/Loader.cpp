@@ -157,12 +157,12 @@ namespace Donya
 
 		return -1;
 	}
-	int  FindBoneIndex( const std::vector<Model::Animation::Bone> &source, const std::string &keyName )
+	int  FindBoneIndex( const std::vector<Model::Animation::Node> &source, const std::string &keyName )
 	{
 		const size_t boneCount = source.size();
 		for ( size_t i = 0; i < boneCount; ++i )
 		{
-			if ( source[i].name == keyName )
+			if ( source[i].bone.name == keyName )
 			{
 				return scast<int>( i );
 			}
@@ -384,6 +384,32 @@ namespace Donya
 	}
 
 	/// <summary>
+	/// Assign the "local" from that "bone", then calcuate the "global" matrices..
+	/// </summary>
+	void UpdateTransformMatrices( std::vector<Model::Animation::Node> *pSkeletal )
+	{
+		// Assign each "local".
+		for ( auto &it : *pSkeletal )
+		{
+			it.local = it.bone.transform.ToWorldMatrix();
+		}
+
+		// Calc each "global".
+		for ( auto &it : *pSkeletal )
+		{
+			if ( it.bone.parentIndex == -1 )
+			{
+				it.global = it.local;
+			}
+			else
+			{
+				const auto &parentBone = pSkeletal->at( it.bone.parentIndex );
+				it.global = it.local * parentBone.global;
+			}
+		}
+	}
+
+	/// <summary>
 	/// Fetch the inverse matrix of initial pose(like T-pose), that transforms: mesh space -> bone space.
 	/// </summary>
 	FBX::FbxAMatrix FetchBoneOffsetMatrix( const FBX::FbxCluster *pCluster )
@@ -402,15 +428,15 @@ namespace Donya
 	/// <summary>
 	/// Build a skeletal from skeletal nodes.
 	/// </summary>
-	void BuildSkeletal( std::vector<Model::Animation::Bone> *pSkeletal, const std::vector<FBX::FbxNode *> &skeletalNodes, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
+	void BuildSkeletal( std::vector<Model::Animation::Node> *pSkeletal, const std::vector<FBX::FbxNode *> &skeletalNodes, const FBX::FbxTime &currentTime = FBX::FBXSDK_TIME_INFINITE )
 	{
-		std::vector<Model::Animation::Bone> &data = *pSkeletal;
+		std::vector<Model::Animation::Node> &data = *pSkeletal;
 
 		const size_t nodeCount = skeletalNodes.size();
 		data.resize( nodeCount );
 		for ( size_t i = 0; i < nodeCount; ++i )
 		{
-			Model::Animation::Bone &bone = data[i];
+			Model::Animation::Bone &bone = data[i].bone;
 			FBX::FbxNode *pNode = skeletalNodes[i];
 
 			FBX::FbxAMatrix localTransform{};
@@ -433,7 +459,7 @@ namespace Donya
 		// Assign the parent from built skeletal.
 		for ( size_t i = 0; i < nodeCount; ++i )
 		{
-			Model::Animation::Bone &bone = data[i];
+			Model::Animation::Bone &bone = data[i].bone;
 			FBX::FbxNode *pNode = skeletalNodes[i];
 
 			if ( bone.parentName == "" )
@@ -459,6 +485,8 @@ namespace Donya
 				bone.transformToParent	= SeparateSRT( boneToParent );
 			}
 		}
+
+		UpdateTransformMatrices( &data );
 	}
 
 	void BuildKeyFrame( Model::Animation::KeyFrame *pKeyFrame, const std::vector<FBX::FbxNode *> &skeletalNodes, const FBX::FbxTime &currentTime, float currentSeconds )
@@ -672,7 +700,7 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMesh( Model::Source::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, std::vector<Model::Polygon> *pPolygons, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
+	void BuildMesh( Model::Source::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, std::vector<Model::Polygon> *pPolygons, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Node> &modelSkeletal, float animationSamplingFPS )
 	{
 		constexpr	int EXPECT_POLYGON_SIZE	= 3;
 		const		int mtlCount			= pNode->GetMaterialCount();
@@ -728,15 +756,22 @@ namespace Donya
 					data.Append( weight, index );
 				}
 			};
-			auto FetchBoneOffset	= [&geometricTransform]( const FBX::FbxCluster *pCluster, std::vector<Model::Animation::Bone> *pBoneOffsets )
+			auto FetchBoneOffset	= [&geometricTransform]( const FBX::FbxCluster *pCluster, std::vector<Model::Animation::Node> *pBoneOffsets )
 			{
 				const FBX::FbxAMatrix  boneOffset = FetchBoneOffsetMatrix( pCluster );
 				
-				Model::Animation::Bone bone{};
-				bone.name				= pCluster->GetLink()->GetName();
-				bone.transform			= SeparateSRT( boneOffset * geometricTransform );
-				bone.transformToParent	= Model::Animation::Transform::Identity(); // The bone offset matrix does not use this.
-				pBoneOffsets->emplace_back( std::move( bone ) );
+				Model::Animation::Node node{};
+				node.bone.name				= pCluster->GetLink()->GetName();
+				node.bone.transform			= SeparateSRT( boneOffset * geometricTransform );
+				node.local	= node.bone.transform.ToWorldMatrix();
+
+				// The bone offset matrix does not use something related to parent related.
+				node.bone.parentName		= "";
+				node.bone.parentIndex		= -1;
+				node.bone.transformToParent	= Model::Animation::Transform::Identity();
+				node.global	= node.local;
+
+				pBoneOffsets->emplace_back( std::move( node ) );
 			};
 
 			const int deformerCount = pFBXMesh->GetDeformerCount( FBX::FbxDeformer::eSkin );
@@ -762,6 +797,8 @@ namespace Donya
 					pMesh->boneIndices.emplace_back( boneIndex );
 				}
 			}
+
+			UpdateTransformMatrices( &pMesh->boneOffsets );
 
 			pMesh->boneIndex = FindBoneIndex( modelSkeletal, pNode->GetName() );
 		}
@@ -962,7 +999,7 @@ namespace Donya
 			}
 		}
 	}
-	void BuildMeshes( std::vector<Model::Source::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, std::vector<Model::Polygon> *pPolygons, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
+	void BuildMeshes( std::vector<Model::Source::Mesh> *pMeshes, const std::vector<FBX::FbxNode *> &meshNodes, std::vector<Model::Polygon> *pPolygons, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Node> &modelSkeletal, float animationSamplingFPS )
 	{
 		const size_t meshCount = meshNodes.size();
 		pMeshes->resize( meshCount );

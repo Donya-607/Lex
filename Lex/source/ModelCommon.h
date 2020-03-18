@@ -143,14 +143,16 @@ namespace Donya
 				template<class Archive>
 				void serialize( Archive &archive, std::uint32_t version )
 				{
-					if ( version == 0 )
+					archive
+					(
+						CEREAL_NVP( scale ),
+						CEREAL_NVP( rotation ),
+						CEREAL_NVP( translation )
+					);
+					
+					if ( 1 <= version )
 					{
-						archive
-						(
-							CEREAL_NVP( scale ),
-							CEREAL_NVP( rotation ),
-							CEREAL_NVP( translation )
-						);
+						// archive( CEREAL_NVP(  ) );
 					}
 				}
 			};
@@ -175,16 +177,49 @@ namespace Donya
 				template<class Archive>
 				void serialize( Archive &archive, std::uint32_t version )
 				{
-					if ( version == 0 )
+					archive
+					(
+						CEREAL_NVP(	name				),
+						CEREAL_NVP(	parentName			),
+						CEREAL_NVP(	parentIndex			),
+						CEREAL_NVP( transform			),
+						CEREAL_NVP( transformToParent	)
+					);
+
+					if ( 1 <= version )
 					{
-						archive
-						(
-							CEREAL_NVP(	name				),
-							CEREAL_NVP(	parentName			),
-							CEREAL_NVP(	parentIndex			),
-							CEREAL_NVP( transform			),
-							CEREAL_NVP( transformToParent	)
-						);
+						// archive( CEREAL_NVP(  ) );
+					}
+				}
+			};
+			/// <summary>
+			/// The class used for hold the bone's transform matrix.
+			/// </summary>
+			struct Node
+			{
+				Animation::Bone		bone;		// The source.
+				Donya::Vector4x4	local;		// Represents local transform only.
+				Donya::Vector4x4	global;		// Contain all parent's global transform. If the root bone, this matrix contains the local transform only.
+			public:
+				/// <summary>
+				/// The "local" transform will be made by interpolated bone. The "global" transform will be linear-interpolated.
+				/// </summary>
+				static Node Interpolate( const Node &lhs, const Node &rhs, float time );
+			private:
+				friend class cereal::access;
+				template<class Archive>
+				void serialize( Archive &archive, std::uint32_t version )
+				{
+					archive
+					(
+						CEREAL_NVP( bone	),
+						CEREAL_NVP( local	),
+						CEREAL_NVP( global	)
+					);
+
+					if ( 1 <= version )
+					{
+						// archive( CEREAL_NVP(  ) );
 					}
 				}
 			};
@@ -195,7 +230,7 @@ namespace Donya
 			struct KeyFrame
 			{
 				float				seconds;	// A begin seconds of some key-frame.
-				std::vector<Bone>	keyPose;	// A skeletal at some timing. That transform space is bone -> mesh.
+				std::vector<Node>	keyPose;	// A skeletal at some timing. That transform space is bone -> mesh.
 			public:
 				/// <summary>
 				/// Requires the two key-pose counts are the same.

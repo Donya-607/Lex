@@ -4,9 +4,9 @@ namespace Donya
 {
 	namespace Model
 	{
-		const std::vector<Pose::Node> &Pose::GetCurrentPose() const { return skeletal; }
+		const std::vector<Animation::Node> &Pose::GetCurrentPose() const { return skeletal; }
 
-		bool Pose::HasCompatibleWith( const std::vector<Animation::Bone> &validation ) const
+		bool Pose::HasCompatibleWith( const std::vector<Animation::Node> &validation ) const
 		{
 			/*
 			Requirements:
@@ -22,7 +22,7 @@ namespace Donya
 			const size_t boneCount = skeletal.size();
 			for ( size_t i = 0;  i < boneCount; ++i )
 			{
-				if ( validation[i].name != skeletal[i].bone.name )
+				if ( validation[i].bone.name != skeletal[i].bone.name )
 				{
 					return false;
 				}
@@ -35,7 +35,7 @@ namespace Donya
 			return HasCompatibleWith( validation.keyPose );
 		}
 
-		void Pose::AssignSkeletal( const std::vector<Animation::Bone> &newPose )
+		void Pose::AssignSkeletal( const std::vector<Animation::Node> &newPose )
 		{
 			const size_t newSize = newPose.size();
 			skeletal.clear();
@@ -43,7 +43,7 @@ namespace Donya
 
 			for ( size_t i = 0; i < newSize; ++i )
 			{
-				skeletal[i].bone = newPose[i];
+				skeletal[i] = newPose[i];
 			}
 		}
 		void Pose::AssignSkeletal( const Animation::KeyFrame &newKeyFrame )
