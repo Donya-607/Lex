@@ -325,6 +325,10 @@ namespace Donya
 			}
 			if ( 4 <= version )
 			{
+				archive( CEREAL_NVP( polygons ) );
+			}
+			if ( 5 <= version )
+			{
 				// archive( CEREAL_NVP( x ) );
 			}
 		}
@@ -392,7 +396,7 @@ namespace Donya
 
 }
 
-CEREAL_CLASS_VERSION( Donya::Loader,				3 )
+CEREAL_CLASS_VERSION( Donya::Loader,				4 )
 CEREAL_CLASS_VERSION( Donya::Loader::Material,		0 )
 CEREAL_CLASS_VERSION( Donya::Loader::Subset,		0 )
 CEREAL_CLASS_VERSION( Donya::Loader::Bone,			0 )
