@@ -101,6 +101,7 @@ public:
 			animator.ResetTimer();
 			
 			pose.AssignSkeletal( source.skeletal );
+			pose.UpdateTransformMatrices();
 
 			polyGroup.Assign( loader.GetPolygons() );
 
@@ -343,14 +344,17 @@ public:
 
 		if ( useRaycast && !models.empty() )
 		{
-			constexpr Donya::Vector3	TEST_SCALE{ 2.5f, 2.5f, 2.5f };
+			constexpr Donya::Vector3	TEST_SCALE{ 12.0f, 24.0f, 12.0f };
 			constexpr Donya::Quaternion	TEST_ROTATION{};
 			constexpr Donya::Vector4	TEST_COLOR{ 1.0f, 0.7f, 0.0f, 0.8f };
 			constexpr float RAY_LENGTH = 65535.0f;
 
-			const Donya::Vector3 rayStart	= ScreenToWorld( currMouse.Float() );
-			const Donya::Vector3 rayEnd		= rayStart + ( RAY_LENGTH * iCamera.GetOrientation().LocalFront() );
-			
+			const Donya::Quaternion cameraRotation = iCamera.GetOrientation();
+			// const Donya::Vector3 rayStart	= ScreenToWorld( currMouse.Float() )/* - ( RAY_LENGTH * cameraRotation.LocalFront() )*/;
+			// const Donya::Vector3 rayEnd		= rayStart + ( RAY_LENGTH * cameraRotation.LocalFront() );
+			const Donya::Vector3 rayStart	= CalcWorldMousePos( currMouse, 0.0f );
+			const Donya::Vector3 rayEnd		= CalcWorldMousePos( currMouse, 1.0f );
+
 			const auto result = CalcRaycastPos( models.front(), rayStart, rayEnd );
 			if ( result.wasHit )
 			{
@@ -638,6 +642,37 @@ private:
 		const Donya::Vector3 vCameraToScreen = wsScreenPos - cameraPos;
 		const Donya::Vector3 onPlanePos = cameraPos + ( vCameraToScreen * rayLength );
 		return onPlanePos;
+	}
+	Donya::Vector4x4 CalcScreenToWorldMatrix()
+	{
+		const Donya::Vector4x4 V = iCamera.CalcViewMatrix();
+		const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
+
+		Donya::Vector4x4 VP{};
+		VP._11 = Common::HalfScreenWidthF();
+		VP._22 = -Common::HalfScreenHeightF();
+		VP._41 = Common::HalfScreenWidthF();
+		VP._42 = Common::HalfScreenHeightF();
+		Donya::Vector4x4 invVP = VP.Inverse();
+
+		return invVP * P.Inverse() * V.Inverse();
+	}
+	Donya::Vector3 CalcWorldMousePos( const Donya::Int2 &mousePos, float thirdParam )
+	{
+		const Donya::Vector4x4 matScreenToWorld = CalcScreenToWorldMatrix();
+
+		auto MakeTransformed = []( const Donya::Vector3 &from, const Donya::Vector4x4 &M )
+		{
+			Donya::Vector4 transformed = M.Mul( from, 1.0f );
+			transformed /= transformed.w;
+
+			return transformed.XYZ();
+		};
+
+		const Donya::Vector3 ssPos	= Donya::Vector3{ mousePos.Float(), thirdParam };
+		const Donya::Vector3 wsPos	= MakeTransformed( ssPos, matScreenToWorld );
+
+		return wsPos;
 	}
 
 	struct CalcRaycastResult
@@ -1136,6 +1171,8 @@ private:
 			}
 				
 			ShowModelNode( u8"モデル一覧" );
+
+			ImGui::Checkbox( u8"レイキャストを使う", &useRaycast );
 
 			ImGui::End();
 		}

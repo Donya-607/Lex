@@ -380,7 +380,7 @@ namespace Donya
 	void AdjustCoordinate( Model::Source::Mesh *pMesh )
 	{
 		// Convert right-hand space to left-hand space.
-		pMesh->coordinateConversion._11 = -1.0f;
+		//pMesh->coordinateConversion._11 = -1.0f;
 	}
 
 	/// <summary>
@@ -850,6 +850,7 @@ namespace Donya
 
 			const FBX::FbxVector4 *pControlPointsArray	= pFBXMesh->GetControlPoints();
 			const Donya::Vector4x4 globalTransform		= Convert( pNode->EvaluateGlobalTransform( 0 ) );
+			const Donya::Vector4x4 adjustMatrix			= globalTransform * pMesh->coordinateConversion;
 
 			FBX::FbxStringList uvSetName;
 			pFBXMesh->GetUVSetNames( uvSetName );
@@ -944,6 +945,8 @@ namespace Donya
 					{
 						Donya::Vector4 transformedPos = globalTransform.Mul( pos.position, 1.0f );
 						polygon.points[v] = transformedPos.XYZ();
+						// Donya::Vector4 transformedPos = adjustMatrix.Mul( pos.position, 1.0f );
+						// polygon.points[polygon.points.size() - 1 - v] = transformedPos.XYZ();
 					}
 
 					pMesh->positions.emplace_back( pos );
@@ -957,6 +960,9 @@ namespace Donya
 				}
 				subset.indexCount += EXPECT_POLYGON_SIZE;
 
+				const Donya::Vector3 edgeAB = polygon.points[1] - polygon.points[0];
+				const Donya::Vector3 edgeAC = polygon.points[2] - polygon.points[0];
+				polygon.normal = Donya::Cross( edgeAB, edgeAC ).Unit();
 				pPolygons->emplace_back( std::move( polygon ) );
 			}
 		}

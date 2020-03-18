@@ -327,7 +327,7 @@ namespace Donya
 		{
 			D3D11_RASTERIZER_DESC standard{};
 			standard.FillMode				= D3D11_FILL_SOLID;
-			standard.CullMode				= D3D11_CULL_FRONT;
+			standard.CullMode				= D3D11_CULL_BACK;
 			standard.FrontCounterClockwise	= FALSE;
 			standard.DepthBias				= 0;
 			standard.DepthBiasClamp			= 0;
