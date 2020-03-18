@@ -857,12 +857,6 @@ namespace Donya
 				*ppImmediateContext = Donya::GetImmediateContext();
 			}
 
-			Donya::Vector4x4 ExtractCoordinateConversion( const Model &model, size_t meshIndex )
-			{
-				const auto &meshes	= model.GetMeshes();
-				const auto &mesh	= meshes[meshIndex];
-				return mesh.coordinateConversion;
-			}
 			Donya::Vector4x4 ExtractInitialPose( const Model &model, size_t meshIndex, const Pose &pose )
 			{
 				const auto &meshes	= model.GetMeshes();
@@ -910,7 +904,7 @@ namespace Donya
 			Constants::PerMesh::Common constants;
 			constants.adjustMatrix =
 				ExtractInitialPose( model, meshIndex, pose ) *
-				ExtractCoordinateConversion( model, meshIndex );
+				model.GetCoordinateConversion();
 			return constants;
 		}
 		void StaticRenderer::UpdateCBPerMesh( const Model &model, size_t meshIndex, const Pose &pose, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
@@ -966,7 +960,7 @@ namespace Donya
 			constants.adjustMatrix =
 				// This matrix is contained into a bone-transform matrix.
 				// ExtractInitialPose( model, meshIndex ) *
-				ExtractCoordinateConversion( model, meshIndex );
+				model.GetCoordinateConversion();
 			return constants;
 		}
 		Constants::PerMesh::Bone   SkinningRenderer::MakeBoneConstants( const Model &model, size_t meshIndex, const Pose &pose ) const

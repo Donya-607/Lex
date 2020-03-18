@@ -101,9 +101,6 @@ namespace Donya
 			{
 				std::string								name;
 
-				Donya::Vector4x4						coordinateConversion;
-				// Donya::Vector4x4						globalTransform;
-
 				int										boneIndex;		// The index of this mesh's bone.
 				std::vector<int>						boneIndices;	// The indices of associated bone-offset matrix.
 				std::vector<Animation::Bone>			boneOffsets;	// Used as the bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
@@ -116,6 +113,7 @@ namespace Donya
 		private:
 			std::string			fileDirectory;	// Use for making file path.
 			std::vector<Mesh>	meshes;
+			Donya::Vector4x4	coordinateConversion;
 			bool				initializeResult = false;
 		protected: // Prevent a user forgot to call the BuildMyself() when creation.
 			Model()								= default;
@@ -138,8 +136,14 @@ namespace Donya
 		protected:
 			virtual bool CreateVertices( std::vector<Mesh> *pDest ) = 0;
 		public:
-			bool WasInitializeSucceeded()			const { return initializeResult; }
-			const std::vector<Mesh>	&GetMeshes()	const
+			Donya::Vector4x4 GetCoordinateConversion()	const { return coordinateConversion; }
+			void SetCoordinateConversion( const Donya::Vector4x4 &newMatrix )
+			{
+				coordinateConversion = newMatrix;
+			}
+		public:
+			bool WasInitializeSucceeded()				const { return initializeResult; }
+			const std::vector<Mesh>	&GetMeshes()		const
 			{
 				return meshes;
 			}

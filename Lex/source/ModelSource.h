@@ -86,8 +86,6 @@ namespace Donya
 			{
 				std::string						name;
 
-				Donya::Vector4x4				coordinateConversion;
-				
 				int								boneIndex;		// The index of this mesh's node.
 				std::vector<int>				boneIndices;	// The indices of associated nodes with this mesh and this mesh's node.
 				std::vector<Animation::Bone>	boneOffsets;	// Used as the bone-offset(inverse initial-pose) matrices of associated nodes. You can access to that associated nodes with the index of "nodeIndices".
@@ -105,7 +103,6 @@ namespace Donya
 					archive
 					(
 						CEREAL_NVP(	name			),
-						CEREAL_NVP(	coordinateConversion	),
 						CEREAL_NVP(	boneIndex		),
 						CEREAL_NVP(	boneIndices		),
 						CEREAL_NVP(	boneOffsets		),
@@ -126,6 +123,7 @@ namespace Donya
 			std::vector<Mesh>				meshes;
 			std::vector<Animation::Bone>	skeletal;	// The model's skeletal of initial pose(so-called "T-pose"). 
 			std::vector<Animation::Motion>	motions;	// Represent animations. The animations contain only animation(i.e. The animation matrix transforms space is bone -> mesh(current pose)).
+			Donya::Vector4x4				coordinateConversion;
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -135,7 +133,8 @@ namespace Donya
 				(
 					CEREAL_NVP(	meshes		),
 					CEREAL_NVP(	skeletal	),
-					CEREAL_NVP(	motions		)
+					CEREAL_NVP(	motions		),
+					CEREAL_NVP( coordinateConversion )
 				);
 				
 				if ( 1 <= version )
@@ -147,7 +146,7 @@ namespace Donya
 	}
 }
 
-CEREAL_CLASS_VERSION( Donya::Model::Source,			0 )
-CEREAL_CLASS_VERSION( Donya::Model::Source::Subset,	0 )
+CEREAL_CLASS_VERSION( Donya::Model::Source,				0 )
+CEREAL_CLASS_VERSION( Donya::Model::Source::Subset,		0 )
 CEREAL_CLASS_VERSION( Donya::Model::Source::Mesh,		0 )
 CEREAL_CLASS_VERSION( Donya::Model::Source::Material,	0 )

@@ -377,10 +377,10 @@ namespace Donya
 		return true;
 	}
 
-	void AdjustCoordinate( Model::Source::Mesh *pMesh )
+	void AdjustCoordinate( Model::Source *pDest )
 	{
 		// Convert right-hand space to left-hand space.
-		//pMesh->coordinateConversion._11 = -1.0f;
+		pDest->coordinateConversion._11 = -1.0f;
 	}
 
 	/// <summary>
@@ -674,8 +674,6 @@ namespace Donya
 	}
 	void BuildMesh( Model::Source::Mesh *pMesh, FBX::FbxNode *pNode, FBX::FbxMesh *pFBXMesh, std::vector<Model::Polygon> *pPolygons, FBX::FbxScene *pScene, const std::string &fileDirectory, const std::vector<Model::Animation::Bone> &modelSkeletal, float animationSamplingFPS )
 	{
-		AdjustCoordinate( pMesh );
-
 		constexpr	int EXPECT_POLYGON_SIZE	= 3;
 		const		int mtlCount			= pNode->GetMaterialCount();
 		const		int polygonCount		= pFBXMesh->GetPolygonCount();
@@ -850,8 +848,7 @@ namespace Donya
 
 			const FBX::FbxVector4 *pControlPointsArray	= pFBXMesh->GetControlPoints();
 			const Donya::Vector4x4 globalTransform		= Convert( pNode->EvaluateGlobalTransform( 0 ) );
-			const Donya::Vector4x4 adjustMatrix			= globalTransform * pMesh->coordinateConversion;
-
+			
 			FBX::FbxStringList uvSetName;
 			pFBXMesh->GetUVSetNames( uvSetName );
 
@@ -945,8 +942,6 @@ namespace Donya
 					{
 						Donya::Vector4 transformedPos = globalTransform.Mul( pos.position, 1.0f );
 						polygon.points[v] = transformedPos.XYZ();
-						// Donya::Vector4 transformedPos = adjustMatrix.Mul( pos.position, 1.0f );
-						// polygon.points[polygon.points.size() - 1 - v] = transformedPos.XYZ();
 					}
 
 					pMesh->positions.emplace_back( pos );

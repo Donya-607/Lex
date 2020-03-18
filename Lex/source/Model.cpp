@@ -128,8 +128,9 @@ namespace Donya
 				pDevice = Donya::GetDevice();
 			}
 
-			fileDirectory		= argFileDirectory;
-			initializeResult	= InitMeshes( pDevice, source );
+			fileDirectory			= argFileDirectory;
+			coordinateConversion	= source.coordinateConversion;
+			initializeResult		= InitMeshes( pDevice, source );
 
 			return initializeResult;
 		}
@@ -144,7 +145,6 @@ namespace Donya
 				auto Assign = []( Model::Mesh *pDest, const Source::Mesh &source )
 				{
 					pDest->name					= source.name;
-					pDest->coordinateConversion	= source.coordinateConversion;
 					pDest->boneIndex			= source.boneIndex;
 					pDest->boneIndices			= source.boneIndices;
 					pDest->boneOffsets			= source.boneOffsets;

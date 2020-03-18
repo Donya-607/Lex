@@ -684,15 +684,30 @@ private:
 	{
 		auto MakeWorldMatrix = []( const MeshAndInfo &source )
 		{
-			const Donya::Quaternion rotation = Donya::Quaternion::Make( source.rotation.x, source.rotation.y, source.rotation.z );
-			return Donya::Vector4x4::MakeTransformation( source.scale, rotation, source.translation );
+			const Donya::Quaternion rotation = Donya::Quaternion::Make
+			(
+				ToRadian( source.rotation.x ),
+				ToRadian( source.rotation.y ),
+				ToRadian( source.rotation.z )
+			);
+			return
+				source.source.coordinateConversion *
+				Donya::Vector4x4::MakeTransformation
+				( source.scale, rotation, source.translation );
 		};
 		const Donya::Vector4x4 targetMatrix = MakeWorldMatrix( target );
 		const Donya::Vector4x4 invTargetMat = targetMatrix.Inverse();
 
+		auto Transform = []( const Donya::Vector3 &v, float fourthParam, const Donya::Vector4x4 &m )
+		{
+			Donya::Vector4 transformed = m.Mul( v, fourthParam );
+			transformed /= transformed.w;
+			return transformed.XYZ();
+		};
+
 		// Target Space.
-		const Donya::Vector3 tsRayStart	= invTargetMat.Mul( wsRayStart,	1.0f ).XYZ();
-		const Donya::Vector3 tsRayEnd	= invTargetMat.Mul( wsRayEnd,	1.0f ).XYZ();
+		const Donya::Vector3 tsRayStart	= Transform( wsRayStart,	1.0f, invTargetMat );
+		const Donya::Vector3 tsRayEnd	= Transform( wsRayEnd,		1.0f, invTargetMat );
 
 		CalcRaycastResult rv;
 
@@ -1336,6 +1351,33 @@ private:
 
 			ImGui::TreePop();
 		};
+		auto ShowSourceConfig	= [&]( MeshAndInfo &target )
+		{
+			if ( !ImGui::TreeNode( u8"í≤êÆçÄñ⁄" ) ) { return; }
+			// else
+
+			if ( ImGui::TreeNode( u8"ç¿ïWånïœä∑çsóÒ" ) )
+			{
+				Donya::Vector4x4 &coordConv = target.source.coordinateConversion;
+				ImGui::SliderFloat4( "11, 12, 13, 14", &coordConv._11, -1.0f, 1.0f );
+				ImGui::SliderFloat4( "21, 22, 23, 24", &coordConv._21, -1.0f, 1.0f );
+				ImGui::SliderFloat4( "31, 32, 33, 34", &coordConv._31, -1.0f, 1.0f );
+				ImGui::SliderFloat4( "41, 42, 43, 44", &coordConv._41, -1.0f, 1.0f );
+
+				if ( ImGui::Button( u8"Identity" ) )
+				{
+					coordConv = Donya::Vector4x4::Identity();
+				}
+
+				// For apply to screen immediately.
+				target.model.pSkinning->SetCoordinateConversion( coordConv );
+				target.model.pStatic->SetCoordinateConversion( coordConv );
+
+				ImGui::TreePop();
+			}
+
+			ImGui::TreePop();
+		};
 		auto ShowLoaderConfig	= [&]( MeshAndInfo &target )
 		{
 			if ( !ImGui::TreeNode( u8"è⁄ç◊" ) ) { return; }
@@ -1387,7 +1429,8 @@ private:
 
 			ShowDrawConfig( *it );
 			ShowMotionConfig( *it );
-			ShowLoaderConfig( *it );
+			ShowSourceConfig( *it );
+			// ShowLoaderConfig( *it );
 
 			ImGui::TreePop();
 			++it;
