@@ -296,11 +296,10 @@ public:
 	{
 		ClearBackGround();
 
-		const Donya::Vector4x4 V   = iCamera.CalcViewMatrix();
-		const Donya::Vector4x4 P   = iCamera.GetProjectionMatrix();
+		const Donya::Vector4x4 VP = iCamera.CalcViewMatrix() * iCamera.GetProjectionMatrix();
 		const Donya::Vector4   cameraPos{ iCamera.GetPosition(), 1.0f };
 
-		grid.Draw( V * P );
+		grid.Draw( VP );
 		
 		cbPerFrame.data.eyePosition			= cameraPos.XMFloat();
 		cbPerFrame.data.dirLightColor		= directionalLight.color;
@@ -324,7 +323,7 @@ public:
 		optionPerSubset.setPS		= true;
 
 		Donya::Vector4x4 S{}, R{}, T{}, W{};
-		Donya::Vector4x4 WVP = W * V * P;
+		Donya::Vector4x4 WVP = W * VP;
 		PSSkinnedMesh.Deactivate();
 		VSSkinnedMesh.Deactivate();
 
@@ -339,26 +338,9 @@ public:
 			DrawModelSource( it );
 		}
 
-		DrawOriginCube( V * P );
+		DrawOriginCube( VP );
 
-		if ( useRaycast && !models.empty() )
-		{
-			constexpr Donya::Vector3	TEST_SCALE{ 12.0f, 24.0f, 12.0f };
-			constexpr Donya::Quaternion	TEST_ROTATION{};
-			constexpr Donya::Vector4	TEST_COLOR{ 1.0f, 0.7f, 0.0f, 0.8f };
-
-			const Donya::Quaternion cameraRotation = iCamera.GetOrientation();
-			const Donya::Vector3 rayStart	= CalcWorldMousePos( currMouse, 0.0f );
-			const Donya::Vector3 rayEnd		= CalcWorldMousePos( currMouse, 1.0f );
-
-			const auto result = CalcRaycastPos( models.front(), rayStart, rayEnd );
-			if ( result.wasHit )
-			{
-				const Donya::Vector3   drawPos	= result.wsIntersectPos;
-				const Donya::Vector4x4 world	= Donya::Vector4x4::MakeTransformation( TEST_SCALE, TEST_ROTATION, drawPos );
-				DrawCube( world, V * P, TEST_COLOR );
-			}
-		}
+		DrawRaycast( VP );
 
 		// Old version. not supporting now.
 		/*
@@ -396,6 +378,30 @@ private:
 	{
 		const FLOAT colors[4]{ bgColor.x, bgColor.y, bgColor.z, bgColor.w };
 		Donya::ClearViews( colors );
+	}
+
+	void DrawLine( const Donya::Vector3 &from, const Donya::Vector3 &to, const Donya::Vector4x4 &VP, const Donya::Vector4 &color ) const
+	{
+		auto CreateLine = []( size_t instanceCount )
+		{
+			Donya::Geometric::Line instance{ instanceCount };
+			instance.Init();
+			return std::move( instance );
+		};
+		static Donya::Geometric::Line line = CreateLine( 4U );
+
+		line.Reserve( from, to, color );
+		line.Flush( VP );
+	}
+	void DrawSphere( const Donya::Vector4x4 &W, const Donya::Vector4x4 &VP, const Donya::Vector4 &color ) const
+	{
+		static Donya::Geometric::Sphere sphere = Donya::Geometric::CreateSphere();
+		sphere.Render( nullptr, true, true, W * VP, W, directionalLight.direction, color );
+	}
+	void DrawCube( const Donya::Vector4x4 &W, const Donya::Vector4x4 &VP, const Donya::Vector4 &color ) const
+	{
+		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
+		cube.Render( nullptr, true, true, W *VP, W, directionalLight.direction, color );
 	}
 
 	void DrawModelSource( const MeshAndInfo &data )
@@ -498,11 +504,40 @@ private:
 		}
 	}
 
-	void DrawCube( const Donya::Vector4x4 &W, const Donya::Vector4x4 &VP, const Donya::Vector4 &color ) const
+	void DrawRaycast( const Donya::Vector4x4 &VP )
 	{
-		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
-		cube.Render( nullptr, true, true, W *VP, W, directionalLight.direction, color );
+		if ( !useRaycast || models.empty() ) { return; }
+		// else
+
+		constexpr float				SPHERE_SCALE = 16.0f;
+		constexpr Donya::Vector4	LINE_COLOR	{ 0.0f, 1.0f, 0.0f, 0.8f };
+		constexpr Donya::Vector4	HIT_COLOR	{ 0.3f, 1.0f, 0.5f, 0.8f };
+		const Donya::Int2    ssCenter{ Common::HalfScreenWidth(), Common::HalfScreenHeight() };
+
+		const Donya::Vector3 drawOrigin	= CalcWorldMousePos( ssCenter,  0.1f );
+		const Donya::Vector3 rayStart	= CalcWorldMousePos( currMouse, 0.0f );
+		const Donya::Vector3 rayEnd		= CalcWorldMousePos( currMouse, 1.0f );
+
+		const auto result = CalcRaycastPos( models.front(), rayStart, rayEnd );
+		if ( !result.wasHit )
+		{
+			DrawLine( drawOrigin, rayEnd, VP, LINE_COLOR );
+			return;
+		}
+		// else
+
+		const Donya::Vector3 &intersection = result.wsIntersectPos;
+		Donya::Vector4x4 W{};
+		W._11 = SPHERE_SCALE;
+		W._22 = SPHERE_SCALE;
+		W._33 = SPHERE_SCALE;
+		W._41 = intersection.x;
+		W._42 = intersection.y;
+		W._43 = intersection.z;
+		DrawSphere( W, VP, HIT_COLOR );
+		DrawLine( drawOrigin, intersection, VP, HIT_COLOR );
 	}
+
 	void DrawOriginCube(  const Donya::Vector4x4 &matVP ) const
 	{
 		if ( !drawOriginCube ) { return; }

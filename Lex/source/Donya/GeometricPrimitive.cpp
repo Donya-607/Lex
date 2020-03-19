@@ -750,6 +750,7 @@ namespace Donya
 				
 				pImmediateContext->UpdateSubresource( iConstantBuffer.Get(), 0, nullptr, &cb, 0, 0 );
 				pImmediateContext->VSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
+				pImmediateContext->PSSetConstantBuffers( 0, 1, iConstantBuffer.GetAddressOf() );
 			}
 
 			// Settings
@@ -1337,6 +1338,8 @@ namespace Donya
 			pVertexBuffer(), pInstanceBuffer()
 		{}
 		Line::~Line() = default;
+
+		Line::Line( const Line & ) = default;
 
 		bool Line::Init()
 		{
