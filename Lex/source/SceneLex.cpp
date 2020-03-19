@@ -71,7 +71,7 @@ public:
 		Donya::Vector3				translation	{ 0.0f, 0.0f, 0.0f };
 		int			usingMotionIndex{ 0 };
 		float		currentElapsedTime{};
-		float		motionAccelPercent{ 1.0f };		// Normal is 1.0f.
+		float		motionAccelPercent{ 1.0f };	// Magnification.
 		bool		dontWannaDraw{ false };
 		bool		useSkinningVersion{ true };
 		bool		playLoopMotion{ true };
@@ -102,7 +102,7 @@ public:
 			
 			pose.AssignSkeletal( source.skeletal );
 
-			polyGroup.Assign( loader.GetPolygons() );
+			polyGroup = loader.GetPolygonGroup();
 
 			return succeeded;
 
@@ -346,11 +346,8 @@ public:
 			constexpr Donya::Vector3	TEST_SCALE{ 12.0f, 24.0f, 12.0f };
 			constexpr Donya::Quaternion	TEST_ROTATION{};
 			constexpr Donya::Vector4	TEST_COLOR{ 1.0f, 0.7f, 0.0f, 0.8f };
-			constexpr float RAY_LENGTH = 65535.0f;
 
 			const Donya::Quaternion cameraRotation = iCamera.GetOrientation();
-			// const Donya::Vector3 rayStart	= ScreenToWorld( currMouse.Float() )/* - ( RAY_LENGTH * cameraRotation.LocalFront() )*/;
-			// const Donya::Vector3 rayEnd		= rayStart + ( RAY_LENGTH * cameraRotation.LocalFront() );
 			const Donya::Vector3 rayStart	= CalcWorldMousePos( currMouse, 0.0f );
 			const Donya::Vector3 rayEnd		= CalcWorldMousePos( currMouse, 1.0f );
 
@@ -1119,6 +1116,9 @@ private:
 				ImGui::Checkbox( u8"原点に単位立方体を表示する",	&drawOriginCube );
 				ImGui::Text( "" );
 
+				ImGui::Checkbox( u8"レイキャストを使う", &useRaycast );
+				ImGui::Text( "" );
+
 				ImGui::SliderFloat( u8"ロード時：サンプルＦＰＳ", &loadSamplingFPS, 0.0f, 120.0f );
 				ImGui::Text( "" );
 
@@ -1171,8 +1171,6 @@ private:
 			}
 				
 			ShowModelNode( u8"モデル一覧" );
-
-			ImGui::Checkbox( u8"レイキャストを使う", &useRaycast );
 
 			ImGui::End();
 		}
@@ -1361,6 +1359,28 @@ private:
 				ImGui::TreePop();
 			}
 
+			if ( ImGui::TreeNode( u8"レイキャスト時のカリング" ) )
+			{
+				using Mode = Donya::Model::PolygonGroup::CullMode;
+				
+				auto MakeModeName = []( const Mode &mode )
+				{
+					switch ( mode )
+					{
+					case Mode::Back:  return "Back";
+					case Mode::Front: return "Front";
+					default: break;
+					}
+					return "!ERROR-TYPE!";
+				};
+				ImGui::Text( u8"いま：%s", MakeModeName( target.polyGroup.GetCullMode() ) );
+
+				if ( ImGui::Button( u8"Back"  ) ) { target.polyGroup.SetCullMode( Mode::Back  ); }
+				if ( ImGui::Button( u8"Front" ) ) { target.polyGroup.SetCullMode( Mode::Front ); }
+
+				ImGui::TreePop();
+			}
+
 			ImGui::TreePop();
 		};
 		auto ShowLoaderConfig	= [&]( MeshAndInfo &target )
@@ -1395,6 +1415,7 @@ private:
 			{
 				// Apply the changes of motion that when ShowMotionConfig().
 				it->loader.SetModelSource( it->source );
+				it->loader.SetPolygonGroup( it->polyGroup );
 
 				std::string saveName = GetSaveFileNameByCommonDialog();
 				if ( saveName.empty() )

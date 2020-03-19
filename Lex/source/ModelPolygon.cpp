@@ -175,8 +175,9 @@ namespace Donya
 			{
 			case CullMode::Back:	return source[index];
 			case CullMode::Front:	return source[pointCount - 1 - index];
-			default: _ASSERT_EXPR( 0, L"Error : Unexpected cull-mode!" ); return;
+			default: _ASSERT_EXPR( 0, L"Error : Unexpected cull-mode!" ); break;
 			}
+			return {};
 		}
 	}
 }

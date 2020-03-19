@@ -1218,12 +1218,16 @@ namespace Donya
 		Traverse( pScene->GetRootNode(), &fetchedMeshNodes, &fetchedAnimNodes );
 
 		OutputDebugProgress( "Start Building model-source.", outputProgress );
-		BuildModelSource
-		(
-			&source, &polygons,
-			pScene, fetchedMeshNodes, fetchedAnimNodes,
-			sampleFPS, fileDirectory
-		);
+		{
+			std::vector<Model::Polygon> polygons;
+			BuildModelSource
+			(
+				&source, &polygons,
+				pScene, fetchedMeshNodes, fetchedAnimNodes,
+				sampleFPS, fileDirectory
+			);
+			polyGroup.Assign( std::move( polygons ) );
+		}
 		OutputDebugProgress( "Finish Building model-source.", outputProgress );
 
 		size_t meshCount = fetchedMeshNodes.size();

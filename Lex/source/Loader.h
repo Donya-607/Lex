@@ -292,8 +292,8 @@ namespace Donya
 		std::vector<Motion> motions;
 		std::vector<Face>	collisionFaces;
 
-		Model::Source				source;
-		std::vector<Model::Polygon>	polygons;
+		Model::Source		source;
+		Model::PolygonGroup	polyGroup;
 	private:
 		float				sampleFPS;		// Use to sampling-rate of an all motions. If set value of lower-equal than zero, use a model's sampling-rate.
 	public:
@@ -325,7 +325,7 @@ namespace Donya
 			}
 			if ( 4 <= version )
 			{
-				archive( CEREAL_NVP( polygons ) );
+				archive( CEREAL_NVP( polyGroup ) );
 			}
 			if ( 5 <= version )
 			{
@@ -355,8 +355,11 @@ namespace Donya
 		/// </summary>
 		void SaveByCereal( const std::string &filePath ) const;
 	public:
-		Model::Source GetModelSource() const	{ return source; }
+		const Model::Source			&GetModelSource()		const { return source; }
 		void SetModelSource( const Model::Source &newSource ) { source = newSource; }
+
+		const Model::PolygonGroup	&GetPolygonGroup()		const { return polyGroup; }
+		void SetPolygonGroup( const Model::PolygonGroup &newSource ) { polyGroup = newSource; }
 
 		std::string GetAbsoluteFilePath()					const { return absFilePath;		}
 		std::string GetOnlyFileName()						const { return fileName;		}
@@ -364,7 +367,6 @@ namespace Donya
 		const std::vector<Mesh>		*GetMeshes()			const { return &meshes;			}
 		const std::vector<Motion>	*GetMotions()			const { return &motions;		}
 		const std::vector<Face>		*GetCollisionFaces()	const { return &collisionFaces;	}
-		const std::vector<Model::Polygon> &GetPolygons()	const { return polygons; }
 	private:
 		bool LoadByCereal( const std::string &filePath, std::string *outputErrorString, bool outputDebugProgress );
 		

@@ -61,7 +61,7 @@ namespace Donya
 				Front	// I regard as the definition order is CCW. The CW polygon will be ignored.
 			};
 		private:
-			CullMode				cullMode;
+			CullMode				cullMode = CullMode::Back;
 			std::vector<Polygon>	polygons;
 		private:
 			friend class cereal::access;
@@ -83,6 +83,7 @@ namespace Donya
 			/// Set the direction of ignoring normal.
 			/// </summary>
 			void SetCullMode( CullMode ignoreDirection );
+			CullMode GetCullMode() const { return cullMode; }
 		public:
 			void Assign( std::vector<Polygon> &rvPolygons );
 			void Assign( const std::vector<Polygon> &polygons );
