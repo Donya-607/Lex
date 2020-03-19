@@ -51,8 +51,18 @@ namespace Donya
 		/// </summary>
 		class PolygonGroup
 		{
+		public:
+			/// <summary>
+			/// Represents the definition order of triangle that will be excluded when Raycast().
+			/// </summary>
+			enum class CullMode
+			{
+				Back,	// I regard as the definition order is CW. The CCW polygon will be ignored.
+				Front	// I regard as the definition order is CCW. The CW polygon will be ignored.
+			};
 		private:
-			std::vector<Polygon> polygons;
+			CullMode				cullMode;
+			std::vector<Polygon>	polygons;
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -60,6 +70,7 @@ namespace Donya
 			{
 				archive
 				(
+					CEREAL_NVP( cullMode ),
 					CEREAL_NVP( polygons )
 				);
 				if ( 1 <= version )
@@ -67,6 +78,11 @@ namespace Donya
 					// archive();
 				}
 			}
+		public:
+			/// <summary>
+			/// Set the direction of ignoring normal.
+			/// </summary>
+			void SetCullMode( CullMode ignoreDirection );
 		public:
 			void Assign( std::vector<Polygon> &rvPolygons );
 			void Assign( const std::vector<Polygon> &polygons );
@@ -80,6 +96,15 @@ namespace Donya
 			/// If you set true to "onlyWantIsIntersect", This method will stop as soon if the ray intersects anything. This is a convenience if you just want to know the ray will intersection.
 			/// </summary>
 			RaycastResult RaycastWorldSpace( const Donya::Vector4x4 &worldTransform, const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool onlyWantIsIntersect = false ) const;
+		private:
+			/// <summary>
+			/// Extract by cullMode.
+			/// </summary>
+			void ExtractPolygonEdges( std::array<Donya::Vector3, 3> &dest, const std::array<Donya::Vector3, 3> &source ) const;
+			/// <summary>
+			/// Access by cullMode.
+			/// </summary>
+			Donya::Vector3 ArrayAccess( const std::array<Donya::Vector3, 3> &source, size_t index ) const;
 		};
 	}
 }

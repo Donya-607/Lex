@@ -6,6 +6,8 @@ namespace Donya
 {
 	namespace Model
 	{
+		void PolygonGroup::SetCullMode( CullMode ignoreDir ) { cullMode = ignoreDir; }
+
 		void PolygonGroup::Assign( std::vector<Polygon> &rvSource )
 		{
 			polygons = std::move( rvSource );
@@ -24,13 +26,11 @@ namespace Donya
 
 			float							nearestDistance = FLT_MAX;
 			Donya::Vector3					faceNormal;	// Does not normalized.
-			std::array<Donya::Vector3, 3>	edges;		// [0:AB][1:BC][2:CA]. Edges of face.
+			std::array<Donya::Vector3, 3>	edges;		// CullMode::Back:[0:AB][1:BC][2:CA]. CullMode::Front:[0:AC][1:CB][2:BA].
 
 			for ( const auto &it : polygons )
 			{
-				edges[0]	= it.points[1] - it.points[0];
-				edges[1]	= it.points[2] - it.points[1];
-				edges[2]	= it.points[0] - it.points[2];
+				ExtractPolygonEdges( edges, it.points );
 				faceNormal	= Donya::Vector3::Cross( edges[0], edges[1] );
 
 				// The ray does not intersection to back-face.
@@ -63,7 +63,8 @@ namespace Donya
 				bool onOutside = false;
 				for ( size_t i = 0; i < it.points.size()/* 3 */; ++i )
 				{
-					Donya::Vector3 vIV		= it.points[i] - intersection;
+					// Requirement: All vector(I->P) must facing right side of the edge vector.
+					Donya::Vector3 vIV		= ArrayAccess( it.points, i ) - intersection;
 					Donya::Vector3 cross	= Donya::Vector3::Cross( vIV, edges[i] );
 
 					float dotCN = Donya::Vector3::Dot( cross, faceNormal );
@@ -138,6 +139,44 @@ namespace Donya
 			result.distance = Donya::Vector3{ result.intersection - rayStart }.Length();
 
 			return result;
+		}
+
+		void PolygonGroup::ExtractPolygonEdges( std::array<Donya::Vector3, 3> &dest, const std::array<Donya::Vector3, 3> &source ) const
+		{
+			auto A = [&]() { return source[0]; };
+			auto B = [&]() { return source[1]; };
+			auto C = [&]() { return source[2]; };
+			auto Vector = [&]( auto &from, auto &to )
+			{
+				return to() - from();
+			};
+
+			switch ( cullMode )
+			{
+			case CullMode::Back: // [0:AB][1:BC][2:CA].
+				dest[0] = Vector( A, B );
+				dest[1] = Vector( B, C );
+				dest[2] = Vector( C, A );
+				return;
+			case CullMode::Front: // [0:AC][1:CB][2:BA].
+				dest[0] = Vector( A, C );
+				dest[1] = Vector( C, B );
+				dest[2] = Vector( B, A );
+				return;
+			default: _ASSERT_EXPR( 0, L"Error : Unexpected cull-mode!" ); return;
+			}
+		}
+		Donya::Vector3 PolygonGroup::ArrayAccess( const std::array<Donya::Vector3, 3> &source, size_t index ) const
+		{
+			constexpr size_t pointCount = 3; // == source.size(). 1 based.
+			assert(  index < pointCount );
+
+			switch ( cullMode )
+			{
+			case CullMode::Back:	return source[index];
+			case CullMode::Front:	return source[pointCount - 1 - index];
+			default: _ASSERT_EXPR( 0, L"Error : Unexpected cull-mode!" ); return;
+			}
 		}
 	}
 }
