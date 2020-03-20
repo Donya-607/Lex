@@ -13,6 +13,10 @@ namespace Donya
 {
 	bool MotionChunk::Create( const Donya::Loader &loader, MotionChunk *pOutput )
 	{
+		assert( !"Deprecated method was called!" );
+		return false;
+
+		/*
 		if ( !pOutput ) { return false; }
 		// else
 
@@ -54,6 +58,7 @@ namespace Donya
 
 		bool succeeded = pOutput->Init( motions );
 		return succeeded;
+		*/
 	}
 
 	bool MotionChunk::Init( const std::vector<Motion> &motions )

@@ -27,6 +27,10 @@ namespace Donya
 
 	bool StaticMesh::Create( const Loader &loader, StaticMesh &outputInstance )
 	{
+		assert( !"Deprecated method was called!" );
+		return false;
+
+		/*
 		const std::vector<Loader::Mesh> *pLoadedMeshes = loader.GetMeshes();
 		size_t loadedMeshCount = pLoadedMeshes->size();
 
@@ -115,6 +119,7 @@ namespace Donya
 		}
 
 		return outputInstance.Init( verticesPerMesh, indicesPerMesh, meshes, faces );
+		*/
 	}
 
 	constexpr const char *DefaultShaderSourceCode()

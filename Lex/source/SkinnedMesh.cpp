@@ -22,6 +22,10 @@ namespace Donya
 {
 	bool SkinnedMesh::Create( const Loader &loader, SkinnedMesh *pOutput, ID3D11Device *pDevice )
 	{
+		assert( !"Deprecated method was called!" );
+		return false;
+
+		/*
 		if ( !pOutput ) { return false; }
 		// else
 
@@ -33,13 +37,13 @@ namespace Donya
 		
 		auto AssignBoneInfluences = []( Donya::SkinnedMesh::Vertex *pVertex, const Donya::Loader::BoneInfluencesPerControlPoint &influences )
 		{
-			/*
+			/
 			0,	Clear the current bone indices and weights.
 			1,	Store all influences data to temporary storage.
 			2,	Sort with weight the storage by descending order.
 			3,	Assign the higher data of storage to vertex as many as MAX_BONE_INFLUENCES(bone array size).
 			4,	Assign the remaining storage data to highest weight bone.
-			*/
+			/
 
 			const size_t influenceCount = influences.cluster.size();
 
@@ -179,6 +183,7 @@ namespace Donya
 
 		bool   createResult = pOutput->Init( argIndices, argVertices, meshes, pDevice );
 		return createResult;
+		*/
 	}
 
 	SkinnedMesh::SkinnedMesh() :

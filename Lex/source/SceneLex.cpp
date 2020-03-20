@@ -75,13 +75,6 @@ public:
 		bool		dontWannaDraw{ false };
 		bool		useSkinningVersion{ true };
 		bool		playLoopMotion{ true };
-
-		// Old version. not supporting now.
-		/*
-		Donya::SkinnedMesh	mesh{};
-		Donya::MotionChunk	motions{};
-		Donya::Animator		animator{};
-		*/
 	public:
 		bool CreateByLoader()
 		{
@@ -105,15 +98,6 @@ public:
 			polyGroup = loader.GetPolygonGroup();
 
 			return succeeded;
-
-			// Old version. not supporting now.
-			/*
-			result = Donya::SkinnedMesh::Create( loader, &mesh );
-			if ( !result ) { succeeded = false; }
-			result = Donya::MotionChunk::Create( loader, &motions );
-			if ( !result ) { succeeded = false; }
-			animator.Init();
-			*/
 		}
 	};
 	struct AsyncLoad
@@ -341,37 +325,6 @@ public:
 		DrawOriginCube( VP );
 
 		DrawRaycast( VP );
-
-		// Old version. not supporting now.
-		/*
-		for ( auto &it : models )
-		{
-			if ( it.dontWannaDraw ) { continue; }
-			// else
-			const Donya::Vector3 eulerRadians
-			{
-				ToRadian( it.rotation.x ),
-				ToRadian( it.rotation.y ),
-				ToRadian( it.rotation.z ),
-			};
-			S = Donya::Vector4x4::MakeScaling( it.scale );
-			R = Donya::Vector4x4::MakeRotationEuler( eulerRadians );
-			T = Donya::Vector4x4::MakeTranslation( it.translation );
-			W = S * R * T;
-			WVP = W * V * P;
-			it.mesh.Render
-			(
-				it.motions,
-				it.animator,
-				WVP, W,
-				optionPerMesh,
-				optionPerSubset,
-				/ psSetSamplerSlot     /=  0,
-				/ psSetDiffuseMapSlot  /=  0,
-				( drawWireFrame ) ? false : true
-			);
-		}
-		*/
 	}
 private:
 	void ClearBackGround() const
@@ -940,7 +893,7 @@ private:
 			{
 				Donya::Loader tmpHeavyLoad{}; // For reduce time of lock.
 				tmpHeavyLoad.SetSamplingFPS( samplingFPS );
-				bool loadSucceeded = tmpHeavyLoad.Load( filePath, nullptr );
+				bool loadSucceeded = tmpHeavyLoad.Load( filePath );
 
 				std::lock_guard<std::mutex> lock( pElement->meshMutex );
 
@@ -1223,7 +1176,7 @@ private:
 		int  uniqueIndex		= 0;
 		auto MakeCaption		= [&uniqueIndex]( const Donya::Loader &source )
 		{
-			std::string fileName = "[" + source.GetOnlyFileName() + "]";
+			std::string fileName = "[" + source.GetFileName() + "]";
 			std::string postfix = "##" + std::to_string( uniqueIndex++ );
 			return fileName + postfix;
 		};
@@ -1423,8 +1376,7 @@ private:
 			if ( !ImGui::TreeNode( u8"è⁄ç◊" ) ) { return; }
 			// else
 
-			target.loader.AdjustParameterByImGuiNode();
-			target.loader.EnumPreservingDataToImGui();
+			target.loader.ShowEnumNode( u8"êîíl" );
 
 			ImGui::TreePop();
 		};
@@ -1471,7 +1423,7 @@ private:
 			ShowDrawConfig( *it );
 			ShowMotionConfig( *it );
 			ShowSourceConfig( *it );
-			// ShowLoaderConfig( *it );
+			ShowLoaderConfig( *it );
 
 			ImGui::TreePop();
 			++it;
