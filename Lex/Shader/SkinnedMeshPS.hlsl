@@ -18,9 +18,9 @@ float4 main( VS_OUT pin ) : SV_TARGET
 	//		diffuseFactor	= pow( diffuseFactor, 2.0f ); // If needed.
 	float4	diffuseColor	= cbDiffuse * diffuseFactor;
 
-	float	specularFactor	= Phong( pin.normal.rgb, nLightVec, nEyeVector.rgb, cbSpecular.w );
+	float	specularFactor	= Phong( pin.normal.rgb, nLightVec, nEyeVector.rgb );
 	// float	specularFactor	= BlinnPhong( pin.normal.rgb, nLightVec, nEyeVector.rgb, cbSpecular.w );
-	float4	specularColor	= cbSpecular * specularFactor;
+	float4	specularColor	= cbSpecular * specularFactor * cbSpecular.w;
 
 	float3	Ka				= ambientColor.rgb;
 	float3	Kd				= diffuseMapColor.rgb * diffuseColor.rgb;

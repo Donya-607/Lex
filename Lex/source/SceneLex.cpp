@@ -13,10 +13,11 @@
 #include "Donya/Keyboard.h"
 #include "Donya/Mouse.h"
 #include "Donya/Quaternion.h"
+#include "Donya/RenderingStates.h"
 #include "Donya/Sprite.h"
 #include "Donya/Shader.h"
 #include "Donya/Useful.h"
-#include "Donya/UseImgui.h"
+#include "Donya/UseImGui.h"
 #include "Donya/Vector.h"
 
 #include "Camera.h"
@@ -36,6 +37,50 @@
 
 using namespace DirectX;
 
+namespace
+{
+	static constexpr D3D11_DEPTH_STENCIL_DESC	DepthStencilDesc()
+	{
+		D3D11_DEPTH_STENCIL_DESC standard{};
+		standard.DepthEnable		= TRUE;
+		standard.DepthWriteMask		= D3D11_DEPTH_WRITE_MASK_ALL;
+		standard.DepthFunc			= D3D11_COMPARISON_LESS;
+		standard.StencilEnable		= FALSE;
+		return standard;
+	}
+	static constexpr D3D11_RASTERIZER_DESC		RasterizerDesc()
+	{
+		D3D11_RASTERIZER_DESC standard{};
+		standard.FillMode				= D3D11_FILL_SOLID;
+		standard.CullMode				= D3D11_CULL_BACK;
+		standard.FrontCounterClockwise	= TRUE;
+		standard.DepthBias				= 0;
+		standard.DepthBiasClamp			= 0;
+		standard.SlopeScaledDepthBias	= 0;
+		standard.DepthClipEnable		= TRUE;
+		standard.ScissorEnable			= FALSE;
+		standard.MultisampleEnable		= FALSE;
+		standard.AntialiasedLineEnable	= TRUE;
+		return standard;
+	}
+	static constexpr D3D11_SAMPLER_DESC			SamplerDesc()
+{
+	D3D11_SAMPLER_DESC standard{};
+	/*
+	standard.MipLODBias		= 0;
+	standard.MaxAnisotropy	= 16;
+	*/
+	standard.Filter				= D3D11_FILTER_ANISOTROPIC;
+	standard.AddressU			= D3D11_TEXTURE_ADDRESS_WRAP;
+	standard.AddressV			= D3D11_TEXTURE_ADDRESS_WRAP;
+	standard.AddressW			= D3D11_TEXTURE_ADDRESS_WRAP;
+	standard.ComparisonFunc		= D3D11_COMPARISON_ALWAYS;
+	standard.MinLOD				= 0;
+	standard.MaxLOD				= D3D11_FLOAT32_MAX;
+	return standard;
+}
+}
+
 struct SceneLex::Impl
 {
 public:
@@ -45,6 +90,16 @@ public:
 	{
 		Donya::Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };		// RGBA.
 		Donya::Vector4 direction{ 0.0f, 0.0f, 1.0f, 0.0f };
+	};
+	struct CBuffer
+	{
+		Donya::CBuffer<Donya::Model::Constants::PerScene::Common> perScene;
+		Donya::CBuffer<Donya::Model::Constants::PerModel::Common> perModel;
+	};
+	struct Shader
+	{
+		Donya::VertexShader VS;
+		Donya::PixelShader  PS;
 	};
 	struct Renderer
 	{
@@ -133,56 +188,41 @@ public:
 		DirectX::XMFLOAT4 materialColor;
 	};
 public:
+	ICamera							iCamera{};
+	DirectionalLight				directionalLight{};
+	Donya::Vector4					materialColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+	Donya::Vector4					bgColor{ 0.5f, 0.5f, 0.5f, 1.0f };
 
-	// TODO : To be serialize these member.
+	int								nowPressMouseButton{};	// [None:0][Left:VK_LBUTTON][Middle:VK_MBUTTON][Right:VK_RBUTTON]
+	Donya::Int2						prevMouse{};
+	Donya::Int2						currMouse{};
 
-	ICamera							iCamera;
-	DirectionalLight				directionalLight;
-	Donya::Vector4					materialColor;
-	Donya::Vector4					bgColor;
+	CameraUsage						cameraOp{};
 
-	int								nowPressMouseButton;	// [None:0][Left:VK_LBUTTON][Middle:VK_MBUTTON][Right:VK_RBUTTON]
-	Donya::Int2						prevMouse;
-	Donya::Int2						currMouse;
+	int								idDSState	= 0;
+	int								idRSState	= 0;
+	int								idPSSampler	= 0;
 
-	CameraUsage						cameraOp;
+	float							loadSamplingFPS = 0.0f;		// Use to Loader's sampling FPS.
+	std::vector<MeshAndInfo>		models{};
+	Renderer						renderer{};
 
-	float							loadSamplingFPS;		// Use to Loader's sampling FPS.
-	std::vector<MeshAndInfo>		models;
-	Renderer						renderer;
+	GridLine						grid{};
 
-	GridLine						grid;
+	CBuffer							cbuffer{};
+	Shader							shaderStatic{};
+	Shader							shaderSkinning{};
 
-	Donya::CBuffer<Donya::Model::Constants::PerModel::Common>	mcbPerModel;
-	Donya::CBuffer<CBufferPerFrame>	cbPerFrame;
-	Donya::CBuffer<CBufferPerModel>	cbPerModel;
-	Donya::VertexShader				VSSkinnedMesh;
-	Donya::PixelShader				PSSkinnedMesh;
+	std::unique_ptr<std::thread>	pLoadThread{ nullptr };
+	std::unique_ptr<AsyncLoad>		pCurrentLoading{ nullptr };
+	std::string						currentLoadingFileNameUTF8{};	// For UI.
+	std::queue<std::string>			reservedAbsFilePaths{};
+	std::queue<std::string>			reservedFileNamesUTF8{};		// For UI.
 
-	std::unique_ptr<std::thread>	pLoadThread;
-	std::unique_ptr<AsyncLoad>		pCurrentLoading;
-	std::string						currentLoadingFileNameUTF8;	// For UI.
-	std::queue<std::string>			reservedAbsFilePaths;
-	std::queue<std::string>			reservedFileNamesUTF8;		// For UI.
-
-	bool							drawWireFrame;
-	bool							drawOriginCube;
-
-	bool useRaycast = false;
+	bool							drawWireFrame{ false };
+	bool							drawOriginCube{ true };
+	bool							useRaycast{ false };
 public:
-	Impl() :
-		iCamera(), directionalLight(),
-		materialColor( 1.0f, 1.0f, 1.0f, 1.0f ), bgColor( 0.5f, 0.5f, 0.5f, 1.0f ),
-		nowPressMouseButton(), prevMouse(), currMouse(),
-		cameraOp(),
-		loadSamplingFPS( 0.0f ), models(),
-		renderer(),
-		grid(),
-		cbPerFrame(), cbPerModel(), VSSkinnedMesh(), PSSkinnedMesh(),
-		pLoadThread( nullptr ), pCurrentLoading( nullptr ),
-		currentLoadingFileNameUTF8(), reservedAbsFilePaths(), reservedFileNamesUTF8(),
-		drawWireFrame( false ), drawOriginCube( true )
-	{}
 	~Impl()
 	{
 		models.clear();
@@ -201,6 +241,15 @@ public:
 		if ( !result )
 		{
 			_ASSERT_EXPR( 0, L"Failed : Create some shaders." );
+			exit( -1 );
+			return;
+		}
+		// else
+
+		result = RenderingStatusInit();
+		if ( !result )
+		{
+			_ASSERT_EXPR( 0, L"Failed : Create some rendering states." );
 			exit( -1 );
 			return;
 		}
@@ -285,42 +334,7 @@ public:
 
 		grid.Draw( VP );
 		
-		cbPerFrame.data.eyePosition			= cameraPos.XMFloat();
-		cbPerFrame.data.dirLightColor		= directionalLight.color;
-		cbPerFrame.data.dirLightDirection	= directionalLight.direction;
-		cbPerFrame.Activate( 0, /* setVS = */ true, /* setPS = */ true );
-
-		cbPerModel.data.materialColor		= materialColor;
-		cbPerModel.data.materialColor.w		= Donya::Color::FilteringAlpha( materialColor.w );
-		cbPerModel.Activate( 1, /* setVS = */ true, /* setPS = */ true );
-
-		VSSkinnedMesh.Activate();
-		PSSkinnedMesh.Activate();
-
-		Donya::SkinnedMesh::CBSetOption optionPerMesh{};
-		Donya::SkinnedMesh::CBSetOption optionPerSubset{};
-		optionPerMesh.setSlot		= 2;
-		optionPerMesh.setVS			= true;
-		optionPerMesh.setPS			= true;
-		optionPerSubset.setSlot		= 3;
-		optionPerSubset.setVS		= true;
-		optionPerSubset.setPS		= true;
-
-		Donya::Vector4x4 S{}, R{}, T{}, W{};
-		Donya::Vector4x4 WVP = W * VP;
-		PSSkinnedMesh.Deactivate();
-		VSSkinnedMesh.Deactivate();
-
-		cbPerFrame.Deactivate();
-		cbPerModel.Deactivate();
-
-		for ( const auto &it : models )
-		{
-			if ( it.dontWannaDraw ) { continue; }
-			// else
-
-			DrawModelSource( it );
-		}
+		DrawModels( cameraPos, VP );
 
 		DrawOriginCube( VP );
 
@@ -357,7 +371,121 @@ private:
 		cube.Render( nullptr, true, true, W *VP, W, directionalLight.direction, color );
 	}
 
-	void DrawModelSource( const MeshAndInfo &data )
+	void DrawModels( const Donya::Vector4 &cameraPos, const Donya::Vector4x4 &VP )
+	{
+		using namespace Donya::Model;
+
+		Donya::DepthStencil::Activate( idDSState );
+		Donya::Rasterizer::Activate( idRSState );
+		Donya::Sampler::Activate( idPSSampler, 0, /* setVSS = */ false, /* setPS = */ true );
+
+		cbuffer.perScene.data.directionalLight.color		= directionalLight.color;
+		cbuffer.perScene.data.directionalLight.direction	= directionalLight.direction;
+		cbuffer.perScene.data.eyePosition					= cameraPos;
+		cbuffer.perScene.data.viewProjMatrix				= VP;
+		cbuffer.perScene.Activate( 0, /* setVS = */ true, /* setPS = */ true );
+
+		cbuffer.perModel.data.drawColor		= materialColor;
+		cbuffer.perModel.data.drawColor.w	= Donya::Color::FilteringAlpha( materialColor.w );
+
+		auto ActivateShader		= [&]( bool skinningVer )
+		{
+			if ( skinningVer )
+			{
+				shaderSkinning.VS.Activate();
+				shaderSkinning.PS.Activate();
+			}
+			else
+			{
+				shaderStatic.VS.Activate();
+				shaderStatic.PS.Activate();
+			}
+		};
+		auto DeactivateShader	= [&]( bool skinningVer )
+		{
+			if ( skinningVer )
+			{
+				shaderSkinning.VS.Deactivate();
+				shaderSkinning.PS.Deactivate();
+			}
+			else
+			{
+				shaderStatic.VS.Deactivate();
+				shaderStatic.PS.Deactivate();
+			}
+		};
+
+		auto Render				= [&]( const MeshAndInfo &target, const RegisterDesc &descPerMesh, const RegisterDesc &descPerSubset, const RegisterDesc &descDiffuseMap, bool skinningVer )
+		{
+			if ( skinningVer )
+			{
+				renderer.pSkinning->Render
+				(
+					*target.model.pSkinning,
+					target.pose,
+					descPerMesh,
+					descPerSubset,
+					descDiffuseMap
+				);
+			}
+			else
+			{
+				renderer.pStatic->Render
+				(
+					*target.model.pStatic,
+					target.pose,
+					descPerMesh,
+					descPerSubset,
+					descDiffuseMap
+				);
+			}
+		};
+
+		auto MakeQuaternion		= []( const MeshAndInfo &source )
+		{
+			return Donya::Quaternion::Make
+			(
+				ToRadian( source.rotation.x ),
+				ToRadian( source.rotation.y ),
+				ToRadian( source.rotation.z )
+			);
+		};
+
+		const auto descMesh		= RegisterDesc::Make( 2, /* setVS = */ true, /* setPS = */ false );
+		const auto descSubset	= RegisterDesc::Make( 3, /* setVS = */ false, /* setPS = */ true );
+		const auto descDiffuse	= RegisterDesc::Make( 0, /* setVS = */ false, /* setPS = */ true );
+
+		Donya::Vector4x4 W;
+		for ( const auto &it : models )
+		{
+			if ( it.dontWannaDraw ) { continue; }
+			// else
+
+			W = Donya::Vector4x4::MakeTransformation
+			(
+				it.scale,
+				MakeQuaternion( it ),
+				it.translation
+			);
+			cbuffer.perModel.data.worldMatrix	= W;
+			cbuffer.perModel.Activate( 1, /* setVS = */ true, /* setPS = */ true );
+
+			ActivateShader( it.useSkinningVersion );
+
+			Render( it, descMesh, descSubset, descDiffuse, it.useSkinningVersion );
+
+			DeactivateShader( it.useSkinningVersion );
+
+			cbuffer.perModel.Deactivate();
+		}
+
+		cbuffer.perScene.Deactivate();
+
+		Donya::Sampler::Deactivate();
+		Donya::Rasterizer::Deactivate();
+		Donya::DepthStencil::Deactivate();
+	}
+	void DrawModelByDefault( const MeshAndInfo &data )
 	{
 		const Donya::Vector4x4 V = iCamera.CalcViewMatrix();
 		const Donya::Vector4x4 P = iCamera.GetProjectionMatrix();
@@ -508,28 +636,95 @@ private:
 		bool succeeded = true;
 		bool result{};
 
-		result = mcbPerModel.Create();
+		result = cbuffer.perScene.Create();
 		if ( !result ) { succeeded = false; }
-		result = cbPerFrame.Create();
-		if ( !result ) { succeeded = false; }
-		result = cbPerModel.Create();
+		result = cbuffer.perModel.Create();
 		if ( !result ) { succeeded = false; }
 
-		constexpr const char *VSFilePath = "./Data/Shader/SkinnedMeshVS.cso";
-		constexpr const char *PSFilePath = "./Data/Shader/SkinnedMeshPS.cso";
-		const std::vector<D3D11_INPUT_ELEMENT_DESC> inputElementDesc
+		constexpr const char *VSFilePathStatic		= "./Data/Shader/ModelStaticVS.cso";
+		constexpr const char *VSFilePathSkinning	= "./Data/Shader/ModelSkinningVS.cso";
+		constexpr const char *PSFilePath			= "./Data/Shader/ModelPS.cso";
+		constexpr auto IEDescsPos	= Donya::Model::Vertex::Pos::GenerateInputElements( 0 );
+		constexpr auto IEDescsTex	= Donya::Model::Vertex::Tex::GenerateInputElements( 1 );
+		constexpr auto IEDescsBone	= Donya::Model::Vertex::Bone::GenerateInputElements( 2 );
+
+		auto Append = []( auto &dest, const auto &source )
 		{
-			{ "POSITION"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "NORMAL"		, 0, DXGI_FORMAT_R32G32B32_FLOAT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TEXCOORD"	, 0, DXGI_FORMAT_R32G32_FLOAT,			0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "BONES"		, 0, DXGI_FORMAT_R32G32B32A32_UINT,		0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "WEIGHTS"		, 0, DXGI_FORMAT_R32G32B32A32_FLOAT,	0, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			dest.insert( dest.end(), source.begin(), source.end() );
 		};
 
-		result = VSSkinnedMesh.CreateByCSO( VSFilePath, inputElementDesc );
+		std::vector<D3D11_INPUT_ELEMENT_DESC> IEDescsStatic{};
+		Append( IEDescsStatic, IEDescsPos );
+		Append( IEDescsStatic, IEDescsTex );
+		std::vector<D3D11_INPUT_ELEMENT_DESC> IEDescsSkinning{ IEDescsStatic };
+		Append( IEDescsSkinning, IEDescsBone );
+		
+		result = shaderStatic.VS.CreateByCSO( VSFilePathStatic, IEDescsStatic );
+		if ( !result ) { succeeded = false; }
+		result = shaderSkinning.VS.CreateByCSO( VSFilePathSkinning, IEDescsSkinning );
+		if ( !result ) { succeeded = false; }
+		result = shaderStatic.PS.CreateByCSO( PSFilePath );
+		if ( !result ) { succeeded = false; }
+		result = shaderSkinning.PS.CreateByCSO( PSFilePath );
 		if ( !result ) { succeeded = false; }
 
-		result = PSSkinnedMesh.CreateByCSO( PSFilePath );
+		return succeeded;
+	}
+	bool RenderingStatusInit()
+	{
+		using FindFunction = std::function<bool( int )>;
+
+		auto  AssignStateIdentifier = []( int *pIdentifier, const FindFunction &IsAlreadyExists )
+		{
+			*pIdentifier = 0;
+
+			for ( int i = 0; i < INT_MAX; ++i )
+			{
+				if ( IsAlreadyExists( i ) ) { continue; }
+				// else
+
+				*pIdentifier = i;
+				return;
+			}
+		};
+		
+		using Bundle = std::pair<int *, FindFunction>;
+		constexpr  size_t  STATE_COUNT = 3;
+		std::array<Bundle, STATE_COUNT> bundles
+		{
+			std::make_pair( &idDSState,		Donya::DepthStencil::IsAlreadyExists	),
+			std::make_pair( &idRSState,		Donya::Rasterizer::IsAlreadyExists		),
+			std::make_pair( &idPSSampler,	Donya::Sampler::IsAlreadyExists			),
+		};
+		for ( size_t i = 0; i < STATE_COUNT; ++i )
+		{
+			AssignStateIdentifier
+			(
+				bundles[i].first,
+				bundles[i].second
+			);
+		}
+
+		auto  CreateDepthStencil	= []( int id )
+		{
+			return Donya::DepthStencil::CreateState( id, DepthStencilDesc() );
+		};
+		auto  CreateRasterizer		= []( int id )
+		{
+			return Donya::Rasterizer::CreateState( id, RasterizerDesc() );
+		};
+		auto  CreateSampler			= []( int id )
+		{
+			return Donya::Sampler::CreateState( id, SamplerDesc() );
+		};
+
+		bool result		= true;
+		bool succeeded	= true;
+		result = CreateDepthStencil( idDSState );
+		if ( !result ) { succeeded = false; }
+		result = CreateRasterizer( idRSState );
+		if ( !result ) { succeeded = false; }
+		result = CreateSampler( idPSSampler );
 		if ( !result ) { succeeded = false; }
 
 		return succeeded;

@@ -99,9 +99,9 @@ namespace Donya
 				struct Member
 				{
 					static constexpr int DEFAULT_ID = 0;
-					int idDSState = DEFAULT_ID;
-					int idRSState = DEFAULT_ID;
-					int idPSSampler = DEFAULT_ID;
+					int idDSState	= DEFAULT_ID;
+					int idRSState	= DEFAULT_ID;
+					int idPSSampler	= DEFAULT_ID;
 					Donya::CBuffer<Constants::PerScene::Common> CBPerScene;
 					Donya::CBuffer<Constants::PerModel::Common> CBPerModel;
 

@@ -1,5 +1,16 @@
 static const float PI = 3.14159265359f;
 
+// See https://tech.cygames.co.jp/archives/2339/
+float4 SRGBToLinear( float4 colorSRGB )
+{
+	return pow( colorSRGB, 2.2f );
+}
+// See https://tech.cygames.co.jp/archives/2339/
+float4 LinearToSRGB( float4 colorLinear )
+{
+	return pow( colorLinear, 1.0f / 2.2f );
+}
+
 // Calculate diffuse reflection.
 // Argument.nwsNormal : The normal of normalized world space.
 // Argument.nwsToLightVec : The light vector of normalized world space. this vector is "position -> light".
@@ -40,15 +51,14 @@ float3 NormalizedHalfLambert( float3 diffuseColor, float3 nwsNormal, float3 nwsT
 // Argument.nwsNormal : The normal of normalized world space.
 // Argument.nwsToLightVec : The light vector of normalized world space. this vector is "position -> light".
 // Argument.nwsToEyeVec : The eye vector of normalized world space. this vector is "position -> eye".
-// Argument.specularPower : The specular's factor. will be power to return value.
 // Returns : Specular factor. 0.0f ~ 1.0f.
-float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec, float specularPower )
+float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec )
 {
 	// float3 nwsProjection = ( dot( nwsNormal, nwsToLightVec ) * nwsNormal );
 	// float3 nwsReflection = nwsToLightVec + ( nwsToLightVec - ( nwsProjection * 2.0f ) );
 	float3 nwsReflection  = normalize( reflect( -nwsToLightVec, nwsNormal ) );
 	float  specularFactor = max( 0.0f, dot( nwsToEyeVec, nwsReflection ) );
-	return pow( specularFactor, specularPower );
+	return specularFactor;
 }
 // Calculate specular by half vector.
 // Argument.nwsNormal : The normal of normalized world space.

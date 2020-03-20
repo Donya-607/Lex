@@ -367,6 +367,7 @@
     <None Include="Shader\Techniques.hlsli" />
     <None Include="Shader\ScreenFilter.hlsli" />
     <None Include="Shader\SourceSkinnedMesh.hlsli" />
+    <None Include="Shader\Model.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\SkinnedMeshVS.hlsl">
@@ -377,6 +378,9 @@
     </FxCompile>
     <FxCompile Include="Shader\SourceSkinnedMeshVS.hlsl" />
     <FxCompile Include="Shader\SourceSkinnedMeshPS.hlsl" />
+    <FxCompile Include="Shader\ModelStaticVS.hlsl" />
+    <FxCompile Include="Shader\ModelSkinningVS.hlsl" />
+    <FxCompile Include="Shader\ModelPS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Source\Donya\Donya.natvis" />
