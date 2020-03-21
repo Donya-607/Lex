@@ -56,7 +56,7 @@ namespace Donya
 		}
 		void MotionHolder::EraseMotion( const std::string &motionName )
 		{
-			for ( auto &it = motions.begin(); it != motions.end(); ++it )
+			for ( auto &&it = motions.begin(); it != motions.end(); ++it )
 			{
 				if ( it->name == motionName )
 				{
