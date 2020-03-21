@@ -1,6 +1,13 @@
 #include "Model.hlsli"
 #include "Techniques.hlsli"
 
+cbuffer CBPerSubset : register( b3 )
+{
+	float4	cbAmbient;
+	float4	cbDiffuse;
+	float4	cbSpecular;
+};
+
 float3 CalcLightInfluence( float4 lightColor, float3 nwsPixelToLightVec, float3 nwsPixelNormal, float3 nwsEyeVector )
 {
 	float3	ambientColor	= cbAmbient.rgb;
