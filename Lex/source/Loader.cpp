@@ -832,6 +832,17 @@ namespace Donya
 
 #endif // USE_FBX_SDK
 
+	void Loader::ClearData()
+	{
+		fileDirectory	= "";
+		fileName		= "";
+		source.coordinateConversion = Donya::Vector4x4::Identity();
+		source.meshes.clear();
+		source.motions.clear();
+		source.skeletal.clear();
+		polyGroup.Assign( std::move( std::vector<Donya::Model::Polygon>{} ) );
+	}
+
 	bool Loader::Load( const std::string &filePath, bool outputProgress )
 	{
 		const std::string fullPath = ToFullPath( filePath );
