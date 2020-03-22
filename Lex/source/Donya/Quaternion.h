@@ -169,7 +169,7 @@ namespace Donya
 		constexpr Donya::Vector3 GetAxis() const { return Vector3{ x, y, z }; }
 
 		/// <summary>
-		/// Returns angles are radian.
+		/// Returns angles(radian) that belong local space.
 		/// </summary>
 		Donya::Vector3 GetEulerAngles() const;
 
@@ -230,6 +230,7 @@ namespace Donya
 		}
 
 		/// <summary>
+		/// Myself is not changing.<para></para>
 		/// [TRUE:returnsRotatedQuaternion] Create a quaternion that looking at "lookDirection".<para></para>
 		/// [FALSE:returnsRotatedQuaternion] Create a quaternion that rotate from "orientation" to "lookDirection".
 		/// </summary>

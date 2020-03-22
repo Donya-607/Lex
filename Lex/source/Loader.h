@@ -48,7 +48,6 @@ namespace Donya
 		static std::mutex fbxMutex;
 	#endif // USE_FBX_SDK
 	private: // Loading parameters.
-		std::string			filePath;		// The full file path.
 		std::string			fileDirectory;	// The '/' terminated file directory.
 		std::string			fileName;		// The file name that contains the extension.
 		
@@ -63,7 +62,6 @@ namespace Donya
 		{
 			archive
 			(
-				CEREAL_NVP( filePath ),
 				CEREAL_NVP( fileName ),
 				CEREAL_NVP( fileDirectory ),
 				CEREAL_NVP( source ),
@@ -102,10 +100,6 @@ namespace Donya
 		const Model::PolygonGroup	&GetPolygonGroup()	const { return polyGroup; }
 		void SetPolygonGroup( const Model::PolygonGroup &newSource ) { polyGroup = newSource; }
 
-		/// <summary>
-		/// Ex. returns "C:/Foo/Bar.fbx" from ["C:/Foo/Bar.fbx"].
-		/// </summary>
-		std::string GetFullFilePath()					const { return filePath;		}
 		/// <summary>
 		/// Ex. returns "Bar.fbx" from ["C:/Foo/Bar.fbx"].
 		/// </summary>

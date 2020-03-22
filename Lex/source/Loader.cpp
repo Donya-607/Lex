@@ -956,7 +956,7 @@ namespace Donya
 	{
 		OutputDebugProgress( "Start Separating File-Path.", outputProgress );
 
-		filePath		= GetUTF8FullPath( sourceFilePath );
+		const std::string fullPathUTF8 = GetUTF8FullPath( sourceFilePath );
 		fileDirectory	= ExtractFileDirectoryFromFullPath( sourceFilePath );
 		fileName		= sourceFilePath.substr( fileDirectory.size() );
 
@@ -981,7 +981,7 @@ namespace Donya
 			OutputDebugProgress( "Start Import.", outputProgress );
 
 			FBX::FbxImporter *pImporter = FBX::FbxImporter::Create( pManager, "" );
-			if ( !pImporter->Initialize( filePath.c_str(), -1, pManager->GetIOSettings() ) )
+			if ( !pImporter->Initialize( fullPathUTF8.c_str(), -1, pManager->GetIOSettings() ) )
 			{
 				std::string errMsg = "Failed Initialize. What: ";
 				errMsg += pImporter->GetStatus().GetErrorString();
@@ -989,6 +989,7 @@ namespace Donya
 				Uninitialize();
 				return false;
 			}
+			// else
 
 			if ( !pImporter->Import( pScene ) )
 			{
@@ -998,6 +999,7 @@ namespace Donya
 				Uninitialize();
 				return false;
 			}
+			// else
 
 			pImporter->Destroy();
 
