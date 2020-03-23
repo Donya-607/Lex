@@ -213,6 +213,9 @@
     <ClInclude Include="Source\ModelPolygon.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="Source\ModelPrimitive.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Camera.cpp">
@@ -359,6 +362,9 @@
     <ClCompile Include="Source\ModelPolygon.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\ModelPrimitive.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\SkinnedMesh.hlsli">
@@ -370,14 +376,6 @@
     <None Include="Shader\Model.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\SkinnedMeshVS.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\SkinnedMeshPS.hlsl">
-      <Filter>Shader</Filter>
-    </FxCompile>
-    <FxCompile Include="Shader\SourceSkinnedMeshVS.hlsl" />
-    <FxCompile Include="Shader\SourceSkinnedMeshPS.hlsl" />
     <FxCompile Include="Shader\ModelStaticVS.hlsl" />
     <FxCompile Include="Shader\ModelSkinningVS.hlsl" />
     <FxCompile Include="Shader\ModelPS.hlsl" />
