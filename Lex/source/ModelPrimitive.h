@@ -5,7 +5,9 @@
 #include <wrl.h>
 
 #include "Donya/CBuffer.h"
+#include "Donya/Donya.h"
 #include "Donya/Shader.h"
+#include "Donya/RenderingStates.h"
 #include "Donya/Vector.h"
 
 #include "ModelCommon.h"
@@ -42,6 +44,8 @@ namespace Donya
 			{
 				// TODO : Should include the states(depthStencil, rasterizer).
 			protected:
+				int idDS = 0;
+				int idRS = 0;
 				Donya::VertexShader	VS;
 				Donya::PixelShader	PS;
 				Donya::CBuffer<PrimitiveConstant> cbuffer;
@@ -49,8 +53,27 @@ namespace Donya
 			public:
 				virtual bool Create() = 0;
 			public:
-				void ActivateShader()	{ VS.Activate();	}
-				void DeactivateShader()	{ VS.Deactivate();	}
+				void ActivateVertexShader()		{ VS.Activate();	}
+				void ActivatePixelShader()		{ PS.Activate();	}
+				void DeactivateVertexShader()	{ VS.Deactivate();	}
+				void DeactivatePixelShader()	{ PS.Deactivate();	}
+			public:
+				bool ActivateDepthStencil()
+				{
+					return Donya::DepthStencil::Activate( idDS, Donya::GetImmediateContext() );
+				}
+				bool ActivateRasterizer()
+				{
+					return Donya::Rasterizer::Activate( idRS, Donya::GetImmediateContext() );
+				}
+				void DeactivateDepthStencil()
+				{
+					Donya::DepthStencil::Deactivate( Donya::GetImmediateContext() );
+				}
+				void DeactivateRasterizer()
+				{
+					Donya::Rasterizer::Deactivate( Donya::GetImmediateContext() );
+				}
 			public:
 				void UpdateConstant( const PrimitiveConstant &source )
 				{
@@ -111,6 +134,9 @@ namespace Donya
 		{
 		public:
 			bool Create() override;
+		public:
+			void ActivateConstant();
+			void ActivateVP();
 		};
 	}
 }

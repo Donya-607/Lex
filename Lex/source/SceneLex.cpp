@@ -31,6 +31,7 @@
 #include "ModelCommon.h"
 #include "ModelMotion.h"
 #include "ModelPose.h"
+#include "ModelPrimitive.h"
 #include "ModelRenderer.h"
 
 #pragma comment( lib, "comdlg32.lib" ) // For common-dialog.
@@ -105,6 +106,11 @@ public:
 	{
 		std::unique_ptr<Donya::Model::StaticRenderer>	pStatic;
 		std::unique_ptr<Donya::Model::SkinningRenderer>	pSkinning;
+		std::unique_ptr<Donya::Model::CubeRenderer>		pCube;
+	};
+	struct Primitive
+	{
+		Donya::Model::Cube	cube;
 	};
 	struct MeshAndInfo
 	{
@@ -207,6 +213,8 @@ public:
 	std::vector<MeshAndInfo>		models{};
 	Renderer						renderer{};
 
+	std::unique_ptr<Primitive>		pPrimitive{ nullptr };
+
 	GridLine						grid{};
 
 	CBuffer							cbuffer{};
@@ -259,6 +267,15 @@ public:
 		if ( !result )
 		{
 			_ASSERT_EXPR( 0, L"Failed : Create some renderers." );
+			exit( -1 );
+			return;
+		}
+		// else
+
+		result = PrimitiveInit();
+		if ( !result )
+		{
+			_ASSERT_EXPR( 0, L"Failed : Create some primitives." );
 			exit( -1 );
 			return;
 		}
@@ -367,8 +384,40 @@ private:
 	}
 	void DrawCube( const Donya::Vector4x4 &W, const Donya::Vector4x4 &VP, const Donya::Vector4 &color ) const
 	{
+		Donya::Model::Cube::Constant constant{};
+		constant.world = W;
+		constant.color = color;
+		constant.lightDirection = directionalLight.direction.XYZ();
+		static float tmp = 0.5f;
+		constant.lightBias = tmp;
+
+		renderer.pCube->ActivateVertexShader();
+		renderer.pCube->ActivatePixelShader();
+		renderer.pCube->ActivateDepthStencil();
+		renderer.pCube->ActivateRasterizer();
+
+		renderer.pCube->UpdateConstant( constant );
+		renderer.pCube->UpdateVP( VP );
+
+		renderer.pCube->ActivateConstant();
+		renderer.pCube->ActivateVP();
+
+		pPrimitive->cube.SetVertexBuffers();
+		pPrimitive->cube.SetIndexBuffer();
+		pPrimitive->cube.SetPrimitiveTopology();
+		pPrimitive->cube.Draw();
+
+		renderer.pCube->DeactivateVP();
+		renderer.pCube->DeactivateConstant();
+
+		renderer.pCube->DeactivateRasterizer();
+		renderer.pCube->DeactivateDepthStencil();
+		renderer.pCube->DeactivatePixelShader();
+		renderer.pCube->DeactivateVertexShader();
+		/*
 		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
 		cube.Render( nullptr, true, true, W *VP, W, directionalLight.direction, color );
+		*/
 	}
 
 	void DrawModels( const Donya::Vector4 &cameraPos, const Donya::Vector4x4 &VP )
@@ -733,10 +782,24 @@ private:
 	{
 		renderer.pStatic	= std::make_unique<Donya::Model::StaticRenderer>();
 		renderer.pSkinning	= std::make_unique<Donya::Model::SkinningRenderer>();
-		if ( !renderer.pStatic   ) { return false; }
-		if ( !renderer.pSkinning ) { return false; }
+		renderer.pCube		= std::make_unique<Donya::Model::CubeRenderer>();
+		if ( !renderer.pStatic			) { return false; }
+		if ( !renderer.pSkinning		) { return false; }
+		if ( !renderer.pCube			) { return false; }
+		if ( !renderer.pCube->Create()	) { return false; }
 		// else
 		return true;
+	}
+	bool PrimitiveInit()
+	{
+		pPrimitive = std::make_unique<Primitive>();
+		if ( !pPrimitive ) { return false; }
+		// else
+
+		bool succeeded = true;
+		if ( !pPrimitive->cube.Create() ) { succeeded = false; }
+
+		return succeeded;
 	}
 
 	void MouseUpdate()

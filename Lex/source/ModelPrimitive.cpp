@@ -4,6 +4,7 @@
 
 #include "Donya/Donya.h"	// Use GetDevice(), GetImmdiateContext().
 #include "Donya/Useful.h"	// Use OutputDebugStr(), MultiToWide().
+#include "Donya/RenderingStates.h"
 
 namespace
 {
@@ -70,7 +71,7 @@ namespace Donya
 
 				"	VS_OUT vout		= ( VS_OUT )( 0 );\n"
 				"	vout.svPos		= mul( vin.pos, WVP );\n"
-				"	vout.normal		= normalize( mul( vin.normal, W ) );\n"
+				"	vout.normal		= normalize( mul( vin.normal, cbWorld ) );\n"
 				"	return vout;\n"
 				"}\n"
 
@@ -92,6 +93,15 @@ namespace Donya
 			}
 			static constexpr const char *BasicNameVS	= "Donya::DefaultPrimitiveVS";
 			static constexpr const char *BasicNamePS	= "Donya::DefaultPrimitivePS";
+
+			static constexpr RegisterDesc BasicVPSetting()
+			{
+				return RegisterDesc::Make( 0U, true, false );
+			}
+			static constexpr RegisterDesc BasicPrimitiveSetting()
+			{
+				return RegisterDesc::Make( 1U, true, true );
+			}
 		}
 
 		namespace Impl
@@ -106,7 +116,7 @@ namespace Donya
 				);
 			}
 
-			void PrimitiveModel::SetVertexBuffers() const
+			void PrimitiveModel::SetVertexBuffers()	const
 			{
 				constexpr UINT stride = sizeof( Vertex::Pos );
 				constexpr UINT offset = 0;
@@ -120,7 +130,7 @@ namespace Donya
 					&offset
 				);
 			}
-			void PrimitiveModel::SetIndexBuffer() const
+			void PrimitiveModel::SetIndexBuffer()	const
 			{
 				SetNullIndexBuffer( Donya::GetImmediateContext() );
 			}
@@ -456,6 +466,82 @@ namespace Donya
 		}
 
 
+		namespace
+		{
+			using FindFunction = std::function<bool( int )>;
+			int FindAvailableID( const FindFunction &IsAlreadyExists, int beginIndex = 0 )
+			{
+				for ( int i = beginIndex; i < INT_MAX; ++i )
+				{
+					if ( IsAlreadyExists( i ) ) { continue; }
+					// else
+
+					return i;
+				}
+				// else
+
+				_ASSERT_EXPR( 0, L"Error : An available identifier was not found!" );
+				return beginIndex - 1;
+			}
+
+			// These creation functions returns the identifier or NULL(if failed the creation).
+
+			constexpr int DEFAULT_STATE_ID = -1;
+
+			int CreateDS( const D3D11_DEPTH_STENCIL_DESC &desc )
+			{
+				int  id =  FindAvailableID( Donya::DepthStencil::IsAlreadyExists, DEFAULT_STATE_ID + 1 );
+				if ( id == DEFAULT_STATE_ID ) { return DEFAULT_STATE_ID; } // The ID was not founded.
+				// else
+
+				bool result = Donya::DepthStencil::CreateState( id, desc );
+				return ( result ) ? id : DEFAULT_STATE_ID;
+			}
+			int CreateRS( const D3D11_RASTERIZER_DESC &desc )
+			{
+				int  id = FindAvailableID( Donya::Rasterizer::IsAlreadyExists, DEFAULT_STATE_ID + 1 );
+				if ( id == DEFAULT_STATE_ID ) { return DEFAULT_STATE_ID; } // The ID was not founded.
+				// else
+
+				bool result = Donya::Rasterizer::CreateState( id, desc );
+				return ( result ) ? id : DEFAULT_STATE_ID;
+			}
+			int CreatePS( const D3D11_SAMPLER_DESC &desc )
+			{
+				int  id = FindAvailableID( Donya::Sampler::IsAlreadyExists, DEFAULT_STATE_ID + 1 );
+				if ( id == DEFAULT_STATE_ID ) { return DEFAULT_STATE_ID; } // The ID was not founded.
+				// else
+
+				bool result = Donya::Sampler::CreateState( id, desc );
+				return ( result ) ? id : DEFAULT_STATE_ID;
+			}
+
+			static constexpr D3D11_DEPTH_STENCIL_DESC	BasicDepthStencilDesc()
+			{
+				D3D11_DEPTH_STENCIL_DESC standard{};
+				standard.DepthEnable		= TRUE;
+				standard.DepthWriteMask		= D3D11_DEPTH_WRITE_MASK_ALL;
+				standard.DepthFunc			= D3D11_COMPARISON_LESS;
+				standard.StencilEnable		= FALSE;
+				return standard;
+			}
+			static constexpr D3D11_RASTERIZER_DESC		BasicRasterizerDesc()
+			{
+				D3D11_RASTERIZER_DESC standard{};
+				standard.FillMode				= D3D11_FILL_SOLID;
+				standard.CullMode				= D3D11_CULL_BACK;
+				standard.FrontCounterClockwise	= FALSE;
+				standard.DepthBias				= 0;
+				standard.DepthBiasClamp			= 0;
+				standard.SlopeScaledDepthBias	= 0;
+				standard.DepthClipEnable		= TRUE;
+				standard.ScissorEnable			= FALSE;
+				standard.MultisampleEnable		= FALSE;
+				standard.AntialiasedLineEnable	= TRUE;
+				return standard;
+			}
+		}
+
 		bool CubeRenderer::Create()
 		{
 			ID3D11Device *pDevice = Donya::GetDevice();
@@ -466,6 +552,22 @@ namespace Donya
 			{
 				if ( !cbuffer.Create()   ) { AssertBaseCreation( "cbuffer", "Primitive"	); succeeded = false; }
 				if ( !cbufferVP.Create() ) { AssertBaseCreation( "cbuffer", "VP"		); succeeded = false; }
+			}
+
+			// States.
+			{
+				idDS = CreateDS( BasicDepthStencilDesc()	);
+				idRS = CreateRS( BasicRasterizerDesc()		);
+				if ( idDS == DEFAULT_STATE_ID )
+				{
+					AssertBaseCreation( "state", "DepthStencil" );
+					succeeded = false;
+				}
+				if ( idRS == DEFAULT_STATE_ID )
+				{
+					AssertBaseCreation( "state", "Rasterizer" );
+					succeeded = false;
+				}
 			}
 
 			// Shaders.
@@ -497,6 +599,16 @@ namespace Donya
 			}
 
 			return succeeded;
+		}
+		void CubeRenderer::ActivateConstant()
+		{
+			const auto desc = ShaderSource::BasicPrimitiveSetting();
+			PrimitiveRenderer::ActivateConstant( desc.setSlot, desc.setVS, desc.setPS );
+		}
+		void CubeRenderer::ActivateVP()
+		{
+			const auto desc = ShaderSource::BasicVPSetting();
+			PrimitiveRenderer::ActivateVP( desc.setSlot, desc.setVS, desc.setPS );
 		}
 
 	// region Cube

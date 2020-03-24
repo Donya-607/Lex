@@ -382,7 +382,7 @@ namespace Donya
 			constexpr RegisterDesc( unsigned int setSlot, bool setVS, bool setPS ) :
 				setSlot( setSlot ), setVS( setVS ), setPS( setPS ) {}
 		public:
-			static RegisterDesc Make( unsigned int setSlot, bool setVS, bool setPS )
+			static constexpr RegisterDesc Make( unsigned int setSlot, bool setVS, bool setPS )
 			{
 				return RegisterDesc{ setSlot, setVS, setPS };
 			}
