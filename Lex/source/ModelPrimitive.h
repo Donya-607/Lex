@@ -23,25 +23,29 @@ namespace Donya
 			{
 			private:
 				Microsoft::WRL::ComPtr<ID3D11Buffer> pBufferPos;
+			protected:
+				bool wasCreated = false;
 			public:
 				virtual bool Create() = 0;
 			protected:
 				HRESULT CreateBufferPos( const std::vector<Vertex::Pos> &source );
 			public:
-				void SetVertexBuffers() const;
-				void SetIndexBuffer() const;
+				virtual void SetVertexBuffers() const;
+				virtual void SetIndexBuffer() const;
 				virtual void SetPrimitiveTopology() const = 0;
 			public:
-				virtual void Draw() = 0;
+				virtual void Draw() const = 0;
 			};
 
 			template<typename PrimitiveConstant>
 			class PrimitiveRenderer
 			{
-			private:
+				// TODO : Should include the states(depthStencil, rasterizer).
+			protected:
 				Donya::VertexShader	VS;
 				Donya::PixelShader	PS;
 				Donya::CBuffer<PrimitiveConstant> cbuffer;
+				Donya::CBuffer<Donya::Vector4x4>  cbufferVP;
 			public:
 				virtual bool Create() = 0;
 			public:
@@ -52,13 +56,25 @@ namespace Donya
 				{
 					cbuffer.data = source;
 				}
+				void UpdateVP( const Donya::Vector4x4 &viewProjectionMatrix )
+				{
+					cbufferVP.data = viewProjectionMatrix;
+				}
 				void ActivateConstant( unsigned int setSlot, bool setVS, bool setPS )
 				{
 					cbuffer.Activate( setSlot, setVS, setPS );
 				}
+				void ActivateVP( unsigned int setSlot, bool setVS, bool setPS )
+				{
+					cbufferVP.Activate( setSlot, setVS, setPS );
+				}
 				void DeactivateConstant()
 				{
 					cbuffer.Deactivate();
+				}
+				void DeactivateVP()
+				{
+					cbufferVP.Deactivate();
 				}
 			};
 		}
@@ -76,12 +92,17 @@ namespace Donya
 				Donya::Vector3		lightDirection;
 				float				lightBias = 1.0f; // Used to adjust the lighting influence.
 			};
+		private:
+			Microsoft::WRL::ComPtr<ID3D11Buffer> pIndexBuffer;
 		public:
 			bool Create() override;
+		private:
+			HRESULT CreateBufferIndex( const std::vector<size_t> &source );
 		public:
+			void SetIndexBuffer() const override;
 			void SetPrimitiveTopology() const override;
 		public:
-			void Draw() override;
+			void Draw() const override;
 		};
 		/// <summary>
 		/// Provides a shader and a constant buffer for the Cubes.

@@ -3,6 +3,7 @@
 #include <array>
 
 #include "Donya/Donya.h"	// Use GetDevice(), GetImmdiateContext().
+#include "Donya/Useful.h"	// Use OutputDebugStr(), MultiToWide().
 
 namespace
 {
@@ -12,31 +13,97 @@ namespace
 	{
 		pImmediateContext->IASetIndexBuffer( nullptr, DXGI_FORMAT_R32_UINT, NULL );
 	}
+
+	void AssertBaseCreation( const std::string &contentName, const std::string &identityName )
+	{
+		const std::string errMsg =
+			"Failed : The creation of primitive's " + contentName +
+			", that is : " + identityName + ".";
+		Donya::OutputDebugStr( errMsg.c_str() );
+		_ASSERT_EXPR( 0, Donya::MultiToWide( errMsg ).c_str() );
+	}
 }
 
 namespace Donya
 {
 	namespace Model
 	{
-
-		constexpr D3D11_USAGE	BUFFER_USAGE = D3D11_USAGE_IMMUTABLE;
-		constexpr UINT			CPU_ACCESS_FLAG = NULL;
-		template<typename Struct>
-		HRESULT	MakeBuffer( const std::vector<Struct> &source, ComPtr<ID3D11Buffer> *pComBuffer, ID3D11Device *pDevice, D3D11_USAGE bufferUsage = D3D11_USAGE_IMMUTABLE, const UINT CPUAccessFlag = NULL )
+		namespace ShaderSource
 		{
-			return Donya::CreateVertexBuffer<Struct>
-			(
-				pDevice, source,
-				bufferUsage, CPUAccessFlag,
-				pComBuffer->GetAddressOf()
-			);
+			static constexpr const char *EntryPointVS	= "VSMain";
+			static constexpr const char *EntryPointPS	= "PSMain";
+
+			static constexpr const char *BasicCode()
+			{
+				return
+				"struct VS_IN\n"
+				"{\n"
+				"	float4		pos			: POSITION;\n"
+				"	float4		normal		: NORMAL;\n"
+				"};\n"
+				"struct VS_OUT\n"
+				"{\n"
+				"	float4		svPos		: SV_POSITION;\n"
+				"	float4		normal		: NORMAL;\n"
+				"};\n"
+
+				"cbuffer ConstantVP : register( b0 )\n"
+				"{\n"
+				"	row_major\n"
+				"	float4x4	cbViewProj;\n"
+				"};\n"
+				"cbuffer ConstantPrimitive : register( b1 )\n"
+				"{\n"
+				"	row_major\n"
+				"	float4x4	cbWorld;\n"
+				"	float4		cbDrawColor;\n"
+				"	float3		cbLightDirection;\n"
+				"	float		cbLightBias;\n"
+				"};\n"
+
+				"VS_OUT VSMain( VS_IN vin )\n"
+				"{\n"
+				"	vin.pos.w		= 1.0f;\n"
+				"	vin.normal.w	= 0.0f;\n"
+
+				"	float4x4 WVP	= mul( cbWorld, cbViewProj );\n"
+
+				"	VS_OUT vout		= ( VS_OUT )( 0 );\n"
+				"	vout.svPos		= mul( vin.pos, WVP );\n"
+				"	vout.normal		= normalize( mul( vin.normal, W ) );\n"
+				"	return vout;\n"
+				"}\n"
+
+				"float Lambert( float3 nwsNormal, float3 nwsToLightVec )\n"
+				"{\n"
+				"	return max( 0.0f, dot( nwsNormal, nwsToLightVec ) );\n"
+				"}\n"
+				"float4 PSMain( VS_OUT pin ) : SV_TARGET\n"
+				"{\n"
+				"			pin.normal		= normalize( pin.normal );\n"
+			
+				"	float3	nLightVec		= normalize( -cbLightDirection );	// Vector from position.\n"
+				"	float	diffuse			= Lambert( pin.normal.rgb, nLightVec );\n"
+				"	float	Kd				= ( 1.0f - cbLightBias ) + diffuse * cbLightBias;\n"
+
+				"	return	float4( cbDrawColor.rgb * Kd, cbDrawColor.a );\n"
+				"}\n"
+				;
+			}
+			static constexpr const char *BasicNameVS	= "Donya::DefaultPrimitiveVS";
+			static constexpr const char *BasicNamePS	= "Donya::DefaultPrimitivePS";
 		}
 
 		namespace Impl
 		{
 			HRESULT PrimitiveModel::CreateBufferPos( const std::vector<Vertex::Pos> &source )
 			{
-				return MakeBuffer<Vertex::Pos>( source, &pBufferPos, Donya::GetDevice() );
+				return Donya::CreateVertexBuffer<Vertex::Pos>
+				(
+					Donya::GetDevice(), source,
+					D3D11_USAGE_IMMUTABLE, NULL,
+					pBufferPos.GetAddressOf()
+				);
 			}
 
 			void PrimitiveModel::SetVertexBuffers() const
@@ -65,18 +132,12 @@ namespace Donya
 		{
 			std::array<Vertex::Pos, 4U * 6U> vertices;	// "4 * 6" represents six squares.
 			std::array<size_t, 3U * 2U * 6U> indices;	// "3 * 2 * 6" represents the six groups of the square that constructed by two triangles.
-		public:
-			constexpr CubeConfigration() : vertices(), indices() {}
 		};
-		constexpr CubeConfigration CreateCube()
+		CubeConfigration CreateCube()
 		{
-			CubeConfigration cube{};
-
-			std::array<Vertex::Pos, 4U * 6U> vertices{};
-			std::array<size_t, 3U * 2U * 6U> indices{};
-
 			/*
 			Abbreviations:
+
 			VTX	Vertex
 			IDX	Index
 			L	Left
@@ -90,7 +151,7 @@ namespace Donya
 			constexpr float  WHOLE_CUBE_SIZE = 1.0f;		// Unit size.
 			constexpr float  DIST = WHOLE_CUBE_SIZE / 2.0f;	// The distance from center(0.0f).
 			constexpr size_t STRIDE_VTX = 4U;				// Because the square is made up of 4 vertices.
-			constexpr size_t STRIDE_IDX = 2U * 3U;			// Because the square is made up of 2 triangles, and that triangle is made up of 3 vertices.
+			constexpr size_t STRIDE_IDX = 3U * 2U;			// Because the square is made up of 2 triangles, and that triangle is made up of 3 vertices.
 			constexpr std::array<size_t, STRIDE_IDX> CW_INDICES
 			{
 				0, 1, 2,	// LT->RT->LB(->LT)
@@ -102,6 +163,108 @@ namespace Donya
 				1, 2, 3		// RT->LB->RB(->RT)
 			};
 
+		#if 1 // Use for loop version
+
+			constexpr Donya::Vector3 TOP_NORMAL		{ 0.0f, +1.0f, 0.0f };
+			constexpr Donya::Vector3 BOTTOM_NORMAL	{ 0.0f, -1.0f, 0.0f };
+			constexpr Donya::Vector3 RIGHT_NORMAL	{ +1.0f, 0.0f, 0.0f };
+			constexpr Donya::Vector3 LEFT_NORMAL	{ -1.0f, 0.0f, 0.0f };
+			constexpr Donya::Vector3 FAR_NORMAL		{ 0.0f, 0.0f, +1.0f };
+			constexpr Donya::Vector3 NEAR_NORMAL	{ 0.0f, 0.0f, -1.0f };
+
+			constexpr std::array<Donya::Vector3, STRIDE_VTX> TOP_VERTICES
+			{
+				Donya::Vector3{ -DIST, +DIST, +DIST }, // LTF
+				Donya::Vector3{ +DIST, +DIST, +DIST }, // RTF
+				Donya::Vector3{ -DIST, +DIST, -DIST }, // LTN
+				Donya::Vector3{ +DIST, +DIST, -DIST }, // RTN
+			};
+			constexpr std::array<Donya::Vector3, STRIDE_VTX> BOTTOM_VERTICES
+			{
+				Donya::Vector3{ -DIST, -DIST, +DIST }, // LBF
+				Donya::Vector3{ +DIST, -DIST, +DIST }, // RBF
+				Donya::Vector3{ -DIST, -DIST, -DIST }, // LBN
+				Donya::Vector3{ +DIST, -DIST, -DIST }, // RBN
+			};
+			constexpr std::array<Donya::Vector3, STRIDE_VTX> RIGHT_VERTICES
+			{
+				Donya::Vector3{ +DIST, +DIST, -DIST }, // RTN
+				Donya::Vector3{ +DIST, +DIST, +DIST }, // RTF
+				Donya::Vector3{ +DIST, -DIST, -DIST }, // RBN
+				Donya::Vector3{ +DIST, -DIST, +DIST }, // RBF
+			};
+			constexpr std::array<Donya::Vector3, STRIDE_VTX> LEFT_VERTICES
+			{
+				Donya::Vector3{ -DIST, +DIST, -DIST }, // LTN
+				Donya::Vector3{ -DIST, +DIST, +DIST }, // LTF
+				Donya::Vector3{ -DIST, -DIST, -DIST }, // LBN
+				Donya::Vector3{ -DIST, -DIST, +DIST }, // LBF
+			};
+			constexpr std::array<Donya::Vector3, STRIDE_VTX> FAR_VERTICES
+			{
+				Donya::Vector3{ +DIST, -DIST, +DIST }, // RBF
+				Donya::Vector3{ +DIST, +DIST, +DIST }, // RTF
+				Donya::Vector3{ -DIST, -DIST, +DIST }, // LBF
+				Donya::Vector3{ -DIST, +DIST, +DIST }, // LTF
+			};
+			constexpr std::array<Donya::Vector3, STRIDE_VTX> NEAR_VERTICES
+			{
+				Donya::Vector3{ +DIST, -DIST, -DIST }, // RBN
+				Donya::Vector3{ +DIST, +DIST, -DIST }, // RTN
+				Donya::Vector3{ -DIST, -DIST, -DIST }, // LBN
+				Donya::Vector3{ -DIST, +DIST, -DIST }, // LTN
+			};
+		
+			struct Step // These pointers are used for reference only.
+			{
+				const size_t stride = 0;
+				const Donya::Vector3							*pNormal	= nullptr;
+				const std::array<Donya::Vector3, STRIDE_VTX>	*pVertices	= nullptr;
+				const std::array<size_t, STRIDE_IDX>			*pIndices	= nullptr;
+			public:
+				constexpr Step
+				(
+					size_t stride,
+					const Donya::Vector3							&normal,
+					const std::array<Donya::Vector3, STRIDE_VTX>	&vertices,
+					const std::array<size_t, STRIDE_IDX>			&indices
+				) : stride( stride ), pNormal( &normal ), pVertices( &vertices ), pIndices( &indices )
+				{}
+				constexpr Step( const Step &source )
+					: stride( source.stride ), pNormal( source.pNormal ), pVertices( source.pVertices ), pIndices( source.pIndices )
+				{}
+			};
+			constexpr std::array<Step, 6U> SQUARES
+			{
+				Step{ 0U, TOP_NORMAL,		TOP_VERTICES,		CW_INDICES	},
+				Step{ 1U, BOTTOM_NORMAL,	BOTTOM_VERTICES,	CCW_INDICES	},
+				Step{ 2U, RIGHT_NORMAL,		RIGHT_VERTICES,		CW_INDICES	},
+				Step{ 3U, LEFT_NORMAL,		LEFT_VERTICES,		CCW_INDICES	},
+				Step{ 4U, FAR_NORMAL,		FAR_VERTICES,		CW_INDICES	},
+				Step{ 5U, NEAR_NORMAL,		NEAR_VERTICES,		CCW_INDICES	}
+			};
+
+			CubeConfigration cube{};
+
+			size_t vStride = 0U;
+			size_t iStride = 0U;
+			for ( const auto &it : SQUARES )
+			{
+				vStride = STRIDE_VTX * it.stride;
+				iStride = STRIDE_IDX * it.stride;
+				for ( size_t i = 0; i < STRIDE_VTX; ++i )
+				{
+					cube.vertices[vStride + i].position = it.pVertices->at( i );
+					cube.vertices[vStride + i].normal   = *it.pNormal;
+				}
+				for ( size_t i = 0; i < STRIDE_IDX; ++i )
+				{
+					cube.indices[iStride + i] = it.pIndices->at( i ) + vStride;
+				}
+			}
+
+		#else
+		
 			constexpr size_t TOP_VTX_IDX = STRIDE_VTX * 0U;
 			constexpr size_t TOP_IDX_IDX = STRIDE_IDX * 0U;
 			constexpr Donya::Vector3 TOP_NORMAL{ 0.0f, +1.0f, 0.0f };
@@ -235,13 +398,105 @@ namespace Donya
 				cube.indices[NEAR_IDX_IDX + 5U] = CCW_INDICES[5U] + NEAR_VTX_IDX;
 			}
 
+		#endif // Use for loop version
+
 			return cube;
 		}
 
-
 		bool Cube::Create()
 		{
+			if ( wasCreated ) { return true; }
+			// else
 
+			const auto cubeSource = CreateCube();
+
+			// The creation method requires std::vector.
+
+			const std::vector<Vertex::Pos>	vectorVertices{ cubeSource.vertices.begin(), cubeSource.vertices.end() };
+			const std::vector<size_t>		vectorIndices { cubeSource.indices.begin(),  cubeSource.indices.end()  };
+
+			ID3D11Device	*pDevice	= Donya::GetDevice();
+			HRESULT			hr			= S_OK;
+
+			hr = CreateBufferPos  ( vectorVertices );
+			if ( FAILED( hr ) ) { AssertBaseCreation( "buffer", "Vertex::Pos" ); return false; }
+			// else
+
+			hr = CreateBufferIndex( vectorIndices  );
+			if ( FAILED( hr ) ) { AssertBaseCreation( "buffer", "Vertex::Pos" ); return false; }
+			// else
+
+			wasCreated = true;
+			return true;
+		}
+		HRESULT Cube::CreateBufferIndex( const std::vector<size_t> &source )
+		{
+			return Donya::CreateIndexBuffer
+			(
+				Donya::GetDevice(), source, pIndexBuffer.GetAddressOf()
+			);
+		}
+
+		void Cube::SetIndexBuffer() const
+		{
+			ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
+			pImmediateContext->IASetIndexBuffer( pIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
+		}
+		void Cube::SetPrimitiveTopology() const
+		{
+			ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
+			pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+		}
+
+		void Cube::Draw() const
+		{
+			constexpr UINT INDEX_COUNT = 3U * 2U * 6U;
+			ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
+			pImmediateContext->DrawIndexed( INDEX_COUNT, 0U, 0 );
+		}
+
+
+		bool CubeRenderer::Create()
+		{
+			ID3D11Device *pDevice = Donya::GetDevice();
+			bool result		= true;
+			bool succeeded	= true;
+
+			// CBuffers.
+			{
+				if ( !cbuffer.Create()   ) { AssertBaseCreation( "cbuffer", "Primitive"	); succeeded = false; }
+				if ( !cbufferVP.Create() ) { AssertBaseCreation( "cbuffer", "VP"		); succeeded = false; }
+			}
+
+			// Shaders.
+			{
+				const auto arrayIEDesc = Vertex::Pos::GenerateInputElements( 0 );
+
+				result = VS.CreateByEmbededSourceCode
+				(
+					ShaderSource::BasicNameVS, ShaderSource::BasicCode(), ShaderSource::EntryPointVS,
+					{ arrayIEDesc.begin(), arrayIEDesc.end() },
+					pDevice
+				);
+				if ( !result )
+				{
+					AssertBaseCreation( "shader", "Cube::VS" );
+					succeeded = false;
+				}
+
+				result = PS.CreateByEmbededSourceCode
+				(
+					ShaderSource::BasicNamePS, ShaderSource::BasicCode(), ShaderSource::EntryPointPS,
+					pDevice
+				);
+				if ( !result )
+				{
+					AssertBaseCreation( "shader", "Cube::PS" );
+					succeeded = false;
+				}
+			}
+
+			return succeeded;
 		}
 
 	// region Cube

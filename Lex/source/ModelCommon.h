@@ -40,6 +40,9 @@ namespace Donya
 				Donya::Vector3	position;
 				Donya::Vector3	normal;
 			public:
+				constexpr Pos() : position(), normal() {}
+				constexpr Pos( const Donya::Vector3 &position, const Donya::Vector3 &normal ) : position( position ), normal( normal ) {}
+			public:
 				static constexpr const auto GenerateInputElements( UINT inputSlot )
 				{
 					return std::array<D3D11_INPUT_ELEMENT_DESC, 2>
@@ -68,6 +71,8 @@ namespace Donya
 			{
 				Donya::Vector2	texCoord; // Origin is left-top.
 			public:
+				constexpr Tex() : texCoord() {}
+			public:
 				static constexpr const auto GenerateInputElements( UINT inputSlot )
 				{
 					return std::array<D3D11_INPUT_ELEMENT_DESC, 1>
@@ -94,6 +99,8 @@ namespace Donya
 			{
 				Donya::Vector4 	weights; // Each element is used as like array(e.g. x:[0], y:[1], ...).
 				Donya::Int4		indices; // Each element is used as like array(e.g. x:[0], y:[1], ...).
+			public:
+				constexpr Bone() : weights(), indices() {}
 			public:
 				static constexpr const auto GenerateInputElements( UINT inputSlot )
 				{
