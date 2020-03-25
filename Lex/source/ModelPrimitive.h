@@ -132,5 +132,47 @@ namespace Donya
 			/// </summary>
 			void Draw( const Cube &cube );
 		};
+
+
+		/// <summary>
+		/// A unit size sphere model. The center is origin(0.0f), radius is 0.5f.
+		/// </summary>
+		class Sphere : public Impl::PrimitiveModel
+		{
+		public:
+			struct Constant : public Impl::PrimitiveModel::ConstantBase
+			{};
+		private:
+			size_t sliceCountX = NULL;
+			size_t sliceCountY = NULL;
+			size_t indexCount  = NULL;
+			Microsoft::WRL::ComPtr<ID3D11Buffer> pIndexBuffer;
+		public:
+			Sphere( size_t sliceCountX = 12U, size_t sliceCountY = 6U );
+		public:
+			bool Create() override;
+		private:
+			HRESULT CreateBufferIndex( const std::vector<size_t> &source );
+		public:
+			void SetIndexBuffer() const override;
+			void SetPrimitiveTopology() const override;
+		public:
+			void CallDraw() const override;
+		};
+		/// <summary>
+		/// Provides a shader and a constant buffer for the Spheres.
+		/// </summary>
+		class SphereRenderer : public Impl::PrimitiveRenderer<Sphere::Constant>
+		{
+		public:
+			bool Create() override;
+		public:
+			void ActivateConstant();
+		public:
+			/// <summary>
+			/// Call the SetVertexBuffers(), SetIndexBuffer(), SetPrimitiveTopology(), CallDraw() of the cube.
+			/// </summary>
+			void Draw( const Sphere &sphere );
+		};
 	}
 }

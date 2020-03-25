@@ -2,6 +2,7 @@
 
 #include <array>
 
+#include "Donya/Constant.h"	// Use scast macro.
 #include "Donya/Donya.h"	// Use GetDevice(), GetImmdiateContext().
 #include "Donya/Useful.h"	// Use OutputDebugStr(), MultiToWide().
 #include "Donya/RenderingStates.h"
@@ -126,6 +127,82 @@ namespace Donya
 			void PrimitiveModel::SetIndexBuffer()	const
 			{
 				SetNullIndexBuffer( Donya::GetImmediateContext() );
+			}
+		}
+
+		namespace
+		{
+			using FindFunction = std::function<bool( int )>;
+			int FindAvailableID( const FindFunction &IsAlreadyExists, int beginIndex = 0 )
+			{
+				for ( int i = beginIndex; i < INT_MAX; ++i )
+				{
+					if ( IsAlreadyExists( i ) ) { continue; }
+					// else
+
+					return i;
+				}
+				// else
+
+				_ASSERT_EXPR( 0, L"Error : An available identifier was not found!" );
+				return beginIndex - 1;
+			}
+
+			// These creation functions returns the identifier or NULL(if failed the creation).
+
+			constexpr int DEFAULT_STATE_ID = -1;
+
+			int CreateDS( const D3D11_DEPTH_STENCIL_DESC &desc )
+			{
+				int  id =  FindAvailableID( Donya::DepthStencil::IsAlreadyExists, DEFAULT_STATE_ID + 1 );
+				if ( id == DEFAULT_STATE_ID ) { return DEFAULT_STATE_ID; } // The ID was not founded.
+				// else
+
+				bool result = Donya::DepthStencil::CreateState( id, desc );
+				return ( result ) ? id : DEFAULT_STATE_ID;
+			}
+			int CreateRS( const D3D11_RASTERIZER_DESC &desc )
+			{
+				int  id = FindAvailableID( Donya::Rasterizer::IsAlreadyExists, DEFAULT_STATE_ID + 1 );
+				if ( id == DEFAULT_STATE_ID ) { return DEFAULT_STATE_ID; } // The ID was not founded.
+				// else
+
+				bool result = Donya::Rasterizer::CreateState( id, desc );
+				return ( result ) ? id : DEFAULT_STATE_ID;
+			}
+			int CreatePS( const D3D11_SAMPLER_DESC &desc )
+			{
+				int  id = FindAvailableID( Donya::Sampler::IsAlreadyExists, DEFAULT_STATE_ID + 1 );
+				if ( id == DEFAULT_STATE_ID ) { return DEFAULT_STATE_ID; } // The ID was not founded.
+				// else
+
+				bool result = Donya::Sampler::CreateState( id, desc );
+				return ( result ) ? id : DEFAULT_STATE_ID;
+			}
+
+			static constexpr D3D11_DEPTH_STENCIL_DESC	BasicDepthStencilDesc()
+			{
+				D3D11_DEPTH_STENCIL_DESC standard{};
+				standard.DepthEnable		= TRUE;
+				standard.DepthWriteMask		= D3D11_DEPTH_WRITE_MASK_ALL;
+				standard.DepthFunc			= D3D11_COMPARISON_LESS;
+				standard.StencilEnable		= FALSE;
+				return standard;
+			}
+			static constexpr D3D11_RASTERIZER_DESC		BasicRasterizerDesc()
+			{
+				D3D11_RASTERIZER_DESC standard{};
+				standard.FillMode				= D3D11_FILL_SOLID;
+				standard.CullMode				= D3D11_CULL_BACK;
+				standard.FrontCounterClockwise	= FALSE;
+				standard.DepthBias				= 0;
+				standard.DepthBiasClamp			= 0;
+				standard.SlopeScaledDepthBias	= 0;
+				standard.DepthClipEnable		= TRUE;
+				standard.ScissorEnable			= FALSE;
+				standard.MultisampleEnable		= FALSE;
+				standard.AntialiasedLineEnable	= TRUE;
+				return standard;
 			}
 		}
 
@@ -426,7 +503,7 @@ namespace Donya
 			// else
 
 			hr = CreateBufferIndex( vectorIndices  );
-			if ( FAILED( hr ) ) { AssertBaseCreation( "buffer", "Vertex::Pos" ); return false; }
+			if ( FAILED( hr ) ) { AssertBaseCreation( "buffer", "Index" ); return false; }
 			// else
 
 			wasCreated = true;
@@ -458,82 +535,6 @@ namespace Donya
 			pImmediateContext->DrawIndexed( INDEX_COUNT, 0U, 0 );
 		}
 
-
-		namespace
-		{
-			using FindFunction = std::function<bool( int )>;
-			int FindAvailableID( const FindFunction &IsAlreadyExists, int beginIndex = 0 )
-			{
-				for ( int i = beginIndex; i < INT_MAX; ++i )
-				{
-					if ( IsAlreadyExists( i ) ) { continue; }
-					// else
-
-					return i;
-				}
-				// else
-
-				_ASSERT_EXPR( 0, L"Error : An available identifier was not found!" );
-				return beginIndex - 1;
-			}
-
-			// These creation functions returns the identifier or NULL(if failed the creation).
-
-			constexpr int DEFAULT_STATE_ID = -1;
-
-			int CreateDS( const D3D11_DEPTH_STENCIL_DESC &desc )
-			{
-				int  id =  FindAvailableID( Donya::DepthStencil::IsAlreadyExists, DEFAULT_STATE_ID + 1 );
-				if ( id == DEFAULT_STATE_ID ) { return DEFAULT_STATE_ID; } // The ID was not founded.
-				// else
-
-				bool result = Donya::DepthStencil::CreateState( id, desc );
-				return ( result ) ? id : DEFAULT_STATE_ID;
-			}
-			int CreateRS( const D3D11_RASTERIZER_DESC &desc )
-			{
-				int  id = FindAvailableID( Donya::Rasterizer::IsAlreadyExists, DEFAULT_STATE_ID + 1 );
-				if ( id == DEFAULT_STATE_ID ) { return DEFAULT_STATE_ID; } // The ID was not founded.
-				// else
-
-				bool result = Donya::Rasterizer::CreateState( id, desc );
-				return ( result ) ? id : DEFAULT_STATE_ID;
-			}
-			int CreatePS( const D3D11_SAMPLER_DESC &desc )
-			{
-				int  id = FindAvailableID( Donya::Sampler::IsAlreadyExists, DEFAULT_STATE_ID + 1 );
-				if ( id == DEFAULT_STATE_ID ) { return DEFAULT_STATE_ID; } // The ID was not founded.
-				// else
-
-				bool result = Donya::Sampler::CreateState( id, desc );
-				return ( result ) ? id : DEFAULT_STATE_ID;
-			}
-
-			static constexpr D3D11_DEPTH_STENCIL_DESC	BasicDepthStencilDesc()
-			{
-				D3D11_DEPTH_STENCIL_DESC standard{};
-				standard.DepthEnable		= TRUE;
-				standard.DepthWriteMask		= D3D11_DEPTH_WRITE_MASK_ALL;
-				standard.DepthFunc			= D3D11_COMPARISON_LESS;
-				standard.StencilEnable		= FALSE;
-				return standard;
-			}
-			static constexpr D3D11_RASTERIZER_DESC		BasicRasterizerDesc()
-			{
-				D3D11_RASTERIZER_DESC standard{};
-				standard.FillMode				= D3D11_FILL_SOLID;
-				standard.CullMode				= D3D11_CULL_BACK;
-				standard.FrontCounterClockwise	= FALSE;
-				standard.DepthBias				= 0;
-				standard.DepthBiasClamp			= 0;
-				standard.SlopeScaledDepthBias	= 0;
-				standard.DepthClipEnable		= TRUE;
-				standard.ScissorEnable			= FALSE;
-				standard.MultisampleEnable		= FALSE;
-				standard.AntialiasedLineEnable	= TRUE;
-				return standard;
-			}
-		}
 
 		bool CubeRenderer::Create()
 		{
@@ -607,6 +608,252 @@ namespace Donya
 		}
 
 	// region Cube
+	#pragma endregion
+
+	#pragma region Sphere
+
+		struct SphereConfigration
+		{
+			std::vector<Vertex::Pos>	vertices;
+			std::vector<size_t>			indices;
+		};
+		SphereConfigration CreateSphere( size_t sliceCountX, size_t sliceCountY )
+		{
+			// see http://rudora7.blog81.fc2.com/blog-entry-388.html
+
+			constexpr float RADIUS = 1.0f / 2.0f;
+			constexpr Donya::Vector3 CENTER{ 0.0f, 0.0f, 0.0f };
+
+			SphereConfigration sphere{};
+
+			// Make Vertices
+			{
+				auto MakeVertex = [&CENTER]( const Donya::Vector3 &pos )
+				{
+					Vertex::Pos v{};
+					v.position	= pos;
+					v.normal	= Donya::Vector3{ pos - CENTER }.Unit();
+					return v;
+				};
+				auto PushVertex = [&sphere]( const Vertex::Pos &vertex )->void
+				{
+					sphere.vertices.emplace_back( vertex );
+				};
+			
+				const Vertex::Pos TOP_VERTEX = MakeVertex( CENTER + Donya::Vector3{ 0.0f, RADIUS, 0.0f } );
+				PushVertex( TOP_VERTEX );
+
+				const float xyPlaneStep = ToRadian( 180.0f ) / scast<float>( sliceCountX );		// Line-up to vertically.
+				const float xzPlaneStep = ToRadian( 360.0f ) / scast<float>( sliceCountY );		// Line-up to horizontally.
+
+				constexpr float BASE_THETA = ToRadian( 90.0f ); // Use cosf(), sinf() with start from top(90-degrees).
+
+				float nowRadius{};
+				Donya::Vector3 pos{};
+				for ( size_t vertical = 1; vertical < sliceCountY; ++vertical )
+				{
+					nowRadius	=  cosf( BASE_THETA + ( xyPlaneStep * vertical ) ) * RADIUS;
+					pos.y		=  sinf( BASE_THETA + ( xyPlaneStep * vertical ) ) * RADIUS;
+					pos.y		+= CENTER.y;
+
+					for ( size_t horizontal = 0; horizontal <= sliceCountX; ++horizontal )
+					{
+						pos.x = CENTER.x + cosf( xzPlaneStep * horizontal ) * nowRadius;
+						pos.z = CENTER.z + sinf( xzPlaneStep * horizontal ) * nowRadius;
+
+						PushVertex( MakeVertex( pos ) );
+					}
+				}
+
+				const Vertex::Pos BOTTOM_VERTEX = MakeVertex( CENTER - Donya::Vector3{ 0.0f, RADIUS, 0.0f } );
+				PushVertex( BOTTOM_VERTEX );
+			}
+
+			// Make Triangle Indices
+			{
+				auto PushIndex = [&sphere]( size_t index )->void
+				{
+					sphere.indices.emplace_back( index );
+				};
+
+				// Make triangles with top.
+				{
+					const size_t TOP_INDEX = 0;
+
+					for ( size_t i = 1; i <= sliceCountX; ++i )
+					{
+						PushIndex( TOP_INDEX );
+						PushIndex( i + 1 );
+						PushIndex( i );
+					}
+				}
+
+				const size_t vertexCountPerRing = sliceCountX + 1;
+
+				// Make triangles of inner.
+				{
+					const size_t BASE_INDEX = 1; // Start next of top vertex.
+
+					size_t step{};		// The index of current ring.
+					size_t nextStep{};	// The index of next ring.
+					for ( size_t ring = 0; ring < vertexCountPerRing - 2/* It's OK to "-1" also */; ++ring )
+					{
+						step		= ( ring ) * vertexCountPerRing;
+						nextStep	= ( ring + 1 ) * vertexCountPerRing;
+
+						for ( size_t i = 0; i < sliceCountX; ++i )
+						{
+							PushIndex( BASE_INDEX + step		+ i		);
+							PushIndex( BASE_INDEX + step		+ i + 1	);
+							PushIndex( BASE_INDEX + nextStep	+ i		);
+							
+							PushIndex( BASE_INDEX + nextStep	+ i		);
+							PushIndex( BASE_INDEX + step		+ i + 1	);
+							PushIndex( BASE_INDEX + nextStep	+ i + 1	);
+						}
+					}
+				}
+
+				// Make triangles with bottom.
+				{
+					const size_t BOTTOM_INDEX = sphere.vertices.size() - 1;
+					const size_t BASE_INDEX   = BOTTOM_INDEX - vertexCountPerRing;
+
+					for ( size_t i = 0; i < sliceCountX; ++i )
+					{
+						PushIndex( BOTTOM_INDEX );
+						PushIndex( BASE_INDEX + i );
+						PushIndex( BASE_INDEX + i + 1 );
+					}
+				}
+			}
+
+			return sphere;
+		}
+
+		Sphere::Sphere( size_t sliceX, size_t sliceY )
+			: sliceCountX( sliceX ), sliceCountY( sliceY ), indexCount(), pIndexBuffer()
+		{}
+		bool Sphere::Create()
+		{
+			if ( wasCreated ) { return true; }
+			// else
+
+			const auto		sphereSource	= CreateSphere( sliceCountX, sliceCountY );
+			ID3D11Device	*pDevice = Donya::GetDevice();
+			HRESULT			hr = S_OK;
+
+			hr = CreateBufferPos  ( sphereSource.vertices );
+			if ( FAILED( hr ) ) { AssertBaseCreation( "buffer", "Vertex::Pos" ); return false; }
+			// else
+
+			hr = CreateBufferIndex( sphereSource.indices  );
+			if ( FAILED( hr ) ) { AssertBaseCreation( "buffer", "Index" ); return false; }
+			// else
+
+			indexCount = sphereSource.indices.size();
+
+			wasCreated = true;
+			return true;
+		}
+		HRESULT Sphere::CreateBufferIndex( const std::vector<size_t> &source )
+		{
+			return Donya::CreateIndexBuffer
+			(
+				Donya::GetDevice(), source, pIndexBuffer.GetAddressOf()
+			);
+		}
+
+		void Sphere::SetIndexBuffer() const
+		{
+			ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
+			pImmediateContext->IASetIndexBuffer( pIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0 );
+		}
+		void Sphere::SetPrimitiveTopology() const
+		{
+			ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
+			pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+		}
+
+		void Sphere::CallDraw() const
+		{
+			ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
+			pImmediateContext->DrawIndexed( indexCount, 0U, 0 );
+		}
+
+
+		bool SphereRenderer::Create()
+		{
+			ID3D11Device *pDevice = Donya::GetDevice();
+			bool result		= true;
+			bool succeeded	= true;
+
+			if ( !cbuffer.Create() )
+			{
+				AssertBaseCreation( "cbuffer", "Primitive" );
+				succeeded = false;
+			}
+
+			// States.
+			{
+				idDS = CreateDS( BasicDepthStencilDesc()	);
+				idRS = CreateRS( BasicRasterizerDesc()		);
+				if ( idDS == DEFAULT_STATE_ID )
+				{
+					AssertBaseCreation( "state", "DepthStencil" );
+					succeeded = false;
+				}
+				if ( idRS == DEFAULT_STATE_ID )
+				{
+					AssertBaseCreation( "state", "Rasterizer" );
+					succeeded = false;
+				}
+			}
+
+			// Shaders.
+			{
+				const auto arrayIEDesc = Vertex::Pos::GenerateInputElements( 0 );
+
+				result = VS.CreateByEmbededSourceCode
+				(
+					ShaderSource::BasicNameVS, ShaderSource::BasicCode(), ShaderSource::EntryPointVS,
+					{ arrayIEDesc.begin(), arrayIEDesc.end() },
+					pDevice
+				);
+				if ( !result )
+				{
+					AssertBaseCreation( "shader", "Sphere::VS" );
+					succeeded = false;
+				}
+
+				result = PS.CreateByEmbededSourceCode
+				(
+					ShaderSource::BasicNamePS, ShaderSource::BasicCode(), ShaderSource::EntryPointPS,
+					pDevice
+				);
+				if ( !result )
+				{
+					AssertBaseCreation( "shader", "Sphere::PS" );
+					succeeded = false;
+				}
+			}
+
+			return succeeded;
+		}
+		void SphereRenderer::ActivateConstant()
+		{
+			const auto desc = ShaderSource::BasicPrimitiveSetting();
+			PrimitiveRenderer::ActivateConstant( desc.setSlot, desc.setVS, desc.setPS );
+		}
+		void SphereRenderer::Draw( const Sphere &sphere )
+		{
+			sphere.SetVertexBuffers();
+			sphere.SetIndexBuffer();
+			sphere.SetPrimitiveTopology();
+			sphere.CallDraw();
+		}
+
+	// region Sphere
 	#pragma endregion
 	}
 }
