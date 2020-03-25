@@ -107,10 +107,12 @@ public:
 		std::unique_ptr<Donya::Model::StaticRenderer>	pStatic;
 		std::unique_ptr<Donya::Model::SkinningRenderer>	pSkinning;
 		std::unique_ptr<Donya::Model::CubeRenderer>		pCube;
+		std::unique_ptr<Donya::Model::SphereRenderer>	pSphere;
 	};
 	struct Primitive
 	{
-		Donya::Model::Cube	cube;
+		Donya::Model::Cube		cube;
+		Donya::Model::Sphere	sphere;
 	};
 	struct MeshAndInfo
 	{
@@ -377,10 +379,34 @@ private:
 		line.Reserve( from, to, color );
 		line.Flush( VP );
 	}
-	void DrawSphere( const Donya::Vector4x4 &W, const Donya::Vector4x4 &VP, const Donya::Vector4 &color ) const
+	void DrawSphere( const Donya::Vector4x4 &W, const Donya::Vector4x4 &VP, const Donya::Vector4 &color, float lightBias = 0.5f ) const
 	{
-		static Donya::Geometric::Sphere sphere = Donya::Geometric::CreateSphere();
-		sphere.Render( nullptr, true, true, W * VP, W, directionalLight.direction, color );
+		Donya::Model::Sphere::Constant constant{};
+		constant.matWorld		= W;
+		constant.matViewProj	= VP;
+		constant.drawColor		= color;
+		constant.lightDirection = directionalLight.direction.XYZ();
+		constant.lightBias		= lightBias;
+
+		renderer.pSphere->ActivateVertexShader();
+		renderer.pSphere->ActivatePixelShader();
+		renderer.pSphere->ActivateDepthStencil();
+		renderer.pSphere->ActivateRasterizer();
+
+		renderer.pSphere->UpdateConstant( constant );
+		renderer.pSphere->ActivateConstant();
+
+		renderer.pSphere->Draw( pPrimitive->sphere );
+
+		renderer.pSphere->DeactivateConstant();
+
+		renderer.pSphere->DeactivateRasterizer();
+		renderer.pSphere->DeactivateDepthStencil();
+		renderer.pSphere->DeactivatePixelShader();
+		renderer.pSphere->DeactivateVertexShader();
+
+		// static Donya::Geometric::Sphere sphere = Donya::Geometric::CreateSphere();
+		// sphere.Render( nullptr, true, true, W * VP, W, directionalLight.direction, color );
 	}
 	void DrawCube( const Donya::Vector4x4 &W, const Donya::Vector4x4 &VP, const Donya::Vector4 &color, float lightBias = 0.5f ) const
 	{
@@ -775,10 +801,13 @@ private:
 		renderer.pStatic	= std::make_unique<Donya::Model::StaticRenderer>();
 		renderer.pSkinning	= std::make_unique<Donya::Model::SkinningRenderer>();
 		renderer.pCube		= std::make_unique<Donya::Model::CubeRenderer>();
+		renderer.pSphere	= std::make_unique<Donya::Model::SphereRenderer>();
 		if ( !renderer.pStatic			) { return false; }
 		if ( !renderer.pSkinning		) { return false; }
 		if ( !renderer.pCube			) { return false; }
+		if ( !renderer.pSphere			) { return false; }
 		if ( !renderer.pCube->Create()	) { return false; }
+		if ( !renderer.pSphere->Create()) { return false; }
 		// else
 		return true;
 	}
@@ -790,6 +819,7 @@ private:
 
 		bool succeeded = true;
 		if ( !pPrimitive->cube.Create() ) { succeeded = false; }
+		if ( !pPrimitive->sphere.Create() ) { succeeded = false; }
 
 		return succeeded;
 	}

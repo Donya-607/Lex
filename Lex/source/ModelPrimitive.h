@@ -143,12 +143,12 @@ namespace Donya
 			struct Constant : public Impl::PrimitiveModel::ConstantBase
 			{};
 		private:
-			size_t sliceCountX = NULL;
-			size_t sliceCountY = NULL;
+			size_t sliceCountH = NULL;
+			size_t sliceCountV = NULL;
 			size_t indexCount  = NULL;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> pIndexBuffer;
 		public:
-			Sphere( size_t sliceCountX = 12U, size_t sliceCountY = 6U );
+			Sphere( size_t sliceCountH = 12U, size_t sliceCountV = 6U );
 		public:
 			bool Create() override;
 		private:

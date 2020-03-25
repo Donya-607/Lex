@@ -617,7 +617,7 @@ namespace Donya
 			std::vector<Vertex::Pos>	vertices;
 			std::vector<size_t>			indices;
 		};
-		SphereConfigration CreateSphere( size_t sliceCountX, size_t sliceCountY )
+		SphereConfigration CreateSphere( size_t sliceCountH, size_t sliceCountV )
 		{
 			// see http://rudora7.blog81.fc2.com/blog-entry-388.html
 
@@ -643,20 +643,20 @@ namespace Donya
 				const Vertex::Pos TOP_VERTEX = MakeVertex( CENTER + Donya::Vector3{ 0.0f, RADIUS, 0.0f } );
 				PushVertex( TOP_VERTEX );
 
-				const float xyPlaneStep = ToRadian( 180.0f ) / scast<float>( sliceCountX );		// Line-up to vertically.
-				const float xzPlaneStep = ToRadian( 360.0f ) / scast<float>( sliceCountY );		// Line-up to horizontally.
+				const float xyPlaneStep = ToRadian( 180.0f ) / scast<float>( sliceCountV );		// Line-up to vertically.
+				const float xzPlaneStep = ToRadian( 360.0f ) / scast<float>( sliceCountH );		// Line-up to horizontally.
 
 				constexpr float BASE_THETA = ToRadian( 90.0f ); // Use cosf(), sinf() with start from top(90-degrees).
 
 				float nowRadius{};
 				Donya::Vector3 pos{};
-				for ( size_t vertical = 1; vertical < sliceCountY; ++vertical )
+				for ( size_t vertical = 1; vertical < sliceCountV; ++vertical )
 				{
 					nowRadius	=  cosf( BASE_THETA + ( xyPlaneStep * vertical ) ) * RADIUS;
 					pos.y		=  sinf( BASE_THETA + ( xyPlaneStep * vertical ) ) * RADIUS;
 					pos.y		+= CENTER.y;
 
-					for ( size_t horizontal = 0; horizontal <= sliceCountX; ++horizontal )
+					for ( size_t horizontal = 0; horizontal <= sliceCountH; ++horizontal )
 					{
 						pos.x = CENTER.x + cosf( xzPlaneStep * horizontal ) * nowRadius;
 						pos.z = CENTER.z + sinf( xzPlaneStep * horizontal ) * nowRadius;
@@ -680,7 +680,7 @@ namespace Donya
 				{
 					const size_t TOP_INDEX = 0;
 
-					for ( size_t i = 1; i <= sliceCountX; ++i )
+					for ( size_t i = 1; i <= sliceCountH; ++i )
 					{
 						PushIndex( TOP_INDEX );
 						PushIndex( i + 1 );
@@ -688,7 +688,7 @@ namespace Donya
 					}
 				}
 
-				const size_t vertexCountPerRing = sliceCountX + 1;
+				const size_t vertexCountPerRing = sliceCountH + 1;
 
 				// Make triangles of inner.
 				{
@@ -696,12 +696,12 @@ namespace Donya
 
 					size_t step{};		// The index of current ring.
 					size_t nextStep{};	// The index of next ring.
-					for ( size_t ring = 0; ring < vertexCountPerRing - 2/* It's OK to "-1" also */; ++ring )
+					for ( size_t ring = 0; ring < sliceCountV - 2/* It's OK to "-1" also */; ++ring )
 					{
 						step		= ( ring ) * vertexCountPerRing;
 						nextStep	= ( ring + 1 ) * vertexCountPerRing;
 
-						for ( size_t i = 0; i < sliceCountX; ++i )
+						for ( size_t i = 0; i < sliceCountH; ++i )
 						{
 							PushIndex( BASE_INDEX + step		+ i		);
 							PushIndex( BASE_INDEX + step		+ i + 1	);
@@ -719,7 +719,7 @@ namespace Donya
 					const size_t BOTTOM_INDEX = sphere.vertices.size() - 1;
 					const size_t BASE_INDEX   = BOTTOM_INDEX - vertexCountPerRing;
 
-					for ( size_t i = 0; i < sliceCountX; ++i )
+					for ( size_t i = 0; i < sliceCountH; ++i )
 					{
 						PushIndex( BOTTOM_INDEX );
 						PushIndex( BASE_INDEX + i );
@@ -731,15 +731,15 @@ namespace Donya
 			return sphere;
 		}
 
-		Sphere::Sphere( size_t sliceX, size_t sliceY )
-			: sliceCountX( sliceX ), sliceCountY( sliceY ), indexCount(), pIndexBuffer()
+		Sphere::Sphere( size_t sliceH, size_t sliceV )
+			: sliceCountH( sliceH ), sliceCountV( sliceV ), indexCount(), pIndexBuffer()
 		{}
 		bool Sphere::Create()
 		{
 			if ( wasCreated ) { return true; }
 			// else
 
-			const auto		sphereSource	= CreateSphere( sliceCountX, sliceCountY );
+			const auto		sphereSource	= CreateSphere( sliceCountH, sliceCountV );
 			ID3D11Device	*pDevice = Donya::GetDevice();
 			HRESULT			hr = S_OK;
 
