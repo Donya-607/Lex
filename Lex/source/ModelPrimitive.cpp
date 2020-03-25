@@ -48,15 +48,12 @@ namespace Donya
 				"	float4		normal		: NORMAL;\n"
 				"};\n"
 
-				"cbuffer ConstantVP : register( b0 )\n"
-				"{\n"
-				"	row_major\n"
-				"	float4x4	cbViewProj;\n"
-				"};\n"
-				"cbuffer ConstantPrimitive : register( b1 )\n"
+				"cbuffer Constant : register( b0 )\n"
 				"{\n"
 				"	row_major\n"
 				"	float4x4	cbWorld;\n"
+				"	row_major\n"
+				"	float4x4	cbViewProj;\n"
 				"	float4		cbDrawColor;\n"
 				"	float3		cbLightDirection;\n"
 				"	float		cbLightBias;\n"
@@ -85,7 +82,7 @@ namespace Donya
 			
 				"	float3	nLightVec		= normalize( -cbLightDirection );	// Vector from position.\n"
 				"	float	diffuse			= Lambert( pin.normal.rgb, nLightVec );\n"
-				"	float	Kd				= ( 1.0f - cbLightBias ) + diffuse * cbLightBias;\n"
+				"	float	Kd				= ( 1.0f - cbLightBias ) + ( diffuse * cbLightBias );\n"
 
 				"	return	float4( cbDrawColor.rgb * Kd, cbDrawColor.a );\n"
 				"}\n"
@@ -94,13 +91,9 @@ namespace Donya
 			static constexpr const char *BasicNameVS	= "Donya::DefaultPrimitiveVS";
 			static constexpr const char *BasicNamePS	= "Donya::DefaultPrimitivePS";
 
-			static constexpr RegisterDesc BasicVPSetting()
-			{
-				return RegisterDesc::Make( 0U, true, false );
-			}
 			static constexpr RegisterDesc BasicPrimitiveSetting()
 			{
-				return RegisterDesc::Make( 1U, true, true );
+				return RegisterDesc::Make( 0U, true, true );
 			}
 		}
 
@@ -458,7 +451,7 @@ namespace Donya
 			pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 		}
 
-		void Cube::Draw() const
+		void Cube::CallDraw() const
 		{
 			constexpr UINT INDEX_COUNT = 3U * 2U * 6U;
 			ID3D11DeviceContext *pImmediateContext = Donya::GetImmediateContext();
@@ -548,10 +541,10 @@ namespace Donya
 			bool result		= true;
 			bool succeeded	= true;
 
-			// CBuffers.
+			if ( !cbuffer.Create() )
 			{
-				if ( !cbuffer.Create()   ) { AssertBaseCreation( "cbuffer", "Primitive"	); succeeded = false; }
-				if ( !cbufferVP.Create() ) { AssertBaseCreation( "cbuffer", "VP"		); succeeded = false; }
+				AssertBaseCreation( "cbuffer", "Primitive" );
+				succeeded = false;
 			}
 
 			// States.
@@ -605,10 +598,12 @@ namespace Donya
 			const auto desc = ShaderSource::BasicPrimitiveSetting();
 			PrimitiveRenderer::ActivateConstant( desc.setSlot, desc.setVS, desc.setPS );
 		}
-		void CubeRenderer::ActivateVP()
+		void CubeRenderer::Draw( const Cube &cube )
 		{
-			const auto desc = ShaderSource::BasicVPSetting();
-			PrimitiveRenderer::ActivateVP( desc.setSlot, desc.setVS, desc.setPS );
+			cube.SetVertexBuffers();
+			cube.SetIndexBuffer();
+			cube.SetPrimitiveTopology();
+			cube.CallDraw();
 		}
 
 	// region Cube

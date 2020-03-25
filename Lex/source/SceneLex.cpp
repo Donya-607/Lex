@@ -382,14 +382,14 @@ private:
 		static Donya::Geometric::Sphere sphere = Donya::Geometric::CreateSphere();
 		sphere.Render( nullptr, true, true, W * VP, W, directionalLight.direction, color );
 	}
-	void DrawCube( const Donya::Vector4x4 &W, const Donya::Vector4x4 &VP, const Donya::Vector4 &color ) const
+	void DrawCube( const Donya::Vector4x4 &W, const Donya::Vector4x4 &VP, const Donya::Vector4 &color, float lightBias = 0.5f ) const
 	{
 		Donya::Model::Cube::Constant constant{};
-		constant.world = W;
-		constant.color = color;
+		constant.matWorld		= W;
+		constant.matViewProj	= VP;
+		constant.drawColor		= color;
 		constant.lightDirection = directionalLight.direction.XYZ();
-		static float tmp = 0.5f;
-		constant.lightBias = tmp;
+		constant.lightBias		= lightBias;
 
 		renderer.pCube->ActivateVertexShader();
 		renderer.pCube->ActivatePixelShader();
@@ -397,27 +397,19 @@ private:
 		renderer.pCube->ActivateRasterizer();
 
 		renderer.pCube->UpdateConstant( constant );
-		renderer.pCube->UpdateVP( VP );
-
 		renderer.pCube->ActivateConstant();
-		renderer.pCube->ActivateVP();
 
-		pPrimitive->cube.SetVertexBuffers();
-		pPrimitive->cube.SetIndexBuffer();
-		pPrimitive->cube.SetPrimitiveTopology();
-		pPrimitive->cube.Draw();
+		renderer.pCube->Draw( pPrimitive->cube );
 
-		renderer.pCube->DeactivateVP();
 		renderer.pCube->DeactivateConstant();
 
 		renderer.pCube->DeactivateRasterizer();
 		renderer.pCube->DeactivateDepthStencil();
 		renderer.pCube->DeactivatePixelShader();
 		renderer.pCube->DeactivateVertexShader();
-		/*
-		static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
-		cube.Render( nullptr, true, true, W *VP, W, directionalLight.direction, color );
-		*/
+
+		// static Donya::Geometric::Cube cube = Donya::Geometric::CreateCube();
+		// cube.Render( nullptr, true, true, W *VP, W, directionalLight.direction, color );
 	}
 
 	void DrawModels( const Donya::Vector4 &cameraPos, const Donya::Vector4x4 &VP )

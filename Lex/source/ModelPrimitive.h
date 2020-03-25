@@ -23,6 +23,15 @@ namespace Donya
 			/// </summary>
 			class PrimitiveModel
 			{
+			protected:
+				struct ConstantBase
+				{
+					Donya::Vector4x4	matWorld;
+					Donya::Vector4x4	matViewProj;
+					Donya::Vector4		drawColor;
+					Donya::Vector3		lightDirection;
+					float				lightBias = 0.5f; // Used to adjust the lighting influence. ( 1.0f - bias ) + ( light * bias )
+				};
 			private:
 				Microsoft::WRL::ComPtr<ID3D11Buffer> pBufferPos;
 			protected:
@@ -36,20 +45,18 @@ namespace Donya
 				virtual void SetIndexBuffer() const;
 				virtual void SetPrimitiveTopology() const = 0;
 			public:
-				virtual void Draw() const = 0;
+				virtual void CallDraw() const = 0;
 			};
 
 			template<typename PrimitiveConstant>
 			class PrimitiveRenderer
 			{
-				// TODO : Should include the states(depthStencil, rasterizer).
 			protected:
 				int idDS = 0;
 				int idRS = 0;
 				Donya::VertexShader	VS;
 				Donya::PixelShader	PS;
 				Donya::CBuffer<PrimitiveConstant> cbuffer;
-				Donya::CBuffer<Donya::Vector4x4>  cbufferVP;
 			public:
 				virtual bool Create() = 0;
 			public:
@@ -79,25 +86,13 @@ namespace Donya
 				{
 					cbuffer.data = source;
 				}
-				void UpdateVP( const Donya::Vector4x4 &viewProjectionMatrix )
-				{
-					cbufferVP.data = viewProjectionMatrix;
-				}
 				void ActivateConstant( unsigned int setSlot, bool setVS, bool setPS )
 				{
 					cbuffer.Activate( setSlot, setVS, setPS );
 				}
-				void ActivateVP( unsigned int setSlot, bool setVS, bool setPS )
-				{
-					cbufferVP.Activate( setSlot, setVS, setPS );
-				}
 				void DeactivateConstant()
 				{
 					cbuffer.Deactivate();
-				}
-				void DeactivateVP()
-				{
-					cbufferVP.Deactivate();
 				}
 			};
 		}
@@ -108,13 +103,8 @@ namespace Donya
 		class Cube : public Impl::PrimitiveModel
 		{
 		public:
-			struct Constant
-			{
-				Donya::Vector4x4	world;
-				Donya::Vector4		color;
-				Donya::Vector3		lightDirection;
-				float				lightBias = 1.0f; // Used to adjust the lighting influence.
-			};
+			struct Constant : public Impl::PrimitiveModel::ConstantBase
+			{};
 		private:
 			Microsoft::WRL::ComPtr<ID3D11Buffer> pIndexBuffer;
 		public:
@@ -125,7 +115,7 @@ namespace Donya
 			void SetIndexBuffer() const override;
 			void SetPrimitiveTopology() const override;
 		public:
-			void Draw() const override;
+			void CallDraw() const override;
 		};
 		/// <summary>
 		/// Provides a shader and a constant buffer for the Cubes.
@@ -136,7 +126,11 @@ namespace Donya
 			bool Create() override;
 		public:
 			void ActivateConstant();
-			void ActivateVP();
+		public:
+			/// <summary>
+			/// Call the SetVertexBuffers(), SetIndexBuffer(), SetPrimitiveTopology(), CallDraw() of the cube.
+			/// </summary>
+			void Draw( const Cube &cube );
 		};
 	}
 }
