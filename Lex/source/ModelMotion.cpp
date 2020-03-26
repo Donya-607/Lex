@@ -29,23 +29,23 @@ namespace Donya
 			return false;
 		}
 
-		Animation::Motion MotionHolder::GetMotion( int motionIndex ) const
+		const Animation::Motion &MotionHolder::GetMotion( int motionIndex ) const
 		{
-			if ( IsOutOfRange( motionIndex ) ) { return EmptyMotion(); }
-			// else
+			_ASSERT_EXPR( 0, L"Error : Passed index out of range!" );
 			return motions[motionIndex];
 		}
-		Animation::Motion MotionHolder::FindMotion( const std::string &motionName ) const
+		size_t MotionHolder::FindMotionIndex( const std::string &motionName ) const
 		{
-			for ( const auto &it : motions )
+			const size_t motionCount = motions.size();
+			for ( size_t i = 0; i < motionCount; ++i )
 			{
-				if ( it.name == motionName )
+				if ( motions[i].name == motionName )
 				{
-					return it;
+					return i;
 				}
 			}
 
-			return EmptyMotion();
+			return motionCount;
 		}
 
 		void MotionHolder::EraseMotion( int motionIndex )

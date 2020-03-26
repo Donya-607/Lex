@@ -25,13 +25,13 @@ namespace Donya
 			bool IsOutOfRange( int motionIndex ) const;
 		public:
 			/// <summary>
-			/// Returns the motion of specified element, or empty if the index is invalid.
+			/// Returns the motion of specified element.
 			/// </summary>
-			Animation::Motion GetMotion( int motionIndex ) const;
+			const Animation::Motion &GetMotion( int motionIndex ) const;
 			/// <summary>
-			/// Returns the specified motion that found first, or empty if the specified name is invalid.
+			/// Returns the specified motion that found first, or end(== GetMotionCount()) if the specified name is invalid.
 			/// </summary>
-			Animation::Motion FindMotion( const std::string &motionName ) const;
+			size_t FindMotionIndex( const std::string &motionName ) const;
 		public:
 			/// <summary>
 			/// Erase a motion by index of array.
