@@ -132,6 +132,9 @@ namespace Donya
 				ToWorldSpace( &it );
 			}
 
+			// HACK : Should I access to point by using ArrayAccess()? I had tried to access by method, but I didn't know which is better.
+			// const Donya::Vector3  edgeAB = ArrayAccess( result.nearestPolygon.points, 1U ) - ArrayAccess( result.nearestPolygon.points, 0U );
+			// const Donya::Vector3  edgeAC = ArrayAccess( result.nearestPolygon.points, 2U ) - ArrayAccess( result.nearestPolygon.points, 0U );
 			const Donya::Vector3  edgeAB = result.nearestPolygon.points[1] - result.nearestPolygon.points[0];
 			const Donya::Vector3  edgeAC = result.nearestPolygon.points[2] - result.nearestPolygon.points[0];
 			result.nearestPolygon.normal = Donya::Cross( edgeAB, edgeAC ).Unit();
