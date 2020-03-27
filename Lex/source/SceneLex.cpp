@@ -1269,6 +1269,9 @@ private:
 	{
 		for ( auto &it : models )
 		{
+			if ( it.holder.GetMotionCount() < 1 ) { continue; }
+			// else
+
 			it.animator.Update( elapsedTime * it.motionAccelPercent );
 			it.currentElapsedTime	= it.animator.GetInternalElapsedTime();
 
