@@ -31,7 +31,7 @@ namespace Donya
 
 		const Animation::Motion &MotionHolder::GetMotion( int motionIndex ) const
 		{
-			_ASSERT_EXPR( 0, L"Error : Passed index out of range!" );
+			_ASSERT_EXPR( motionIndex < scast<int>( motions.size() ), L"Error : Passed index out of range!" );
 			return motions[motionIndex];
 		}
 		size_t MotionHolder::FindMotionIndex( const std::string &motionName ) const
