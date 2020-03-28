@@ -659,7 +659,8 @@ private:
 
 		constexpr float				SPHERE_SCALE = 16.0f;
 		constexpr Donya::Vector4	LINE_COLOR	{ 0.0f, 1.0f, 0.0f, 0.8f };
-		constexpr Donya::Vector4	HIT_COLOR	{ 0.3f, 1.0f, 0.5f, 0.8f };
+		constexpr Donya::Vector4	NORMAL_COLOR{ 0.0f, 0.0f, 1.0f, 0.8f };
+		constexpr Donya::Vector4	HIT_COLOR	{ 0.5f, 1.0f, 0.5f, 0.8f };
 		const Donya::Int2    ssCenter{ Common::HalfScreenWidth(), Common::HalfScreenHeight() };
 
 		const Donya::Vector3 drawOrigin	= CalcWorldMousePos( ssCenter,  0.1f );
@@ -674,7 +675,13 @@ private:
 		}
 		// else
 
-		const Donya::Vector3 &intersection = result.wsIntersectPos;
+		{
+			const Donya::Vector3 &lineStart	= result.intersection;
+			const Donya::Vector3 lineEnd	= lineStart + ( result.nearestPolygon.normal * SPHERE_SCALE * 2.0f );
+			DrawLine( lineStart, lineEnd, VP, NORMAL_COLOR );
+		}
+
+		const Donya::Vector3 &intersection = result.intersection;
 		Donya::Vector4x4 W{};
 		W._11 = SPHERE_SCALE;
 		W._22 = SPHERE_SCALE;
@@ -939,12 +946,7 @@ private:
 		return wsPos;
 	}
 
-	struct CalcRaycastResult
-	{
-		bool wasHit = false;
-		Donya::Vector3 wsIntersectPos;
-	};
-	CalcRaycastResult CalcRaycastPos( const MeshAndInfo &target, const Donya::Vector3 &wsRayStart, const Donya::Vector3 &wsRayEnd ) const
+	Donya::Model::RaycastResult CalcRaycastPos( const MeshAndInfo &target, const Donya::Vector3 &wsRayStart, const Donya::Vector3 &wsRayEnd ) const
 	{
 		auto MakeWorldMatrix = []( const MeshAndInfo &source )
 		{
@@ -960,19 +962,8 @@ private:
 				( source.scale, rotation, source.translation );
 		};
 
-		CalcRaycastResult rv;
-
 		const auto raycast = target.polyGroup.RaycastWorldSpace( MakeWorldMatrix( target ), wsRayStart, wsRayEnd );
-		if ( !raycast.wasHit )
-		{
-			rv.wasHit = false;
-			return rv;
-		}
-		// else
-
-		rv.wasHit = true;
-		rv.wsIntersectPos = raycast.intersection;
-		return rv;
+		return raycast;
 	}
 
 	void CameraInit()
