@@ -24,7 +24,7 @@ namespace Donya
 			const Donya::Vector3 rayVec  = rayEnd - rayStart;
 			const Donya::Vector3 nRayVec = rayVec.Unit();
 
-			float							nearestDistance = FLT_MAX;
+			float							nearestDistance = rayVec.Length();
 			Donya::Vector3					faceNormal;	// Does not normalized.
 			std::array<Donya::Vector3, 3>	edges;		// CullMode::Back:[0:AB][1:BC][2:CA]. CullMode::Front:[0:AC][1:CB][2:BA].
 

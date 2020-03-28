@@ -31,7 +31,7 @@ namespace fbxsdk
 }
 #endif // USE_FBX_SDK
 
-// Program version : 8
+// Program version : 9
 
 namespace Donya
 {
@@ -48,11 +48,11 @@ namespace Donya
 		static std::mutex fbxMutex;
 	#endif // USE_FBX_SDK
 	private: // Loading parameters.
-		std::string			fileDirectory;	// The '/' terminated file directory.
-		std::string			fileName;		// The file name that contains the extension.
-		
 		Model::Source		source;
 		Model::PolygonGroup	polyGroup;
+		
+		std::string			fileDirectory;	// The '/' terminated file directory.
+		std::string			fileName;		// The file name that contains the extension.
 	private:
 		float				sampleFPS;		// Use to sampling-rate of an all motions. If set value of lower-equal than zero, use a model's sampling-rate.
 	private:
@@ -62,10 +62,8 @@ namespace Donya
 		{
 			archive
 			(
-				CEREAL_NVP( fileName ),
-				CEREAL_NVP( fileDirectory ),
-				CEREAL_NVP( source ),
-				CEREAL_NVP( polyGroup )
+				CEREAL_NVP( source		),
+				CEREAL_NVP( polyGroup	)
 			);
 			if ( 1 <= version )
 			{

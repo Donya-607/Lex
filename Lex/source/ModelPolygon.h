@@ -30,7 +30,11 @@ namespace Donya
 				);
 				if ( 1 <= version )
 				{
-					// archive();
+					archive( CEREAL_NVP( normal ) );
+				}
+				if ( 2 <= version )
+				{
+					// archive( CEREAL_NVP( x ) );
 				}
 			}
 		};
@@ -109,5 +113,5 @@ namespace Donya
 		};
 	}
 }
-CEREAL_CLASS_VERSION( Donya::Model::Polygon,		0 )
+CEREAL_CLASS_VERSION( Donya::Model::Polygon,		1 )
 CEREAL_CLASS_VERSION( Donya::Model::PolygonGroup,	0 )

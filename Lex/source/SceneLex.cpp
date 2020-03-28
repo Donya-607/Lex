@@ -1468,6 +1468,8 @@ private:
 		{
 			if ( !ImGui::TreeNode( u8"•`‰æİ’è" ) ) { return; }
 			// else
+
+			ImGui::Text( u8"¦•Û‘¶‘ÎÛ‚É‚ÍŠÜ‚Ü‚ê‚Ü‚¹‚ñ" );
 			
 			ImGui::Checkbox  ( u8"‰B‚·", &target.dontWannaDraw );
 
