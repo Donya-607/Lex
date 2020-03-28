@@ -934,10 +934,11 @@ namespace Donya
 		std::lock_guard<std::mutex> lock( cerealMutex );
 		
 		Donya::Serializer seria;
-		bool succeeded = seria.Load( ext, filePath.c_str(), SERIAL_ID, *this );
+		bool succeeded	= seria.Load( ext, filePath.c_str(), SERIAL_ID, *this );
 
 		// I should overwrite file-directory after load, because this will overwritten by Serializer::Load().
-		fileDirectory = ExtractFileDirectoryFromFullPath( filePath );
+		fileDirectory	= ExtractFileDirectoryFromFullPath( filePath );
+		fileName		= filePath.substr( fileDirectory.size() );
 
 		return succeeded;
 	}
