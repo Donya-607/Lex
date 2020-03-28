@@ -1606,6 +1606,7 @@ private:
 			if ( ImGui::TreeNode( u8"ç¿ïWånïœä∑çsóÒ" ) )
 			{
 				Donya::Vector4x4 &coordConv = target.source.coordinateConversion;
+				const auto prevMatrix = coordConv;
 				ImGui::SliderFloat4( "11, 12, 13, 14", &coordConv._11, -1.0f, 1.0f );
 				ImGui::SliderFloat4( "21, 22, 23, 24", &coordConv._21, -1.0f, 1.0f );
 				ImGui::SliderFloat4( "31, 32, 33, 34", &coordConv._31, -1.0f, 1.0f );
@@ -1614,6 +1615,11 @@ private:
 				if ( ImGui::Button( u8"Identity" ) )
 				{
 					coordConv = Donya::Vector4x4::Identity();
+				}
+
+				if ( coordConv != prevMatrix )
+				{
+					target.polyGroup.ApplyCoordinateConversion( coordConv );
 				}
 
 				// For apply to screen immediately.

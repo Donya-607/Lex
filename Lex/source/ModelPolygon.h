@@ -26,13 +26,10 @@ namespace Donya
 				archive
 				(
 					CEREAL_NVP( materialIndex ),
+					CEREAL_NVP( normal ),
 					CEREAL_NVP( points )
 				);
 				if ( 1 <= version )
-				{
-					archive( CEREAL_NVP( normal ) );
-				}
-				if ( 2 <= version )
 				{
 					// archive( CEREAL_NVP( x ) );
 				}
@@ -66,6 +63,7 @@ namespace Donya
 			};
 		private:
 			CullMode				cullMode = CullMode::Back;
+			Donya::Vector4x4		coordinateConversion;
 			std::vector<Polygon>	polygons;
 		private:
 			friend class cereal::access;
@@ -75,6 +73,7 @@ namespace Donya
 				archive
 				(
 					CEREAL_NVP( cullMode ),
+					CEREAL_NVP( coordinateConversion ),
 					CEREAL_NVP( polygons )
 				);
 				if ( 1 <= version )
@@ -88,6 +87,11 @@ namespace Donya
 			/// </summary>
 			void SetCullMode( CullMode ignoreDirection );
 			CullMode GetCullMode() const { return cullMode; }
+		public:
+			/// <summary>
+			/// Apply a coordinate conversion matrix to all polygons. So it is heavy.
+			/// </summary>
+			void ApplyCoordinateConversion( const Donya::Vector4x4 &coordinateConversion );
 		public:
 			void Assign( std::vector<Polygon> &rvPolygons );
 			void Assign( const std::vector<Polygon> &polygons );
@@ -103,9 +107,18 @@ namespace Donya
 			RaycastResult RaycastWorldSpace( const Donya::Vector4x4 &worldTransform, const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool onlyWantIsIntersect = false ) const;
 		private:
 			/// <summary>
-			/// Extract by cullMode.
+			/// The points and normal will be reassigned by current cullMode.
 			/// </summary>
-			void ExtractPolygonEdges( std::array<Donya::Vector3, 3> &dest, const std::array<Donya::Vector3, 3> &source ) const;
+			void ApplyMatrixToAllPolygon( const Donya::Vector4x4 &transform );
+		private:
+			/// <summary>
+			/// Calculate the normal of the points by cullMode.
+			/// </summary>
+			Donya::Vector3 CalcNormalByOrder( const std::array<Donya::Vector3, 3> &source ) const;
+			/// <summary>
+			/// Extract by cullMode. Returns [0:AB][1:BC][2:CA].
+			/// </summary>
+			std::array<Donya::Vector3, 3> ExtractPolygonEdges( const std::array<Donya::Vector3, 3> &source ) const;
 			/// <summary>
 			/// Access by cullMode.
 			/// </summary>
