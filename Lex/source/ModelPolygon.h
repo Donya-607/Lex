@@ -83,9 +83,9 @@ namespace Donya
 			}
 		public:
 			/// <summary>
-			/// Set the direction of ignoring normal.
+			/// Set the direction of ignoring normal. Then reassign the normal of all polygon, so heavy.
 			/// </summary>
-			void SetCullMode( CullMode ignoreDirection );
+			void ApplyCullMode( CullMode ignoreDirection );
 			CullMode GetCullMode() const { return cullMode; }
 		public:
 			/// <summary>
@@ -104,12 +104,16 @@ namespace Donya
 			/// Doing the Raycast in the space that represented by "worldTransform". The belong space of the members of the return value is "worldTransform" also.<para></para>
 			/// If you set true to "onlyWantIsIntersect", This method will stop as soon if the ray intersects anything. This is a convenience if you just want to know the ray will intersection.
 			/// </summary>
-			RaycastResult RaycastWorldSpace( const Donya::Vector4x4 &worldTransform, const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool onlyWantIsIntersect = false ) const;
+			RaycastResult RaycastWorldSpace( const Donya::Vector4x4 &worldTransformOfPolygon, const Donya::Vector3 &rayStart, const Donya::Vector3 &rayEnd, bool onlyWantIsIntersect = false ) const;
 		private:
 			/// <summary>
 			/// The points and normal will be reassigned by current cullMode.
 			/// </summary>
 			void ApplyMatrixToAllPolygon( const Donya::Vector4x4 &transform );
+			/// <summary>
+			/// Set the normal of all polygon by cullMode.
+			/// </summary>
+			void CalcAllPolygonNormal();
 		private:
 			/// <summary>
 			/// Calculate the normal of the points by cullMode.
@@ -126,5 +130,5 @@ namespace Donya
 		};
 	}
 }
-CEREAL_CLASS_VERSION( Donya::Model::Polygon,		1 )
+CEREAL_CLASS_VERSION( Donya::Model::Polygon,		0 )
 CEREAL_CLASS_VERSION( Donya::Model::PolygonGroup,	0 )

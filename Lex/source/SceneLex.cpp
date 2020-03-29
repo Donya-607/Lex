@@ -956,10 +956,7 @@ private:
 				ToRadian( source.rotation.y ),
 				ToRadian( source.rotation.z )
 			);
-			return
-				source.source.coordinateConversion *
-				Donya::Vector4x4::MakeTransformation
-				( source.scale, rotation, source.translation );
+			return Donya::Vector4x4::MakeTransformation( source.scale, rotation, source.translation );
 		};
 
 		const auto raycast = target.polyGroup.RaycastWorldSpace( MakeWorldMatrix( target ), wsRayStart, wsRayEnd );
@@ -1645,8 +1642,8 @@ private:
 				};
 				ImGui::Text( u8"Ç¢Ç‹ÅF%s", MakeModeName( target.polyGroup.GetCullMode() ) );
 
-				if ( ImGui::Button( u8"Back"  ) ) { target.polyGroup.SetCullMode( Mode::Back  ); }
-				if ( ImGui::Button( u8"Front" ) ) { target.polyGroup.SetCullMode( Mode::Front ); }
+				if ( ImGui::Button( u8"Back"  ) ) { target.polyGroup.ApplyCullMode( Mode::Back  ); }
+				if ( ImGui::Button( u8"Front" ) ) { target.polyGroup.ApplyCullMode( Mode::Front ); }
 
 				ImGui::TreePop();
 			}

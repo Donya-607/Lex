@@ -16,7 +16,11 @@ namespace Donya
 			};
 		}
 
-		void PolygonGroup::SetCullMode( CullMode ignoreDir ) { cullMode = ignoreDir; }
+		void PolygonGroup::ApplyCullMode( CullMode ignoreDir )
+		{
+			cullMode = ignoreDir;
+			CalcAllPolygonNormal();
+		}
 
 		void PolygonGroup::ApplyCoordinateConversion( const Donya::Vector4x4 &newConversionMatrix )
 		{
@@ -53,7 +57,7 @@ namespace Donya
 			for ( const auto &it : polygons )
 			{
 				edges		= ExtractPolygonEdges( it.points );
-				faceNormal	= Donya::Cross( edges[0], -edges[2] );
+				faceNormal	= Donya::Cross( edges[0], -edges[2] ); // AB x AC
 
 				// The ray does not intersection to back-face.
 				// (If use '<': allow the horizontal intersection, '<=': disallow the horizontal intersection)
@@ -147,12 +151,6 @@ namespace Donya
 				ToWorldSpace( &it );
 			}
 
-			// HACK : Should I access to point by using ArrayAccess()? I had tried to access by method, but I didn't know which is better.
-			// const Donya::Vector3  edgeAB = ArrayAccess( result.nearestPolygon.points, 1U ) - ArrayAccess( result.nearestPolygon.points, 0U );
-			// const Donya::Vector3  edgeAC = ArrayAccess( result.nearestPolygon.points, 2U ) - ArrayAccess( result.nearestPolygon.points, 0U );
-			// const Donya::Vector3  edgeAB = result.nearestPolygon.points[1] - result.nearestPolygon.points[0];
-			// const Donya::Vector3  edgeAC = result.nearestPolygon.points[2] - result.nearestPolygon.points[0];
-			
 			const std::array<Donya::Vector3, 3> actualPoints
 			{
 				ArrayAccess( result.nearestPolygon.points, 0U ),
@@ -182,10 +180,18 @@ namespace Donya
 			for ( auto &it : polygons )
 			{
 				Transform( &it, transform );
+			}
+
+			CalcAllPolygonNormal();
+		}
+
+		void PolygonGroup::CalcAllPolygonNormal()
+		{
+			for ( auto &it : polygons )
+			{
 				it.normal = CalcNormalByOrder( it.points );
 			}
 		}
-
 		Donya::Vector3 PolygonGroup::CalcNormalByOrder( const std::array<Donya::Vector3, 3> &source ) const
 		{
 			auto A = [&]() { return ArrayAccess( source, 0U ); };
@@ -196,9 +202,9 @@ namespace Donya
 				return to() - from();
 			};
 
-			const Donya::Vector3 a = Vector( A, B );
-			const Donya::Vector3 b = Vector( A, C );
-			return Donya::Cross( a, b ).Unit();
+			const Donya::Vector3 ab = Vector( A, B );
+			const Donya::Vector3 ac = Vector( A, C );
+			return Donya::Cross( ab, ac ).Unit();
 		}
 
 		std::array<Donya::Vector3, 3> PolygonGroup::ExtractPolygonEdges( const std::array<Donya::Vector3, 3> &source ) const
@@ -218,6 +224,7 @@ namespace Donya
 				Vector( C, A )
 			};
 		}
+
 		Donya::Vector3 PolygonGroup::ArrayAccess( const std::array<Donya::Vector3, 3> &source, size_t index ) const
 		{
 			constexpr size_t pointCount = 3;	// == source.size(). 1 based.
@@ -233,7 +240,9 @@ namespace Donya
 				return source[( pointCount - index ) % pointCount];
 			default: _ASSERT_EXPR( 0, L"Error : Unexpected cull-mode!" ); break;
 			}
-			return {};
+
+			constexpr Donya::Vector3 ERROR_VALUE{ FLT_MAX, FLT_MAX, FLT_MAX };
+			return ERROR_VALUE;
 		}
 	}
 }
