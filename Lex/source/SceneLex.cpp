@@ -1376,6 +1376,7 @@ private:
 				ImGui::Text( "" );
 
 				ImGui::Checkbox( u8"レイキャストを使う", &useRaycast );
+				if ( useRaycast ) { ImGui::Text( u8"レイは モデル[0]番 に対して飛ばします" ); }
 				ImGui::Text( "" );
 
 				ImGui::SliderFloat( u8"ロード時：サンプルＦＰＳ", &loadSamplingFPS, 0.0f, 120.0f );
