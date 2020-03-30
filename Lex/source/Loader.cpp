@@ -184,7 +184,7 @@ namespace Donya
 	{
 		// Convert right-hand space to left-hand space.
 		pSource->coordinateConversion._11 = -1.0f;
-		pPolyGroup->ApplyCullMode( Model::PolygonGroup::CullMode::Back );
+		pPolyGroup->ApplyCullMode( Model::PolygonGroup::CullMode::Front );
 		pPolyGroup->ApplyCoordinateConversion( pSource->coordinateConversion );
 	}
 
