@@ -29,7 +29,7 @@ namespace Donya
 					Donya::Vector4x4	matWorld;
 					Donya::Vector4x4	matViewProj;
 					Donya::Vector4		drawColor;
-					Donya::Vector3		lightDirection;
+					Donya::Vector3		lightDirection{ 0.0f, -1.0f, 0.0f };
 					float				lightBias = 0.5f; // Used to adjust the lighting influence. ( 1.0f - bias ) + ( light * bias )
 				};
 			private:
