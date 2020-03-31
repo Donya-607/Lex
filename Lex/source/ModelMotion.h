@@ -53,13 +53,18 @@ namespace Donya
 		};
 
 		/// <summary>
-		/// This class's role is calculation a motion frame.
+		/// This class's role is calculation a motion frame.<para></para>
+		/// This class does not linking to some motion, so if you wanna know the end timing of playback, you should set the play seconds range of a motion.
 		/// </summary>
 		class Animator
 		{
 		private:
-			float	elapsedTime			= 0.0f;
-			bool	enableWrapAround	= true;
+			float	elapsedTime		= 0.0f;
+			float	repeatRangeL	= 0.0f;
+			float	repeatRangeR	= 1.0f;
+			bool	enableRepeat	= false;
+			bool	enableLoop		= true;
+			bool	wasEnded		= false;
 		public:
 			/// <summary>
 			/// Set zero to internal elapsed-timer.
@@ -70,17 +75,52 @@ namespace Donya
 			/// </summary>
 			void Update( float elapsedTime );
 		public:
+			/// <summary>
+			/// Returns true if the current time was over the repeat range.<para></para>
+			/// Returns false when the repeat is not enable.
+			/// </summary>
+			bool WasEnded() const;
+			/// <summary>
+			/// Returns true if the current time is greater equal than the motion's last time(the repeat range will be ignored).
+			/// </summary>
+			bool IsOverPlaybackTimeOf( const std::vector<Animation::KeyFrame> &motion ) const;
+			/// <summary>
+			/// Returns true if the current time is greater equal than the motion's last time(the repeat range will be ignored).
+			/// </summary>
+			bool IsOverPlaybackTimeOf( const Animation::Motion &motion ) const;
+		public:
 			Animation::KeyFrame CalcCurrentPose( const std::vector<Animation::KeyFrame> &motion ) const;
 			Animation::KeyFrame CalcCurrentPose( const Animation::Motion &motion ) const;
 		public:
 			/// <summary>
-			/// The calculate method returns frame will be wrap-around values within some range.
+			/// If the current time is over some range, the current time will back to a start of some range.
 			/// </summary>
-			void EnableWrapAround();
+			void EnableLoop();
 			/// <summary>
-			/// The calculate method returns frame will be clamped within some range.
+			/// If the current time is over some range, the current time will be a last of some range.
 			/// </summary>
-			void DisableWrapAround();
+			void DisableLoop();
+		public:
+			/// <summary>
+			/// Requirements:<para></para>
+			/// 1: startTime &lt; endTime	<para></para>
+			/// 2: 0.0f &lt;= startTime		<para></para>
+			/// 3: 0.0f &lt;= endTime		<para></para>
+			/// 4: startTime != endTime
+			/// </summary>
+			void SetRepeatRange( float startTime, float endTime );
+			/// <summary>
+			/// Set the motion's frame range to repeat range.
+			/// </summary>
+			void SetRepeatRange( const std::vector<Animation::KeyFrame> &motion );
+			/// <summary>
+			/// Set the motion's frame range to repeat range.
+			/// </summary>
+			void SetRepeatRange( const Animation::Motion &motion );
+			/// <summary>
+			/// Disable the repeat range.
+			/// </summary>
+			void ResetRepeatRange();
 		public:
 			/// <summary>
 			/// Overwrite an internal timer that updating at Update(). This does not represent a current frame.
@@ -90,6 +130,8 @@ namespace Donya
 			/// Returns an internal timer that updating at Update(). This does not represent a current frame.
 			/// </summary>
 			float GetInternalElapsedTime() const;
+		private:
+			void WrapAround( float minimum, float maximum );
 		};
 	}
 }

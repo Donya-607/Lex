@@ -3,19 +3,48 @@
 #include <numeric>			// Use std::accumulate.
 
 #include "Donya/Constant.h"	// Use scast macro.
-#include "Donya/Useful.h"	// Use EPSILON constant.
+#include "Donya/Useful.h"	// Use EPSILON constant, and ZeroEqual().
 
 namespace Donya
 {
 	namespace Model
 	{
-		Animation::KeyFrame	EmptyKeyFrame()
+		namespace
 		{
-			return Animation::KeyFrame{};
-		}
-		Animation::Motion	EmptyMotion()
+			Animation::KeyFrame	EmptyKeyFrame()
+			{
+				return Animation::KeyFrame{};
+			}
+			Animation::Motion	EmptyMotion()
 		{
 			return Animation::Motion{};
+		}
+
+			float CalcAverageStep( const std::vector<Animation::KeyFrame> &motion )
+			{
+				std::vector<float> steps{};
+				steps.resize( motion.size() - 1U );
+
+				const size_t motionCount = motion.size();
+				for ( size_t i = 0; i < motionCount - 1; ++i )
+				{
+					steps.emplace_back( motion[i + 1].seconds - motion[i].seconds );
+				}
+
+				return std::accumulate( steps.begin(), steps.end(), 0.0f ) / scast<float>( steps.size() );
+			}
+			float CalcWholeSeconds( const std::vector<Animation::KeyFrame> &motion )
+			{
+				// The "seconds" contain the begin seconds(not playing seconds).
+				return motion.back().seconds;
+
+				// float sum = 0.0f;
+				// for ( const auto &it : motion )
+				// {
+				// 	sum += it.seconds;
+				// }
+				// return sum;
+			}
 		}
 
 		size_t MotionHolder::GetMotionCount() const
@@ -89,7 +118,27 @@ namespace Donya
 		}
 		void  Animator::Update( float argElapsedTime )
 		{
-			elapsedTime += argElapsedTime;
+			if ( wasEnded && !enableLoop ) { return; }
+			// else
+
+			elapsedTime	+= argElapsedTime;
+			wasEnded	=  false;
+
+			if ( enableRepeat )
+			{
+				WrapAround( repeatRangeL, repeatRangeR );
+			}
+		}
+
+		bool  Animator::WasEnded() const { return wasEnded; }
+		bool  Animator::IsOverPlaybackTimeOf( const std::vector<Animation::KeyFrame> &motion ) const
+		{
+			const float lastTime = CalcWholeSeconds( motion );
+			return ( lastTime <= elapsedTime );
+		}
+		bool  Animator::IsOverPlaybackTimeOf( const Animation::Motion &motion ) const
+		{
+			return IsOverPlaybackTimeOf( motion.keyFrames );
 		}
 
 		Animation::KeyFrame Animator::CalcCurrentPose( const std::vector<Animation::KeyFrame> &motion ) const
@@ -98,45 +147,43 @@ namespace Donya
 			if ( motion.size() == 1 ) { return motion.front(); }
 			// else
 
-			auto CalcAverageStep		= []( const std::vector<Animation::KeyFrame> &motion )
-			{
-				std::vector<float> steps{};
-				steps.resize( motion.size() - 1U );
+			const float wholeSeconds = CalcWholeSeconds( motion );
 
-				const size_t motionCount = motion.size();
-				for ( size_t i = 0; i < motionCount - 1; ++i )
+			auto  CalcCurrentSeconds = [&]()
+			{
+				float sec =  elapsedTime;
+				if ( 0.0f <= sec ) { return sec; } // Positive value is ok.
+				// else
+
+				if ( enableRepeat )
 				{
-					steps.emplace_back( motion[i + 1].seconds - motion[i].seconds );
+					// Consider as now playing to reverse.
+					// The seconds to be relative time from last time("repeatRangeR").
+
+					const float distance = repeatRangeR - repeatRangeL;
+					sec = fmodf( sec, distance );
+
+					sec = repeatRangeR - fabsf( sec );
+				}
+				else
+				{
+					// We can not usable the negative value.
+					sec = 0.0f;
 				}
 
-				return std::accumulate( steps.begin(), steps.end(), 0.0f ) / scast<float>( steps.size() );
+				return sec;
 			};
-			const float secondStep		= CalcAverageStep( motion );
 
-			auto CalcWholeSeconds		= []( const std::vector<Animation::KeyFrame> &motion )
+			float currentSeconds = CalcCurrentSeconds();
+			if (  wholeSeconds  <= currentSeconds )
 			{
-				// The "seconds" contain the begin seconds(not playing seconds).
-				return motion.back().seconds;
-
-				// float sum = 0.0f;
-				// for ( const auto &it : motion )
-				// {
-				// 	sum += it.seconds;
-				// }
-				// return sum;
-			};
-			const float wholeSeconds	= CalcWholeSeconds( motion );
-
-			float currentSeconds = elapsedTime;
-			if ( wholeSeconds <= currentSeconds )
-			{
-				if ( !enableWrapAround ) { return motion.back(); }
+				if ( !enableLoop ) { return motion.back(); }
 				// else
 
 				currentSeconds = fmodf( currentSeconds, wholeSeconds );
 
 				// If you wanna enable the interpolation between last and start.
-				// currentSeconds = fmodf( currentSeconds, wholeSeconds + secondStep );
+				// currentSeconds = fmodf( currentSeconds, wholeSeconds + CalcAverageStep( motion ) );
 			}
 
 			Animation::KeyFrame keyFrameL{}; // Current.
@@ -163,7 +210,7 @@ namespace Donya
 				if ( keyFrameL.keyPose.empty() || keyFrameR.keyPose.empty() )
 				{
 					Animation::KeyFrame nextLoopFirst = motion.front();
-					nextLoopFirst.seconds = wholeSeconds + secondStep;
+					nextLoopFirst.seconds = wholeSeconds + CalcAverageStep( motion );
 
 					keyFrameL = motion.back();
 					keyFrameR = std::move( nextLoopFirst );
@@ -181,13 +228,46 @@ namespace Donya
 			return CalcCurrentPose( motion.keyFrames );
 		}
 
-		void  Animator::EnableWrapAround()
+		void  Animator::EnableLoop()
 		{
-			enableWrapAround = true;
+			enableLoop = true;
 		}
-		void  Animator::DisableWrapAround()
+		void  Animator::DisableLoop()
 		{
-			enableWrapAround = false;
+			enableLoop = false;
+		}
+
+		void  Animator::SetRepeatRange( float startTime, float endTime )
+		{
+			// Requirements.
+			assert( startTime < endTime );
+			assert( 0.0f <= startTime );
+			assert( 0.0f <= endTime );
+			assert( !ZeroEqual( startTime - endTime ) ); // Means: startTime != endTime
+
+			enableRepeat = true;
+			repeatRangeL = startTime;
+			repeatRangeR = endTime;
+
+			// It is not desired to be updated by WrapAround().
+			const bool oldLoopFlag = wasEnded;
+			WrapAround( repeatRangeL, repeatRangeR );
+			wasEnded = oldLoopFlag;
+
+		}
+		void  Animator::SetRepeatRange( const std::vector<Animation::KeyFrame> &motion )
+		{
+			SetRepeatRange( 0.0f, CalcWholeSeconds( motion ) );
+		}
+		void  Animator::SetRepeatRange( const Animation::Motion &motion )
+		{
+			SetRepeatRange( motion.keyFrames );
+		}
+		void  Animator::ResetRepeatRange()
+		{
+			enableRepeat = false;
+			repeatRangeL = 0.0f;
+			repeatRangeR = 1.0f;
 		}
 
 		void  Animator::SetInternalElapsedTime( float overwrite )
@@ -197,6 +277,28 @@ namespace Donya
 		float Animator::GetInternalElapsedTime() const
 		{
 			return elapsedTime;
+		}
+
+		void  Animator::WrapAround( float min, float max )
+		{
+			const float distance = max - min;
+			if ( ZeroEqual( distance ) )
+			{
+				_ASSERT_EXPR( 0, L"Error : We can not wrap-around within same range." );
+				return;
+			}
+			// else
+
+			if ( enableLoop )
+			{
+				while ( max < elapsedTime ) { elapsedTime -= distance; wasEnded = true; }
+				while ( elapsedTime < min ) { elapsedTime += distance; wasEnded = true; }
+			}
+			else
+			{
+				if ( max < elapsedTime ) { elapsedTime = max; wasEnded = true; }
+				if ( elapsedTime < min ) { elapsedTime = min; wasEnded = true; }
+			}
 		}
 	}
 }

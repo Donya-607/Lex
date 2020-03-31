@@ -1260,15 +1260,16 @@ private:
 			if ( it.holder.GetMotionCount() < 1 ) { continue; }
 			// else
 
-			it.animator.Update( elapsedTime * it.motionAccelPercent );
-			it.currentElapsedTime	= it.animator.GetInternalElapsedTime();
-
-			const auto useMotion	= it.holder.GetMotion( it.usingMotionIndex );
+			const auto &useMotion	= it.holder.GetMotion( it.usingMotionIndex );
 			const auto currentPose	= it.animator.CalcCurrentPose( useMotion );
 			if ( it.pose.HasCompatibleWith( currentPose ) )
 			{
 				it.pose.AssignSkeletal( currentPose );
 			}
+
+			it.animator.SetRepeatRange( useMotion );
+			it.animator.Update( elapsedTime * it.motionAccelPercent );
+			it.currentElapsedTime	= it.animator.GetInternalElapsedTime();
 		}
 	}
 
@@ -1481,8 +1482,23 @@ private:
 			ImGui::Checkbox ( u8"モーションをループ再生する",	&target.playLoopMotion );
 			target.animator.SetInternalElapsedTime( target.currentElapsedTime );
 			( target.playLoopMotion )
-			? target.animator.EnableWrapAround()
-			: target.animator.DisableWrapAround();
+			? target.animator.EnableLoop()
+			: target.animator.DisableLoop();
+			ImGui::Text( u8"モーションの再生が終わった瞬間か：%s", target.animator.WasEnded() ? u8"True" : u8"False" );
+
+			// Maybe I will implement this.
+			/*
+			static int endCount = 0; if ( target.animator.WasEnded() ) { endCount++; }
+			ImGui::Text( u8"EndCount : %d", endCount );
+
+			static float timeRangeL = 0.0f;
+			static float timeRangeR = 1.0f;
+			ImGui::DragFloat( u8"再生範囲：Min", &timeRangeL, 0.01f );
+			ImGui::DragFloat( u8"再生範囲：Max", &timeRangeR, 0.01f );
+			if ( timeRangeL < 0.0f        ) { timeRangeL = 0.0f; }
+			if ( timeRangeR <= timeRangeL ) { timeRangeR = timeRangeL + 0.001f; }
+			target.animator.SetRepeatRange( timeRangeL, timeRangeR );
+			*/
 
 			ImGui::Text( u8"登録されているモーションの数：%d", target.holder.GetMotionCount() );
 
