@@ -1,5 +1,7 @@
 #include "ModelMotion.h"
 
+#include <numeric>			// Use std::accumulate.
+
 #include "Donya/Constant.h"	// Use scast macro.
 #include "Donya/Useful.h"	// Use EPSILON constant.
 
@@ -96,20 +98,34 @@ namespace Donya
 			if ( motion.size() == 1 ) { return motion.front(); }
 			// else
 
-			auto CalcWholeSeconds = []( const std::vector<Animation::KeyFrame> &motion )
+			auto CalcAverageStep		= []( const std::vector<Animation::KeyFrame> &motion )
+			{
+				std::vector<float> steps{};
+				steps.resize( motion.size() - 1U );
+
+				const size_t motionCount = motion.size();
+				for ( size_t i = 0; i < motionCount - 1; ++i )
+				{
+					steps.emplace_back( motion[i + 1].seconds - motion[i].seconds );
+				}
+
+				return std::accumulate( steps.begin(), steps.end(), 0.0f ) / scast<float>( steps.size() );
+			};
+			const float secondStep		= CalcAverageStep( motion );
+
+			auto CalcWholeSeconds		= []( const std::vector<Animation::KeyFrame> &motion )
 			{
 				// The "seconds" contain the begin seconds(not playing seconds).
 				return motion.back().seconds;
-				/*
-				float sum = 0.0f;
-				for ( const auto &it : motion )
-				{
-					sum += it.seconds;
-				}
-				return sum;
-				*/
+
+				// float sum = 0.0f;
+				// for ( const auto &it : motion )
+				// {
+				// 	sum += it.seconds;
+				// }
+				// return sum;
 			};
-			const float wholeSeconds = CalcWholeSeconds( motion );
+			const float wholeSeconds	= CalcWholeSeconds( motion );
 
 			float currentSeconds = elapsedTime;
 			if ( wholeSeconds <= currentSeconds )
@@ -118,28 +134,47 @@ namespace Donya
 				// else
 
 				currentSeconds = fmodf( currentSeconds, wholeSeconds );
+
+				// If you wanna enable the interpolation between last and start.
+				// currentSeconds = fmodf( currentSeconds, wholeSeconds + secondStep );
 			}
 
-			Animation::KeyFrame rv;
+			Animation::KeyFrame keyFrameL{}; // Current.
+			Animation::KeyFrame keyFrameR{}; // Next.
 
-			const size_t motionCount = motion.size();
-			for ( size_t i = 0; i < motionCount - 1; ++i )
+			// Find the current key-frame and next key-frame.
 			{
-				const auto &keyFrameL = motion[i];
-				const auto &keyFrameR = motion[i + 1];
-				if ( currentSeconds < keyFrameL.seconds || keyFrameR.seconds <= currentSeconds ) { continue; }
-				// else
+				const size_t motionCount = motion.size();
+				for ( size_t i = 0; i < motionCount - 1; ++i )
+				{
+					const auto &L = motion[i];
+					const auto &R = motion[i + 1];
+					if ( currentSeconds < L.seconds || R.seconds <= currentSeconds ) { continue; }
+					// else
 
-				const float diffL = currentSeconds    - keyFrameL.seconds;
-				const float diffR = keyFrameR.seconds - keyFrameL.seconds;
-				const float percent = diffL / ( diffR + EPSILON/* Prevent zero-divide */ );
-				
-				rv = Animation::KeyFrame::Interpolate( keyFrameL, keyFrameR, percent );
+					assert( !L.keyPose.empty() && !R.keyPose.empty() );
 
-				break;
+					keyFrameL = L;
+					keyFrameR = R;
+					break;
+				}
+
+				// When the currentSeconds is greater than wholeSeconds.
+				if ( keyFrameL.keyPose.empty() || keyFrameR.keyPose.empty() )
+				{
+					Animation::KeyFrame nextLoopFirst = motion.front();
+					nextLoopFirst.seconds = wholeSeconds + secondStep;
+
+					keyFrameL = motion.back();
+					keyFrameR = std::move( nextLoopFirst );
+				}
 			}
 
-			return rv;
+			const float diffL	= currentSeconds    - keyFrameL.seconds;
+			const float diffR	= keyFrameR.seconds - keyFrameL.seconds;
+			const float percent	= diffL / ( diffR + EPSILON /* Prevent zero-divide */ );
+
+			return Animation::KeyFrame::Interpolate( keyFrameL, keyFrameR, percent );
 		}
 		Animation::KeyFrame Animator::CalcCurrentPose( const Animation::Motion &motion ) const
 		{
