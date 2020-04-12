@@ -876,6 +876,7 @@ namespace Donya
 
 		RegisterWindowClass( wideCaption, hInstance );
 		
+		
 		RECT rect =
 		{
 			0, 0,
@@ -890,7 +891,7 @@ namespace Donya
 
 		// Convert Window-area(contain caption-bar size) -> Client-area(only screen size).
 		AdjustWindowRect( &rect, windowStyle, FALSE );
-
+		
 		LONG adjustedRectWidth  = rect.right - rect.left;
 		LONG adjustedRectHeight = rect.bottom - rect.top;
 
@@ -923,10 +924,10 @@ namespace Donya
 			return;
 		}
 		// else
-
+		
 		ShowWindow( smg->hWnd, nCmdShow );
 		UpdateWindow( smg->hWnd );
-
+		
 		DragAcceptFiles( smg->hWnd, TRUE );
 	}
 
@@ -1159,7 +1160,7 @@ namespace Donya
 			return false;
 		}
 		// else
-
+		
 		smg = std::make_unique<SystemMemberGathering>();
 		smg->screen.Set( screenWidth, screenHeight, fullScreenMode );
 		smg->windowCaptionConfig.caption		= windowCaption;
@@ -1174,17 +1175,17 @@ namespace Donya
 	#if USE_IMGUI
 
 		ImGuiInitIfAllowed();
-
+		
 	#endif // USE_IMGUI
 
 		Donya::Blend::Init();
 		Donya::Sound::Init();
 		Donya::Sprite::Init();
-
+		
 		Donya::ScreenShake::SetEnableState( true );
 
 		Donya::Model::Renderer::Default::Initialize( GetDevice() );
-
+		
 		return true;
 	}
 
@@ -1252,7 +1253,7 @@ namespace Donya
 		smg->highResoTimer.Tick();
 		CalcFPS();
 		UpdateWindowCaption();
-
+		
 		Donya::Mouse::ResetMouseWheelRot();
 		smg->loopingMouse.nowLoopTiming = false;
 
@@ -1289,7 +1290,7 @@ namespace Donya
 	void SystemUpdate()
 	{
 		ResetPipelineStages();
-
+		
 	#if USE_IMGUI
 
 		ImGui_ImplDX11_NewFrame();
@@ -1299,7 +1300,6 @@ namespace Donya
 	#endif
 
 		Donya::Keyboard::Update();
-
 		Donya::ScreenShake::Update( GetElapsedTime() );
 		Donya::Sound::Update();
 	}

@@ -59,7 +59,7 @@ void GridLine::Draw( const Donya::Vector4x4 &matVP ) const
 	const Donya::Vector3 endZ			= rotation.RotateVector( { 0.0f, 0.0f, lineLength.y * 2.0f } );
 	const Donya::Vector3 offsetX		= rotation.RotateVector( { drawInterval.x, 0.0f, 0.0f } );
 	const Donya::Vector3 offsetZ		= rotation.RotateVector( { 0.0f, 0.0f, drawInterval.y } );
-
+	
 	const Donya::Int2 loopCount
 	{
 		( ZeroEqual( drawInterval.x ) ) ? 1 : scast<int>( ( lineLength.x * 2.0f ) / drawInterval.x ) + 1/* Edge line*/,

@@ -347,16 +347,16 @@ public:
 	void Draw( float elapsedTime )
 	{
 		ClearBackGround();
-
+		
 		const Donya::Vector4x4 VP = iCamera.CalcViewMatrix() * iCamera.GetProjectionMatrix();
 		const Donya::Vector4   cameraPos{ iCamera.GetPosition(), 1.0f };
 
 		grid.Draw( VP );
 		
 		DrawModels( cameraPos, VP );
-
+		
 		DrawOriginCube( VP );
-
+		
 		DrawRaycast( VP );
 	}
 private:
@@ -440,6 +440,9 @@ private:
 
 	void DrawModels( const Donya::Vector4 &cameraPos, const Donya::Vector4x4 &VP )
 	{
+		if ( models.empty() ) { return; }
+		// else
+
 		using namespace Donya::Model;
 
 		Donya::DepthStencil::Activate( idDSState );

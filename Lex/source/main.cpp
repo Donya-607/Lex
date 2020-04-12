@@ -30,15 +30,15 @@ INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _
 	setlocale( LC_ALL, "JPN" );
 
 	srand( scast<unsigned int>( time( NULL ) ) );
-
+	
 	std::string title{ "Lex" };
 	Donya::Init( cmdShow, Common::ScreenWidth(), Common::ScreenHeight(), title.c_str(), /* fullScreenMode = */ false );
 
 	Donya::SetWindowIcon( instance, IDI_ICON );
-
+	
 	Framework framework{};
 	framework.Init();
-
+	
 	while ( Donya::MessageLoop() )
 	{
 		constexpr FLOAT clearColor[4]{ 0.5f, 0.5f, 0.5f, 1.0f };
@@ -46,7 +46,7 @@ INT WINAPI wWinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE prevInstance, _
 
 		Donya::SystemUpdate();
 		framework.Update( Donya::GetElapsedTime() );
-
+		
 		framework.Draw( Donya::GetElapsedTime() );
 		Donya::Present();
 	}
