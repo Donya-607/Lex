@@ -51,14 +51,19 @@ float3 NormalizedHalfLambert( float3 diffuseColor, float3 nwsNormal, float3 nwsT
 // Argument.nwsNormal : The normal of normalized world space.
 // Argument.nwsToLightVec : The light vector of normalized world space. this vector is "position -> light".
 // Argument.nwsToEyeVec : The eye vector of normalized world space. this vector is "position -> eye".
+// Argument.specularPower : The specular's factor. will be power to return value.
 // Returns : Specular factor. 0.0f ~ 1.0f.
-float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec )
+float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec, float specularPower )
 {
-	// float3 nwsProjection = ( dot( nwsNormal, nwsToLightVec ) * nwsNormal );
-	// float3 nwsReflection = nwsToLightVec + ( nwsToLightVec - ( nwsProjection * 2.0f ) );
-	float3 nwsReflection  = normalize( reflect( -nwsToLightVec, nwsNormal ) );
-	float  specularFactor = max( 0.0f, dot( nwsToEyeVec, nwsReflection ) );
-	return specularFactor;
+#if 1 // USE_REFLECT
+	float3 nwsReflection	= normalize( reflect( -nwsToLightVec, nwsNormal ) );
+	float  specularFactor	= max( 0.0f, dot( nwsReflection, nwsToEyeVec ) );
+#else
+	float3 nwsProjection	= nwsNormal * dot( nwsNormal, nwsToLightVec );
+	float3 nwsReflection	= ( nwsProjection * 2.0f ) - nwsToLightVec;
+	float  specularFactor	= max( 0.0f, dot( nwsReflection, nwsToEyeVec ) );
+#endif // USE_REFLECT
+	return pow( specularFactor, specularPower );
 }
 // Calculate specular by half vector.
 // Argument.nwsNormal : The normal of normalized world space.
@@ -68,8 +73,9 @@ float Phong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec )
 // Returns : Specular factor. 0.0f ~ 1.0f.
 float BlinnPhong( float3 nwsNormal, float3 nwsToLightVec, float3 nwsToEyeVec, float specularPower )
 {
-	float3 nwsHalfVec = normalize( nwsToEyeVec + nwsToLightVec );
-	return pow( dot( nwsHalfVec, nwsNormal ), specularPower );
+	float3 nwsHalfVec		= normalize( nwsToEyeVec + nwsToLightVec );
+	float  specularFactor	= max( 0.0f, dot( nwsHalfVec, nwsNormal ) );
+	return pow( specularFactor, specularPower );
 }
 
 // Calculate fog effect.

@@ -11,11 +11,13 @@ cbuffer CBPerSubset : register( b3 )
 float3 CalcLightInfluence( float4 lightColor, float3 nwsPixelToLightVec, float3 nwsPixelNormal, float3 nwsEyeVector )
 {
 	float3	ambientColor	= cbAmbient.rgb;
+	
 	float	diffuseFactor	= HalfLambert( nwsPixelNormal, nwsPixelToLightVec );
 	//		diffuseFactor	= pow( diffuseFactor, 2.0f );
 	float3	diffuseColor	= cbDiffuse.rgb * diffuseFactor;
-	float	specularFactor	= Phong( nwsPixelNormal, nwsPixelToLightVec, nwsEyeVector );
-	float3	specularColor	= cbSpecular.rgb * specularFactor * cbSpecular.w;
+	
+	float	specularFactor	= max( 0.0f, Phong( nwsPixelNormal, nwsPixelToLightVec, nwsEyeVector, cbSpecular.w ) );
+	float3	specularColor	= cbSpecular.rgb * specularFactor;
 
 	float3	Ka				= ambientColor;
 	float3	Kd				= diffuseColor;
@@ -32,7 +34,7 @@ float4 main( VS_OUT pin ) : SV_TARGET
 			pin.normal		= normalize( pin.normal );
 			
 	float3	nLightVec		= normalize( -cbDirLight.direction.rgb );	// Vector from position.
-	float4	nEyeVector		= cbEyePosition - pin.wsPos;				// Vector from position.
+	float4	nEyeVector		= normalize( cbEyePosition - pin.wsPos );	// Vector from position.
 
 	float4	diffuseMapColor	= diffuseMap.Sample( diffuseMapSampler, pin.texCoord );
 			diffuseMapColor	= SRGBToLinear( diffuseMapColor );
