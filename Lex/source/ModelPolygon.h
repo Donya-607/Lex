@@ -1,10 +1,12 @@
 #pragma once
 
 #include <array>
+#include <string>
 
 #undef max
 #undef min
 #include <cereal/types/array.hpp>
+#include <cereal/types/string.hpp>
 
 #include "Donya/Vector.h"
 #include "Donya/Serializer.h"
@@ -16,6 +18,7 @@ namespace Donya
 		struct Polygon
 		{
 			int								materialIndex = -1;	// -1 is invalid.
+			std::string						materialName;
 			Donya::Vector3					normal;				// The normalized normal of polygon.
 			std::array<Donya::Vector3, 3>	points;				// The model space vertices of a triangle. CW.
 		private:
@@ -30,6 +33,10 @@ namespace Donya
 					CEREAL_NVP( points )
 				);
 				if ( 1 <= version )
+				{
+					archive( CEREAL_NVP( materialName ) );
+				}
+				if ( 2 <= version )
 				{
 					// archive( CEREAL_NVP( x ) );
 				}
@@ -130,5 +137,5 @@ namespace Donya
 		};
 	}
 }
-CEREAL_CLASS_VERSION( Donya::Model::Polygon,		0 )
+CEREAL_CLASS_VERSION( Donya::Model::Polygon,		1 )
 CEREAL_CLASS_VERSION( Donya::Model::PolygonGroup,	0 )

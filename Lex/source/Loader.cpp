@@ -713,6 +713,7 @@ namespace Donya
 
 				Model::Polygon		polygon{};
 				polygon.materialIndex = mtlIndex;
+				polygon.materialName  = subset.name;
 
 				const int polygonSize = pFBXMesh->GetPolygonSize( polyIndex );
 				_ASSERT_EXPR( polygonSize == EXPECT_POLYGON_SIZE, L"Error : A mesh did not triangulated!" );
