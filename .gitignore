@@ -250,6 +250,8 @@ External/
 ShortcutTo*
 
 Lex/Data/*
+Lex/Intermediate/*
+Lex/Output/*
 
 *.cso
 *.cod
