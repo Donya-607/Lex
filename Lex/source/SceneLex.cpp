@@ -1676,6 +1676,9 @@ private:
 			// else
 
 			target.loader.ShowImGuiNode( u8"”’l" );
+			// Apply the changes that by ImGui.
+			// That may be changed only the meshes currently.
+			target.source.meshes = target.loader.GetModelSource().meshes;
 
 			ImGui::TreePop();
 		};
