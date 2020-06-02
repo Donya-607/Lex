@@ -1675,7 +1675,7 @@ private:
 			if ( !ImGui::TreeNode( u8"Ú×" ) ) { return; }
 			// else
 
-			target.loader.ShowEnumNode( u8"”’l" );
+			target.loader.ShowImGuiNode( u8"”’l" );
 
 			ImGui::TreePop();
 		};

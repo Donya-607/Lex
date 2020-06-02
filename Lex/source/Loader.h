@@ -31,7 +31,7 @@ namespace fbxsdk
 }
 #endif // USE_FBX_SDK
 
-// Program version : 9
+// Program version : 10
 
 namespace Donya
 {
@@ -116,7 +116,7 @@ namespace Donya
 	#endif // USE_FBX_SDK
 	public:
 	#if USE_IMGUI
-		void ShowEnumNode( const std::string &nodeCaption ) const;
+		void ShowImGuiNode( const std::string &nodeCaption );
 	#endif // USE_IMGUI
 
 	};

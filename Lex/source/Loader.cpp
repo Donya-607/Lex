@@ -1063,7 +1063,7 @@ namespace Donya
 #endif // USE_FBX_SDK
 
 #if USE_IMGUI
-	void Loader::ShowEnumNode( const std::string &nodeCaption ) const
+	void Loader::ShowImGuiNode( const std::string &nodeCaption )
 	{
 		const ImVec2 childFrameSize( 0.0f, 0.0f );
 
@@ -1073,7 +1073,7 @@ namespace Donya
 		const size_t meshCount = source.meshes.size();
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
-			const auto &mesh = source.meshes[i];
+			auto &mesh = source.meshes[i];
 			const std::string meshCaption = "Mesh[" + std::to_string( i ) + "]";
 			if ( ImGui::TreeNode( meshCaption.c_str() ) )
 			{
@@ -1126,69 +1126,49 @@ namespace Donya
 					size_t subsetCount = mesh.subsets.size();
 					for ( size_t j = 0; j < subsetCount; ++j )
 					{
-						const auto &subset = mesh.subsets[j];
+						auto &subset = mesh.subsets[j];
 						std::string subsetCaption = "Subset[" + std::to_string( j ) + "]";
 						if ( ImGui::TreeNode( subsetCaption.c_str() ) )
 						{
-							auto ShowMaterialContain = [this]( const Model::Source::Material &mtl )
+							auto ShowMaterial = [&]( const std::string &nodeCaption, Model::Source::Material *p )
 							{
-								ImGui::Text
-								(
-									"Color:[X:%05.3f][Y:%05.3f][Z:%05.3f][W:%05.3f]",
-									mtl.color.x, mtl.color.y, mtl.color.z, mtl.color.w
-								);
+								if ( !ImGui::TreeNode( nodeCaption.c_str() ) ) { return; }
+								// else
 
-								if ( mtl.textureName.empty() )
+								// ImGui::Text
+								// (
+								// 	"Color:[X:%05.3f][Y:%05.3f][Z:%05.3f][W:%05.3f]",
+								// 	p->color.x, p->color.y, p->color.z, p->color.w
+								// );
+								// Arrow the changes
+								ImGui::ColorEdit4( "Color", &p->color.x );
+
+								if ( p->textureName.empty() )
 								{
 									ImGui::Text( "This material don't have texture." );
 									return;
 								}
 								// else
 									
-								if ( !Donya::IsExistFile( fileDirectory + mtl.textureName ) )
+								if ( !Donya::IsExistFile( fileDirectory + p->textureName ) )
 								{
-									ImGui::Text( "!This texture was not found![%s]", mtl.textureName.c_str() );
+									ImGui::Text( "!This texture was not found![%s]", p->textureName.c_str() );
 								}
 								else
 								{
-									ImGui::Text( "Texture Name:[%s]", mtl.textureName.c_str() );
+									ImGui::Text( "Texture Name:[%s]", p->textureName.c_str() );
 								}
+
+								ImGui::TreePop();
 							};
 
-							if ( ImGui::TreeNode( "Ambient" ) )
-							{
-								ShowMaterialContain( subset.ambient );
+							ImGui::Text( Donya::MultiToUTF8( "Material Name:[" + subset.name + "]" ).c_str() );
 
-								ImGui::TreePop();
-							}
-
-							if ( ImGui::TreeNode( "Bump" ) )
-							{
-								ShowMaterialContain( subset.bump );
-
-								ImGui::TreePop();
-							}
-
-							if ( ImGui::TreeNode( "Diffuse" ) )
-							{
-								ShowMaterialContain( subset.diffuse );
-
-								ImGui::TreePop();
-							}
-
-							if ( ImGui::TreeNode( "Emissive" ) )
-							{
-								ShowMaterialContain( subset.emissive );
-
-								ImGui::TreePop();
-							}
-
-							if ( ImGui::TreeNode( "Specular" ) )
-							{
-								ShowMaterialContain( subset.specular );
-
-								ImGui::TreePop();
-							}
+							ShowMaterial( "Ambient",	&subset.ambient		);
+							ShowMaterial( "Bump",		&subset.bump		);
+							ShowMaterial( "Diffuse",	&subset.diffuse		);
+							ShowMaterial( "Emissive",	&subset.emissive	);
+							ShowMaterial( "Specular",	&subset.specular	);
 
 							ImGui::TreePop();
 						}
