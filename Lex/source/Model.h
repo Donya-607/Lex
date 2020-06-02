@@ -132,6 +132,7 @@ namespace Donya
 
 			bool InitSubsets( ID3D11Device *pDevice, Model::Mesh *pDestination, const std::vector<Source::Subset> &source );
 			bool InitSubset( ID3D11Device *pDevice, Model::Subset *pDestination, const Source::Subset &source );
+			void AssignMaterial( Model::Material *pDest, const Source::Material &source );
 			bool CreateMaterial( Model::Material *pDestination, ID3D11Device *pDevice );
 		protected:
 			virtual bool CreateVertices( std::vector<Mesh> *pDest ) = 0;
@@ -141,6 +142,11 @@ namespace Donya
 			{
 				coordinateConversion = newMatrix;
 			}
+
+			/// <summary>
+			/// Returns false if the source has not compatible.
+			/// </summary>
+			bool UpdateMeshColor( const Source &loadedSource );
 		public:
 			bool WasInitializeSucceeded()				const { return initializeResult; }
 			const std::vector<Mesh>	&GetMeshes()		const

@@ -244,12 +244,6 @@ namespace Donya
 			pDest->indexCount	= source.indexCount;
 			pDest->indexStart	= source.indexStart;
 
-			auto AssignMaterial = []( Model::Material *pDest, const Source::Material &source )
-			{
-				pDest->color		= source.color;
-				pDest->textureName	= source.textureName;
-			};
-			
 			struct Bundle { Model::Material *dest; const Source::Material &source; };
 			Bundle createList[]
 			{
@@ -266,6 +260,11 @@ namespace Donya
 				if ( !result ) { succeeded = false; }
 			}
 			return succeeded;
+		}
+		void Model::AssignMaterial( Model::Material *pDest, const Source::Material &source )
+		{
+			pDest->color		= source.color;
+			pDest->textureName	= source.textureName;
 		}
 		bool Model::CreateMaterial( Model::Material *pDest, ID3D11Device *pDevice )
 		{
@@ -311,6 +310,60 @@ namespace Donya
 			return succeeded;
 		}
 
+		bool Model::UpdateMeshColor( const Source &loadedSource )
+		{
+			auto UpdateMaterials = [&]( Subset &subset, const Source::Subset &source )
+			{
+				if ( subset.indexCount != source.indexCount ) { return false; }
+				if ( subset.indexStart != source.indexStart ) { return false; }
+				// else
+
+				subset.name = source.name;
+
+				AssignMaterial( &subset.ambient,	source.ambient	);
+				AssignMaterial( &subset.diffuse,	source.diffuse	);
+				AssignMaterial( &subset.specular,	source.specular	);
+
+				return true;
+			};
+
+			auto UpdateSubsets = [&]( Mesh &mesh, const Source::Mesh &loadedSource )
+			{
+				const size_t subsetCount = mesh.subsets.size();
+				if ( subsetCount != loadedSource.subsets.size() ) { return false; }
+				// else
+
+				for ( size_t i = 0; i < subsetCount; ++i )
+				{
+					auto &subset	= mesh.subsets[i];
+					auto &source	= loadedSource.subsets[i];
+
+					if ( !UpdateMaterials( subset, source ) )
+					{
+						return false;
+					}
+				}
+
+				return true;
+			};
+
+			const size_t meshCount = meshes.size();
+			if ( meshCount != loadedSource.meshes.size() ) { return false; }
+			// else
+
+			for ( size_t i = 0; i < meshCount; ++i )
+			{
+				auto &mesh		= meshes[i];
+				auto &source	= loadedSource.meshes[i];
+
+				if ( !UpdateSubsets( mesh, source ) )
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
 		
 		namespace
 		{

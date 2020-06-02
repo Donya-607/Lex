@@ -1153,8 +1153,7 @@ namespace Donya
 							{
 								if ( !ImGui::TreeNode( nodeCaption.c_str() ) ) { return; }
 								// else
-								ImGui::Text( u8"変更は出力するファイルへ反映されます" );
-
+								
 								// ImGui::Text
 								// (
 								// 	"Color:[X:%05.3f][Y:%05.3f][Z:%05.3f][W:%05.3f]",

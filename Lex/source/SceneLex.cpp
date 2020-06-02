@@ -1676,9 +1676,12 @@ private:
 			// else
 
 			target.loader.ShowImGuiNode( u8"”’l" );
+
 			// Apply the changes that by ImGui.
 			// That may be changed only the meshes currently.
 			target.source.meshes = target.loader.GetModelSource().meshes;
+			if ( target.model.pStatic   ) { target.model.pStatic->UpdateMeshColor  ( target.source ); }
+			if ( target.model.pSkinning ) { target.model.pSkinning->UpdateMeshColor( target.source ); }
 
 			ImGui::TreePop();
 		};
