@@ -43,7 +43,7 @@ float4 main( VS_OUT pin ) : SV_TARGET
 	float3	totalLight		= CalcLightInfluence( cbDirLight.color, nLightVec, pin.normal.rgb, nEyeVector.rgb );
 
 	float3	resultColor		= diffuseMapColor.rgb * totalLight;
-	float4	outputColor		= float4( resultColor, diffuseMapAlpha );
+	float4	outputColor		= float4( resultColor, diffuseMapAlpha * cbDiffuse.a );
 			outputColor		= outputColor * cbDrawColor;
 
 	return	LinearToSRGB( outputColor );
