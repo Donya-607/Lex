@@ -1134,6 +1134,7 @@ namespace Donya
 							{
 								if ( !ImGui::TreeNode( nodeCaption.c_str() ) ) { return; }
 								// else
+								ImGui::Text( u8"変更は出力するファイルへ反映されます" );
 
 								// ImGui::Text
 								// (
@@ -1146,17 +1147,15 @@ namespace Donya
 								if ( p->textureName.empty() )
 								{
 									ImGui::Text( "This material don't have texture." );
-									return;
 								}
-								// else
-									
+								else	
 								if ( !Donya::IsExistFile( fileDirectory + p->textureName ) )
 								{
-									ImGui::Text( "!This texture was not found![%s]", p->textureName.c_str() );
+									ImGui::Text( "!This texture was not found![%s]", Donya::MultiToUTF8( p->textureName ).c_str() );
 								}
 								else
 								{
-									ImGui::Text( "Texture Name:[%s]", p->textureName.c_str() );
+									ImGui::Text( "Texture Name:[%s]", Donya::MultiToUTF8( p->textureName ).c_str() );
 								}
 
 								ImGui::TreePop();
