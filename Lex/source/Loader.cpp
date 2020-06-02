@@ -471,10 +471,16 @@ namespace Donya
 			mtlType = AnalyseMaterialType( pSurfaceMaterial );
 			if ( mtlType == MaterialType::Phong )
 			{
-				const FBX::FbxProperty shininess = pSurfaceMaterial->FindProperty( FbxMtl::sShininess );
+				const FBX::FbxProperty shininess	= pSurfaceMaterial->FindProperty( FbxMtl::sShininess );
+				const FBX::FbxProperty transparency	= pSurfaceMaterial->FindProperty( FbxMtl::sTransparencyFactor );
 				if ( shininess.IsValid() )
 				{
 					subset.specular.color.w = scast<float>( shininess.Get<FBX::FbxDouble>() );
+				}
+				if ( transparency.IsValid() )
+				{
+					// The transparency has 0.0f:opaque, 1.0f:transparency. http://docs.autodesk.com/FBX/2014/ENU/FBX-SDK-Documentation/index.html?url=cpp_ref/class_fbx_surface_lambert.html,topicNumber=cpp_ref_class_fbx_surface_lambert_htmldea88f87-afee-49de-9ef5-73a4ac9477b2,hash=ac47de888da8afd942fcfb6ccfbe28dda
+					subset.diffuse.color.w = 1.0f - scast<float>( transparency.Get<FBX::FbxDouble>() );
 				}
 			}
 			else
