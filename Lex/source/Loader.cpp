@@ -9,6 +9,7 @@
 #endif // USE_FBX_SDK
 
 #include "Donya/Constant.h"	// Use scast macro.
+#include "Donya/Donya.h"	// Use GetHWnd().
 #include "Donya/Useful.h"	// Use OutputDebugStr().
 
 #undef min
@@ -405,7 +406,7 @@ namespace Donya
 					FBX::FbxFileTexture *texture = property.GetSrcObject<FBX::FbxFileTexture>( i );
 					if ( !texture ) { continue; }
 					// else
-				
+
 					std::string relativePath = texture->GetRelativeFileName();
 					if ( relativePath.empty() )
 					{
@@ -419,6 +420,24 @@ namespace Donya
 					else
 					{
 						pMaterial->textureName = relativePath;
+					}
+
+					bool filePathIsValid = Donya::IsExistFile( fileDirectory + pMaterial->textureName );
+					if ( !filePathIsValid )
+					{
+						// Notice to a user in release version.
+
+						std::string msg{};
+						msg += "テクスチャが見つかりませんでした！\n";
+						msg += "ディレクトリ：[" + fileDirectory + "]\n";
+						msg += "ファイル名：[" + pMaterial->textureName + "]";
+						MessageBox
+						(
+							Donya::GetHWnd(),
+							Donya::MultiToWide( msg ).c_str(),
+							TEXT( "Model Loading Failed" ),
+							MB_ICONEXCLAMATION | MB_OK
+						);
 					}
 
 					// No support a multiple texture currently.
