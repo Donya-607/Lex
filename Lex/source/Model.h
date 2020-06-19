@@ -111,9 +111,10 @@ namespace Donya
 				ComPtr<ID3D11Buffer>					indexBuffer;
 			};
 		private:
-			std::string			fileDirectory;	// Use for making file path.
+			std::string			fileDirectory;		// Use for making file path.
 			std::vector<Mesh>	meshes;
 			Donya::Vector4x4	coordinateConversion;
+			Donya::Vector4x4	extraTransform;		// A posteriori adjustment in world space(i.e. in the space of transformed by "coordinateConversion")
 			bool				initializeResult = false;
 		protected: // Prevent a user forgot to call the BuildMyself() when creation.
 			Model()								= default;
@@ -137,11 +138,17 @@ namespace Donya
 		protected:
 			virtual bool CreateVertices( std::vector<Mesh> *pDest ) = 0;
 		public:
-			Donya::Vector4x4 GetCoordinateConversion()	const { return coordinateConversion; }
+			Donya::Vector4x4 GetCoordinateConversion()	const { return coordinateConversion;	}
+			Donya::Vector4x4 GetExtraTransform()		const { return extraTransform;			}
 			void SetCoordinateConversion( const Donya::Vector4x4 &newMatrix )
 			{
 				coordinateConversion = newMatrix;
 			}
+			void SetExtraTransformation( const Donya::Vector4x4 &newMatrix )
+			{
+				extraTransform = newMatrix;
+			}
+			void SetExtraTransformation( const Donya::Vector3 &scale, const Donya::Quaternion &rotation, const Donya::Vector3 &translation );
 
 			/// <summary>
 			/// Returns false if the source has not compatible.

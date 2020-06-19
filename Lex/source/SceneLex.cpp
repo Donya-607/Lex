@@ -131,11 +131,13 @@ public:
 		Donya::Model::PolygonGroup	polyGroup{};
 		Donya::Vector3				scale		{ 1.0f, 1.0f, 1.0f };
 		Donya::Vector3				rotation	{ 0.0f, 0.0f, 0.0f };	// Pitch, Yaw, Roll. Degree.
+		Donya::Quaternion			orientation{};
 		Donya::Vector3				translation	{ 0.0f, 0.0f, 0.0f };
 		int			usingMotionIndex{ 0 };
 		float		currentElapsedTime{};
 		float		motionAccelPercent{ 1.0f };	// Magnification.
 		bool		dontWannaDraw{ false };
+		bool		applyExtraTransformation{ true };
 		bool		useSkinningVersion{ true };
 		bool		playLoopMotion{ true };
 	public:
@@ -151,14 +153,17 @@ public:
 			if ( !model.pStatic->WasInitializeSucceeded()   ) { succeeded = false; }
 			if ( !model.pSkinning->WasInitializeSucceeded() ) { succeeded = false; }
 
-			// Assign to holder.
 			holder.AppendSource( source );
-
 			animator.ResetTimer();
-			
 			pose.AssignSkeletal( source.skeletal );
-
 			polyGroup = loader.GetPolygonGroup();
+
+			scale		= source.extraScale;
+			rotation	= source.extraRotation.GetEulerAngles();
+			rotation.x	= ToDegree( rotation.x );
+			rotation.y	= ToDegree( rotation.y );
+			rotation.z	= ToDegree( rotation.z );
+			translation	= source.extraTranslation;
 
 			return succeeded;
 		}
@@ -531,7 +536,9 @@ private:
 			if ( it.dontWannaDraw ) { continue; }
 			// else
 
-			W = Donya::Vector4x4::MakeTransformation
+			W = ( it.applyExtraTransformation )
+			? Donya::Vector4x4::Identity()			// The model's extra parameter is valid, so it is unnecessary.
+			: Donya::Vector4x4::MakeTransformation	// The model's extra parameter is invalid
 			(
 				it.scale,
 				MakeQuaternion( it ),
@@ -1461,14 +1468,47 @@ private:
 		{
 			if ( !ImGui::TreeNode( u8"描画設定" ) ) { return; }
 			// else
-
-			ImGui::Text( u8"※保存対象には含まれません" );
 			
 			ImGui::Checkbox  ( u8"隠す", &target.dontWannaDraw );
 
-			ImGui::DragFloat3( u8"スケール",			&target.scale.x,		0.1f );
-			ImGui::DragFloat3( u8"回転量（Degree）",	&target.rotation.x,		1.0f );
-			ImGui::DragFloat3( u8"平行移動",			&target.translation.x,	1.0f );
+			ImGui::DragFloat3( u8"スケール",				&target.scale.x,		0.1f );
+			ImGui::DragFloat3( u8"回転量（Degree）",		&target.rotation.x,		1.0f );
+			ImGui::DragFloat3( u8"平行移動",				&target.translation.x,	0.1f );
+
+			ImGui::Checkbox  ( u8"設定を保存対象にする",	&target.applyExtraTransformation );
+			if ( target.applyExtraTransformation )
+			{
+				auto ToRotation = []( const Donya::Vector3 &degrees )
+				{
+					return Donya::Quaternion::Make
+					(
+						ToRadian( degrees.x ),
+						ToRadian( degrees.y ),
+						ToRadian( degrees.z )
+					);
+				};
+				target.source.extraScale		= target.scale;
+				target.source.extraRotation		= ToRotation( target.rotation );
+				target.source.extraTranslation	= target.translation;
+			}
+			else
+			{
+				target.source.extraScale		= Donya::Vector3{ 1.0f, 1.0f, 1.0f };
+				target.source.extraRotation		= Donya::Quaternion::Identity();
+				target.source.extraTranslation	= Donya::Vector3{ 0.0f, 0.0f, 0.0f };
+			}
+
+			target.source.extraTransform = Donya::Vector4x4::MakeTransformation
+			(
+				target.source.extraScale,
+				target.source.extraRotation,
+				target.source.extraTranslation
+			);
+
+			if ( target.model.pSkinning )
+			{ target.model.pSkinning->SetExtraTransformation( target.source.extraTransform ); }
+			if ( target.model.pStatic )
+			{ target.model.pStatic->SetExtraTransformation( target.source.extraTransform ); }
 
 			ImGui::TreePop();
 		};
@@ -1705,7 +1745,7 @@ private:
 			// else
 			if ( ImGui::Button( u8"保存" ) )
 			{
-				// Apply the changes of motion that when ShowMotionConfig().
+				// Apply changes of extraTransform(at ShowDrawConfig), and motion(at ShowMotionConfig).
 				it->loader.SetModelSource( it->source );
 				it->loader.SetPolygonGroup( it->polyGroup );
 

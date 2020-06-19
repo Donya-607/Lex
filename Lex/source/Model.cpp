@@ -130,6 +130,7 @@ namespace Donya
 
 			fileDirectory			= argFileDirectory;
 			coordinateConversion	= source.coordinateConversion;
+			extraTransform			= source.extraTransform;
 			initializeResult		= InitMeshes( pDevice, source );
 
 			return initializeResult;
@@ -308,6 +309,11 @@ namespace Donya
 				AssertBaseCreation( "texture", fileDirectory + pDest->textureName );
 			}
 			return succeeded;
+		}
+
+		void Model::SetExtraTransformation( const Donya::Vector3 &S, const Donya::Quaternion &R, const Donya::Vector3 &T )
+		{
+			SetExtraTransformation( Donya::Vector4x4::MakeTransformation( S, R, T ) );
 		}
 
 		bool Model::UpdateMeshColor( const Source &loadedSource )

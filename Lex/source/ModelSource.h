@@ -121,9 +121,15 @@ namespace Donya
 			};
 		public:
 			std::vector<Mesh>				meshes;
-			std::vector<Animation::Node>	skeletal;	// The model's skeletal of initial pose(so-called "T-pose"). 
-			std::vector<Animation::Motion>	motions;	// Represent animations. The animations contain only animation(i.e. The animation matrix transforms space is bone -> mesh(current pose)).
+			std::vector<Animation::Node>	skeletal;			// The model's skeletal of initial pose(so-called "T-pose"). 
+			std::vector<Animation::Motion>	motions;			// Represent animations. The animations contain only animation(i.e. The animation matrix transforms space is bone -> mesh(current pose)).
 			Donya::Vector4x4				coordinateConversion;
+		public:
+			// A posteriori adjustment in world space(i.e. in the space of transformed by "coordinateConversion")
+			Donya::Vector4x4				extraTransform;
+			Donya::Vector3					extraScale{ 1.0f, 1.0f, 1.0f };
+			Donya::Quaternion				extraRotation;
+			Donya::Vector3					extraTranslation{};
 		private:
 			friend class cereal::access;
 			template<class Archive>
@@ -139,6 +145,16 @@ namespace Donya
 				
 				if ( 1 <= version )
 				{
+					archive
+					(
+						CEREAL_NVP( extraTransform		),
+						CEREAL_NVP( extraScale			),
+						CEREAL_NVP( extraRotation		),
+						CEREAL_NVP( extraTranslation	)
+					);
+				}
+				if ( 2 <= version )
+				{
 					// archive( CEREAL_NVP( x ) );
 				}
 			}
@@ -146,7 +162,7 @@ namespace Donya
 	}
 }
 
-CEREAL_CLASS_VERSION( Donya::Model::Source,				0 )
+CEREAL_CLASS_VERSION( Donya::Model::Source,				1 )
 CEREAL_CLASS_VERSION( Donya::Model::Source::Subset,		0 )
 CEREAL_CLASS_VERSION( Donya::Model::Source::Mesh,		0 )
 CEREAL_CLASS_VERSION( Donya::Model::Source::Material,	0 )

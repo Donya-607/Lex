@@ -904,7 +904,8 @@ namespace Donya
 			Constants::PerMesh::Common constants;
 			constants.adjustMatrix =
 				ExtractInitialPose( model, meshIndex, pose ) *
-				model.GetCoordinateConversion();
+				model.GetCoordinateConversion() *
+				model.GetExtraTransform();
 			return constants;
 		}
 		void StaticRenderer::UpdateCBPerMesh( const Model &model, size_t meshIndex, const Pose &pose, const RegisterDesc &desc, ID3D11DeviceContext *pImmediateContext )
@@ -960,7 +961,8 @@ namespace Donya
 			constants.adjustMatrix =
 				// This matrix is contained into a bone-transform matrix.
 				// ExtractInitialPose( model, meshIndex ) *
-				model.GetCoordinateConversion();
+				model.GetCoordinateConversion() *
+				model.GetExtraTransform();
 			return constants;
 		}
 		Constants::PerMesh::Bone   SkinningRenderer::MakeBoneConstants( const Model &model, size_t meshIndex, const Pose &pose ) const
