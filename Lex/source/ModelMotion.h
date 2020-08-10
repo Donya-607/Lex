@@ -23,7 +23,12 @@ namespace Donya
 			/// return ( motionIndex &lt; 0 || GetMotionCount() &lt;= motionIndex );
 			/// </summary>
 			bool IsOutOfRange( int motionIndex ) const;
+			/// <summary>
+			/// return ( motionIndex &lt; 0 || GetMotionCount() &lt;= motionIndex );
+			/// </summary>
+			bool IsOutOfRange( size_t motionIndex ) const;
 		public:
+			const std::vector<Animation::Motion> &GetAllMotions() const;
 			/// <summary>
 			/// Returns the motion of specified element.
 			/// </summary>
@@ -34,9 +39,17 @@ namespace Donya
 			size_t FindMotionIndex( const std::string &motionName ) const;
 		public:
 			/// <summary>
+			/// Do std::vector::clear().
+			/// </summary>
+			void EraseAllMotions();
+			/// <summary>
 			/// Erase a motion by index of array.
 			/// </summary>
 			void EraseMotion( int motionIndex );
+			/// <summary>
+			/// Erase a motion by index of array.
+			/// </summary>
+			void EraseMotion( size_t motionIndex );
 			/// <summary>
 			/// Erase a motion that found first by name. This method erases only once even if I contain multiple names.
 			/// </summary>

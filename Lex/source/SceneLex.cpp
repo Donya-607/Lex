@@ -1638,13 +1638,65 @@ private:
 
 				ImGui::TreePop();
 			}
+			if ( ImGui::TreeNode( u8"モーションを並び替える" ) )
+			{
+				constexpr const char *columnIdentifier = "Re-Order-Column";
+				ImGui::Columns( 2, columnIdentifier );
+				const size_t motionCount = target.holder.GetMotionCount();
+				size_t reorderIndex  = motionCount;
+				bool   reorderToBack = true;
+				std::string buttonID;
+				for ( size_t i = 0; i < motionCount; ++i )
+				{
+					ImGui::Text( target.source.motions[i].name.c_str() );
+					ImGui::NextColumn();
+
+					buttonID = std::to_string( i ) + "Up";
+					if ( ImGui::ArrowButton( buttonID.c_str(), ImGuiDir_Up ) )
+					{
+						reorderIndex = i; reorderToBack = true;
+					}
+					ImGui::SameLine();
+					buttonID = std::to_string( i ) + "Down";
+					if ( ImGui::ArrowButton( buttonID.c_str(), ImGuiDir_Down ) )
+					{
+						reorderIndex = i; reorderToBack = false;
+					}
+
+					ImGui::NextColumn();
+				}
+				ImGui::Columns( 1 ); // Put back to original
+
+				const bool cannotReorder =
+						 ( reorderIndex == 0 && reorderToBack ) ||
+						 ( reorderIndex == motionCount - 1 && !reorderToBack );
+				if ( reorderIndex < motionCount && !cannotReorder )
+				{
+					// Re-Order as brute-force because the MotionHolder is not provide this method
+
+					const size_t dest = ( reorderToBack ) ? reorderIndex - 1 : reorderIndex + 1;
+
+					std::vector<Donya::Model::Animation::Motion> container = target.holder.GetAllMotions();
+					std::swap( container[reorderIndex], container[dest] );
+
+					target.holder.EraseAllMotions();
+					target.source.motions.clear();
+					for ( const auto &it : container )
+					{
+						target.holder.AppendMotion( it );
+						target.source.motions.emplace_back( it );
+					}
+				}
+
+				ImGui::TreePop();
+			}
 
 			const size_t motionCount = target.source.motions.size();
 			if ( 2 <= motionCount )
 			{
-				const size_t max = motionCount - 1;
+				const int max = scast<int>( motionCount - 1 );
 				ImGui::SliderInt( u8"描画するモーション番号", &target.usingMotionIndex, 0, max );
-				target.usingMotionIndex = std::max( 0, std::min( scast<int>( max ), target.usingMotionIndex ) );
+				target.usingMotionIndex = std::max( 0, std::min( max, target.usingMotionIndex ) );
 			}
 			else
 			{
