@@ -59,7 +59,18 @@ namespace Donya
 
 			return false;
 		}
+		bool MotionHolder::IsOutOfRange( size_t motionIndex ) const
+		{
+			if ( GetMotionCount() <= motionIndex ) { return true; }
+			// else
 
+			return false;
+		}
+
+		const std::vector<Animation::Motion> &MotionHolder::GetAllMotions() const
+		{
+			return motions;
+		}
 		const Animation::Motion &MotionHolder::GetMotion( int motionIndex ) const
 		{
 			_ASSERT_EXPR( motionIndex < scast<int>( motions.size() ), L"Error : Passed index out of range!" );
@@ -79,7 +90,17 @@ namespace Donya
 			return motionCount;
 		}
 
+		void MotionHolder::EraseAllMotions()
+		{
+			motions.clear();
+		}
 		void MotionHolder::EraseMotion( int motionIndex )
+		{
+			if ( IsOutOfRange( motionIndex ) ) { return; }
+			// else
+			motions.erase( motions.begin() + motionIndex );
+		}
+		void MotionHolder::EraseMotion( size_t motionIndex )
 		{
 			if ( IsOutOfRange( motionIndex ) ) { return; }
 			// else

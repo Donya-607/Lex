@@ -1132,7 +1132,9 @@ namespace Donya
 			glyphRangesJapanese
 		);
 
-	#endif
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+	#endif // USE_IMGUI
 	}
 
 	HRESULT	ThreadInitialize( bool isEnableMultiThreaded )
