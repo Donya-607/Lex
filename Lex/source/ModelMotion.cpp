@@ -114,7 +114,8 @@ namespace Donya
 
 		void  Animator::ResetTimer()
 		{
-			elapsedTime = 0.0f;
+			elapsedTime	= 0.0f;
+			wasEnded	= false;
 		}
 		void  Animator::Update( float argElapsedTime )
 		{
