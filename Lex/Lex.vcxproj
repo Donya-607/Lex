@@ -93,6 +93,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)External\Cereal\include\;$(SolutionDir)External\DirectXTK\Inc\;$(SolutionDir)External\FBX SDK\2016.1.2\include\;$(SolutionDir)External\FMOD\LowLevel\inc\;$(SolutionDir)External\FMOD\Studio\inc\;$(ProjectDir)External\ImGui\;$(ProjectDir)Source\</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -124,6 +125,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)External\Cereal\include\;$(SolutionDir)External\DirectXTK\Inc\;$(SolutionDir)External\FBX SDK\2016.1.2\include\;$(SolutionDir)External\FMOD\LowLevel\inc\;$(SolutionDir)External\FMOD\Studio\inc\;$(ProjectDir)External\ImGui\;$(ProjectDir)Source\</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
