@@ -64,22 +64,38 @@ namespace
 		standard.AntialiasedLineEnable	= TRUE;
 		return standard;
 	}
-	static constexpr D3D11_SAMPLER_DESC			SamplerDesc()
-{
-	D3D11_SAMPLER_DESC standard{};
-	/*
-	standard.MipLODBias		= 0;
-	standard.MaxAnisotropy	= 16;
-	*/
-	standard.Filter				= D3D11_FILTER_ANISOTROPIC;
-	standard.AddressU			= D3D11_TEXTURE_ADDRESS_WRAP;
-	standard.AddressV			= D3D11_TEXTURE_ADDRESS_WRAP;
-	standard.AddressW			= D3D11_TEXTURE_ADDRESS_WRAP;
-	standard.ComparisonFunc		= D3D11_COMPARISON_ALWAYS;
-	standard.MinLOD				= 0;
-	standard.MaxLOD				= D3D11_FLOAT32_MAX;
-	return standard;
-}
+	static constexpr D3D11_SAMPLER_DESC			DiffuseSamplerDesc()
+	{
+		D3D11_SAMPLER_DESC standard{};
+		/*
+		standard.MipLODBias		= 0;
+		standard.MaxAnisotropy	= 16;
+		*/
+		standard.Filter				= D3D11_FILTER_ANISOTROPIC;
+		standard.AddressU			= D3D11_TEXTURE_ADDRESS_WRAP;
+		standard.AddressV			= D3D11_TEXTURE_ADDRESS_WRAP;
+		standard.AddressW			= D3D11_TEXTURE_ADDRESS_WRAP;
+		standard.ComparisonFunc		= D3D11_COMPARISON_ALWAYS;
+		standard.MinLOD				= 0;
+		standard.MaxLOD				= D3D11_FLOAT32_MAX;
+		return standard;
+	}
+	static constexpr D3D11_SAMPLER_DESC			NormalSamplerDesc()
+	{
+		D3D11_SAMPLER_DESC standard{};
+		/*
+		standard.MipLODBias		= 0;
+		standard.MaxAnisotropy	= 16;
+		*/
+		standard.Filter				= D3D11_FILTER_MIN_MAG_MIP_POINT;
+		standard.AddressU			= D3D11_TEXTURE_ADDRESS_WRAP;
+		standard.AddressV			= D3D11_TEXTURE_ADDRESS_WRAP;
+		standard.AddressW			= D3D11_TEXTURE_ADDRESS_WRAP;
+		standard.ComparisonFunc		= D3D11_COMPARISON_ALWAYS;
+		standard.MinLOD				= 0;
+		standard.MaxLOD				= D3D11_FLOAT32_MAX;
+		return standard;
+	}
 }
 
 struct SceneLex::Impl
@@ -212,9 +228,10 @@ public:
 
 	CameraUsage						cameraOp{};
 
-	int								idDSState	= 0;
-	int								idRSState	= 0;
-	int								idPSSampler	= 0;
+	int								idDSState		= 0;
+	int								idRSState		= 0;
+	int								idPSSamplerD	= 0;
+	int								idPSSamplerN	= 0;
 
 	float							loadSamplingFPS = 0.0f;		// Use to Loader's sampling FPS.
 	std::vector<MeshAndInfo>		models{};
@@ -453,7 +470,8 @@ private:
 
 		Donya::DepthStencil::Activate( idDSState );
 		Donya::Rasterizer::Activate( idRSState );
-		Donya::Sampler::Activate( idPSSampler, 0, /* setVSS = */ false, /* setPS = */ true );
+		Donya::Sampler::Activate( idPSSamplerD, 0, /* setVSS = */ false, /* setPS = */ true );
+		Donya::Sampler::Activate( idPSSamplerN, 1, /* setVSS = */ false, /* setPS = */ true );
 
 		cbuffer.perScene.data.directionalLight.color		= directionalLight.color;
 		cbuffer.perScene.data.directionalLight.direction	= directionalLight.direction;
@@ -782,12 +800,13 @@ private:
 		};
 		
 		using Bundle = std::pair<int *, FindFunction>;
-		constexpr  size_t  STATE_COUNT = 3;
+		constexpr  size_t  STATE_COUNT = 4;
 		std::array<Bundle, STATE_COUNT> bundles
 		{
 			std::make_pair( &idDSState,		Donya::DepthStencil::IsAlreadyExists	),
 			std::make_pair( &idRSState,		Donya::Rasterizer::IsAlreadyExists		),
-			std::make_pair( &idPSSampler,	Donya::Sampler::IsAlreadyExists			),
+			std::make_pair( &idPSSamplerD,	Donya::Sampler::IsAlreadyExists			),
+			std::make_pair( &idPSSamplerN,	Donya::Sampler::IsAlreadyExists			),
 		};
 		for ( size_t i = 0; i < STATE_COUNT; ++i )
 		{
@@ -806,9 +825,9 @@ private:
 		{
 			return Donya::Rasterizer::CreateState( id, RasterizerDesc() );
 		};
-		auto  CreateSampler			= []( int id )
+		auto  CreateSampler			= []( int id, auto desc )
 		{
-			return Donya::Sampler::CreateState( id, SamplerDesc() );
+			return Donya::Sampler::CreateState( id, desc );
 		};
 
 		bool result		= true;
@@ -817,7 +836,9 @@ private:
 		if ( !result ) { succeeded = false; }
 		result = CreateRasterizer( idRSState );
 		if ( !result ) { succeeded = false; }
-		result = CreateSampler( idPSSampler );
+		result = CreateSampler( idPSSamplerD, DiffuseSamplerDesc() );
+		if ( !result ) { succeeded = false; }
+		result = CreateSampler( idPSSamplerN, NormalSamplerDesc() );
 		if ( !result ) { succeeded = false; }
 
 		return succeeded;

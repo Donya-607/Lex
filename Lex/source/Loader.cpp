@@ -179,8 +179,8 @@ namespace Donya
 			// else
 
 			const float r = 1.0f / d;
-			const auto  tangent  = ( pDelta01*tDelta02.y - pDelta02*tDelta01.y ) * r;
-			const auto  binormal = ( pDelta02*tDelta01.x - pDelta01*tDelta02.x ) * r;
+			const auto  tangent  = ( ( pDelta01*tDelta02.y - pDelta02*tDelta01.y ) * r ).Unit();
+			const auto  binormal = ( ( pDelta02*tDelta01.x - pDelta01*tDelta02.x ) * r ).Unit();
 
 			for ( auto &v : p )
 			{
@@ -820,17 +820,17 @@ namespace Donya
 			const bool hasTangent	= ( 0 < pFBXMesh->GetElementTangentCount()	);
 			const bool hasUV		= ( 0 < pFBXMesh->GetElementUVCount()		);
 
-			const FbxGeometryElementTangent  *geometryTangent = pFBXMesh->GetElementTangent( 0 );
-			const auto tangentMappingMode	= geometryTangent->GetMappingMode();
-			const auto tangentReferenceMode	= geometryTangent->GetReferenceMode();
-			const bool tangentIsValid		= IsSupportTangentMode( tangentMappingMode, tangentReferenceMode );
-			if ( !tangentIsValid )
+			const FbxGeometryElementTangent *geometryTangent = ( hasTangent ) ? pFBXMesh->GetElementTangent( 0 ) : nullptr;
+			const auto tangentMappingMode	= ( geometryTangent ) ? geometryTangent->GetMappingMode()	: FbxGeometryElement::EMappingMode::eNone;
+			const auto tangentReferenceMode = ( geometryTangent ) ? geometryTangent->GetReferenceMode() : FbxGeometryElement::EReferenceMode::eIndex;
+			const bool tangentIsValid		= ( geometryTangent ) ? IsSupportTangentMode( tangentMappingMode, tangentReferenceMode ) : false;
+			if ( !tangentIsValid && hasTangent )
 			{
 				_ASSERT_EXPR( 0, L"Error: Tangent's mapping-mode or reference-mode is invalid!" );
 			}
 			auto FetchTangent = [&]( int ctrlPointIndex, int polygonIndex, int polyEdgeIndex )
 			{
-				if ( !tangentIsValid ) { return Donya::Vector3::Zero(); }
+				if ( !hasTangent || !tangentIsValid || !geometryTangent ) { return Donya::Vector3::Zero(); }
 				// else
 
 				using MapMode = FbxGeometryElement::EMappingMode;
@@ -900,7 +900,10 @@ namespace Donya
 					pos.normal.y	= scast<float>( fbxNormal[1] );
 					pos.normal.z	= scast<float>( fbxNormal[2] );
 
-					pos.tangent		= FetchTangent( ctrlPointIndex, polyIndex, v );
+					if ( hasTangent )
+					{
+						pos.tangent	= FetchTangent( ctrlPointIndex, polyIndex, v );
+					}
 
 					if ( hasUV )
 					{
@@ -1332,8 +1335,9 @@ namespace Donya
 							ShowMaterial( "Ambient",	&subset.ambient		);
 							ShowMaterial( "Bump",		&subset.bump		);
 							ShowMaterial( "Diffuse",	&subset.diffuse		);
-							ShowMaterial( "Emissive",	&subset.emissive	);
 							ShowMaterial( "Specular",	&subset.specular	);
+							ShowMaterial( "Emissive",	&subset.emissive	);
+							ShowMaterial( "Normal",		&subset.normal		);
 
 							ImGui::TreePop();
 						}
