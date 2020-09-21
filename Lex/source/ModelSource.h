@@ -55,6 +55,7 @@ namespace Donya
 				Material		diffuse;
 				Material		specular;
 				Material		emissive;
+				Material		normal;
 			private:
 				friend class cereal::access;
 				template<class Archive>
@@ -73,6 +74,10 @@ namespace Donya
 					);
 
 					if ( 1 <= version )
+					{
+						archive( CEREAL_NVP( normal ) );
+					}
+					if ( 2 <= version )
 					{
 						// archive( CEREAL_NVP( x ) );
 					}
@@ -163,6 +168,6 @@ namespace Donya
 }
 
 CEREAL_CLASS_VERSION( Donya::Model::Source,				1 )
-CEREAL_CLASS_VERSION( Donya::Model::Source::Subset,		0 )
+CEREAL_CLASS_VERSION( Donya::Model::Source::Subset,		1 )
 CEREAL_CLASS_VERSION( Donya::Model::Source::Mesh,		0 )
 CEREAL_CLASS_VERSION( Donya::Model::Source::Material,	0 )

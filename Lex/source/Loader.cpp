@@ -98,6 +98,104 @@ namespace Donya
 		return output;
 	}
 
+	constexpr bool IsSupportTangentMode( const FbxGeometryElement::EMappingMode &geometryTangentsMappingMode, const FbxGeometryElement::EReferenceMode &geometryTangentsReferenceMode )
+	{
+		constexpr FbxGeometryElement::EMappingMode validMappingModes[]
+		{
+			FbxGeometryElement::EMappingMode::eByControlPoint,
+			FbxGeometryElement::EMappingMode::eByPolygonVertex
+		};
+		constexpr FbxGeometryElement::EReferenceMode validReferenceModes[]
+		{
+			FbxGeometryElement::EReferenceMode::eDirect,
+			FbxGeometryElement::EReferenceMode::eIndexToDirect
+		};
+
+		for ( const auto &it : validMappingModes )
+		{
+			if ( geometryTangentsMappingMode == it ) { return true; }
+		}
+
+		for ( const auto &it : validReferenceModes )
+		{
+			if ( geometryTangentsReferenceMode == it ) { return true; }
+		}
+
+		return false;
+	}
+	void CalcTangentVectors( std::vector<Model::Vertex::Pos> *pOutPositions, const std::vector<Model::Vertex::Tex> &texCoords, const std::vector<unsigned int> &indices )
+	{
+		if ( !pOutPositions ) { return; }
+		// else
+		
+		auto &positions = *pOutPositions;
+		if ( positions.size() != texCoords.size() ) { return; } // The position and texCoord are must be thing of same vertex!
+		// else
+
+		// See http://www.opengl-tutorial.org/jp/intermediate-tutorials/tutorial-13-normal-mapping/
+
+		auto CalcOrthogonalTangent = []( const Donya::Vector3 &normal, const Donya::Vector3 &tangent )
+		{
+			const auto projT = Donya::Vector3::Projection( tangent, normal );
+			return ( tangent - projT ).Unit();
+		};
+
+		const size_t indexCount = indices.size();
+		for ( unsigned int i = 0; i < indexCount; i += 3 )
+		{
+			Model::Vertex::Pos *p[3]
+			{
+				&positions[indices[i + 0]],
+				&positions[indices[i + 1]],
+				&positions[indices[i + 2]],
+			};
+			const Model::Vertex::Tex *t[3]
+			{
+				&texCoords[indices[i + 0]],
+				&texCoords[indices[i + 1]],
+				&texCoords[indices[i + 2]],
+			};
+
+			const auto pDelta01 = p[1]->position - p[0]->position;
+			const auto pDelta02 = p[2]->position - p[0]->position;
+
+			const auto tDelta01 = t[1]->texCoord - t[0]->texCoord;
+			const auto tDelta02 = t[2]->texCoord - t[0]->texCoord;
+
+			const float d = Donya::Vector2::Cross( tDelta01, tDelta02 ); // (a.x*b.y - a.y*b.x)
+			if ( ZeroEqual( d ) )
+			{
+				for ( auto &v : p )
+				{
+					v->tangent = Donya::Vector3::Zero();
+				}
+
+				constexpr const wchar_t *errMsg =
+					L"Error: A Degenerate-Triangle detected in calculation of tangent vector!";
+				Donya::OutputDebugStr( errMsg );
+				_ASSERT_EXPR( 0, errMsg );
+				continue;
+			}
+			// else
+
+			const float r = 1.0f / d;
+			const auto  tangent  = ( pDelta01*tDelta02.y - pDelta02*tDelta01.y ) * r;
+			const auto  binormal = ( pDelta02*tDelta01.x - pDelta01*tDelta02.x ) * r;
+
+			for ( auto &v : p )
+			{
+				v->tangent = CalcOrthogonalTangent( v->normal, tangent );
+
+				// Uniform the coordine system
+				const auto B = Donya::Vector3::Cross( v->normal, v->tangent );
+				if ( Donya::Vector3::Dot( B, binormal ) < 0.0f )
+				{
+					v->tangent *= -1.0f;
+				}
+			}
+		}
+	}
+
 	constexpr bool HasMesh		( FBX::FbxNodeAttribute::EType attr )
 	{
 		constexpr FBX::FbxNodeAttribute::EType HAS_LIST[]
@@ -486,6 +584,7 @@ namespace Donya
 			FetchMaterial( &subset.diffuse,		FbxMtl::sDiffuse,	FbxMtl::sDiffuseFactor,		pSurfaceMaterial );
 			FetchMaterial( &subset.specular,	FbxMtl::sSpecular,	FbxMtl::sSpecularFactor,	pSurfaceMaterial );
 			FetchMaterial( &subset.emissive,	FbxMtl::sEmissive,	FbxMtl::sEmissiveFactor,	pSurfaceMaterial );
+			FetchMaterial( &subset.normal,		FbxMtl::sNormalMap,	FbxMtl::sBumpFactor,		pSurfaceMaterial );
 
 			mtlType = AnalyseMaterialType( pSurfaceMaterial );
 			if ( mtlType == MaterialType::Phong )
@@ -717,6 +816,52 @@ namespace Donya
 			FBX::FbxStringList uvSetName;
 			pFBXMesh->GetUVSetNames( uvSetName );
 
+			const bool hasNormal	= ( 0 < pFBXMesh->GetElementNormalCount()	);
+			const bool hasTangent	= ( 0 < pFBXMesh->GetElementTangentCount()	);
+			const bool hasUV		= ( 0 < pFBXMesh->GetElementUVCount()		);
+
+			const FbxGeometryElementTangent  *geometryTangent = pFBXMesh->GetElementTangent( 0 );
+			const auto tangentMappingMode	= geometryTangent->GetMappingMode();
+			const auto tangentReferenceMode	= geometryTangent->GetReferenceMode();
+			const bool tangentIsValid		= IsSupportTangentMode( tangentMappingMode, tangentReferenceMode );
+			if ( !tangentIsValid )
+			{
+				_ASSERT_EXPR( 0, L"Error: Tangent's mapping-mode or reference-mode is invalid!" );
+			}
+			auto FetchTangent = [&]( int ctrlPointIndex, int polygonIndex, int polyEdgeIndex )
+			{
+				if ( !tangentIsValid ) { return Donya::Vector3::Zero(); }
+				// else
+
+				using MapMode = FbxGeometryElement::EMappingMode;
+				using RefMode = FbxGeometryElement::EReferenceMode;
+
+				int vertexIndex = 0;
+				if ( tangentReferenceMode == RefMode::eIndexToDirect )
+				{
+					vertexIndex = geometryTangent->GetIndexArray().GetAt( ctrlPointIndex );
+				}
+				else // Regard as: ( tangentReferenceMode == RefMode::eDirect )
+				{
+					if ( tangentMappingMode == MapMode::eByControlPoint )
+					{
+						vertexIndex = ctrlPointIndex;
+					}
+					else // Regard as: ( tangentMappingMode == RefMode::eByPolygonVertex )
+					{
+						vertexIndex = ( polygonIndex * 3 ) + polyEdgeIndex;
+					}
+				}
+
+				const auto &source = geometryTangent->GetDirectArray();
+				
+				Donya::Vector3 tangent;
+				tangent.x = scast<float>( source.GetAt( vertexIndex )[0] );
+				tangent.y = scast<float>( source.GetAt( vertexIndex )[1] );
+				tangent.z = scast<float>( source.GetAt( vertexIndex )[2] );
+				return tangent;
+			};
+
 			size_t vertexCount = 0;
 			for ( int polyIndex = 0; polyIndex < polygonCount; ++polyIndex )
 			{
@@ -728,8 +873,8 @@ namespace Donya
 				}
 
 				// Where should I save the vertex attribute index, according to the material.
-				auto &subset	= pMesh->subsets[mtlIndex];
-				int indexOffset	= scast<int>( subset.indexStart + subset.indexCount );
+				auto &subset		= pMesh->subsets[mtlIndex];
+				int  indexOffset	= scast<int>( subset.indexStart + subset.indexCount );
 
 				FBX::FbxVector4		fbxNormal{};
 				Model::Vertex::Pos	pos{};
@@ -746,28 +891,26 @@ namespace Donya
 				for ( int v = 0; v < EXPECT_POLYGON_SIZE; ++v )
 				{
 					const int ctrlPointIndex = pFBXMesh->GetPolygonVertex( polyIndex, v );
-					pos.position.x = scast<float>( pControlPointsArray[ctrlPointIndex][0] );
-					pos.position.y = scast<float>( pControlPointsArray[ctrlPointIndex][1] );
-					pos.position.z = scast<float>( pControlPointsArray[ctrlPointIndex][2] );
+					pos.position.x	= scast<float>( pControlPointsArray[ctrlPointIndex][0] );
+					pos.position.y	= scast<float>( pControlPointsArray[ctrlPointIndex][1] );
+					pos.position.z	= scast<float>( pControlPointsArray[ctrlPointIndex][2] );
 
 					pFBXMesh->GetPolygonVertexNormal( polyIndex, v, fbxNormal );
-					pos.normal.x   = scast<float>( fbxNormal[0] );
-					pos.normal.y   = scast<float>( fbxNormal[1] );
-					pos.normal.z   = scast<float>( fbxNormal[2] );
+					pos.normal.x	= scast<float>( fbxNormal[0] );
+					pos.normal.y	= scast<float>( fbxNormal[1] );
+					pos.normal.z	= scast<float>( fbxNormal[2] );
 
-					const int uvCount = pFBXMesh->GetElementUVCount();
-					if ( !uvCount )
-					{
-						tex.texCoord = Donya::Vector2::Zero();
-					}
-					else
+					pos.tangent		= FetchTangent( ctrlPointIndex, polyIndex, v );
+
+					if ( hasUV )
 					{
 						bool ummappedUV{};
 						FbxVector2 uv{};
 						pFBXMesh->GetPolygonVertexUV( polyIndex, v, uvSetName[0], uv, ummappedUV );
 					
+						constexpr FbxDouble one = scast<FbxDouble>( 1.0 );
 						tex.texCoord.x = scast<float>( uv[0] );
-						tex.texCoord.y = 1.0f - scast<float>( uv[1] ); // For DirectX's uv space(the origin is left-top).
+						tex.texCoord.y = scast<float>( one - uv[1] ); // Convert DirectX's uv space(the origin is left-top).
 					}
 
 					auto AssignInfluence = [&NormalizeBoneInfluence]( Model::Vertex::Bone *pInfl, const BoneInfluence &source )
@@ -825,6 +968,11 @@ namespace Donya
 				const Donya::Vector3 edgeAC = polygon.points[2] - polygon.points[0];
 				polygon.normal = Donya::Cross( edgeAB, edgeAC ).Unit();
 				pPolygons->emplace_back( std::move( polygon ) );
+			}
+
+			if ( !hasTangent && hasUV )
+			{
+				CalcTangentVectors( &pMesh->positions, pMesh->texCoords, pMesh->indices );
 			}
 		}
 	}

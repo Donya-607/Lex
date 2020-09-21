@@ -39,9 +39,14 @@ namespace Donya
 			{
 				Donya::Vector3	position;
 				Donya::Vector3	normal;
+				Donya::Vector3	tangent;
 			public:
-				constexpr Pos() : position(), normal() {}
-				constexpr Pos( const Donya::Vector3 &position, const Donya::Vector3 &normal ) : position( position ), normal( normal ) {}
+				constexpr Pos()
+					: position(), normal(), tangent() {}
+				constexpr Pos( const Donya::Vector3 &position, const Donya::Vector3 &normal )
+					: position( position ), normal( normal ), tangent() {}
+				constexpr Pos( const Donya::Vector3 &position, const Donya::Vector3 &normal, const Donya::Vector3 &tangent )
+					: position( position ), normal( normal ), tangent( tangent ) {}
 			public:
 				static constexpr const auto GenerateInputElements( UINT inputSlot )
 				{
@@ -56,13 +61,19 @@ namespace Donya
 				template<class Archive>
 				void serialize( Archive &archive, std::uint32_t version )
 				{
-					if ( version == 0 )
+					archive
+					(
+						CEREAL_NVP( position ),
+						CEREAL_NVP( normal )
+					);
+
+					if ( 1 <= version )
 					{
-						archive
-						(
-							CEREAL_NVP( position ),
-							CEREAL_NVP( normal )
-						);
+						archive( CEREAL_NVP( tangent ) );
+					}
+					if ( 2 <= version )
+					{
+						// archive( CEREAL_NVP(  ) );
 					}
 				}
 			};
@@ -85,12 +96,14 @@ namespace Donya
 				template<class Archive>
 				void serialize( Archive &archive, std::uint32_t version )
 				{
-					if ( version == 0 )
+					archive
+					(
+						CEREAL_NVP( texCoord )
+					);
+					
+					if ( 1 <= version )
 					{
-						archive
-						(
-							CEREAL_NVP( texCoord )
-						);
+						// archive( CEREAL_NVP(  ) );
 					}
 				}
 			};
@@ -115,13 +128,15 @@ namespace Donya
 				template<class Archive>
 				void serialize( Archive &archive, std::uint32_t version )
 				{
-					if ( version == 0 )
+					archive
+					(
+						CEREAL_NVP( weights ),
+						CEREAL_NVP( indices )
+					);
+
+					if ( 1 <= version )
 					{
-						archive
-						(
-							CEREAL_NVP( weights ),
-							CEREAL_NVP( indices )
-						);
+						// archive( CEREAL_NVP(  ) );
 					}
 				}
 			};
@@ -390,7 +405,7 @@ namespace Donya
 	}
 }
 
-CEREAL_CLASS_VERSION( Donya::Model::Vertex::Pos,			0 )
+CEREAL_CLASS_VERSION( Donya::Model::Vertex::Pos,			1 )
 CEREAL_CLASS_VERSION( Donya::Model::Vertex::Tex,			0 )
 CEREAL_CLASS_VERSION( Donya::Model::Vertex::Bone,			0 )
 
