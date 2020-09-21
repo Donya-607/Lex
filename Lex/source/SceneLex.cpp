@@ -353,12 +353,13 @@ public:
 	{
 		ClearBackGround();
 		
-		const Donya::Vector4x4 VP = iCamera.CalcViewMatrix() * iCamera.GetProjectionMatrix();
+		const Donya::Vector4x4 V  = iCamera.CalcViewMatrix();
+		const Donya::Vector4x4 VP = V * iCamera.GetProjectionMatrix();
 		const Donya::Vector4   cameraPos{ iCamera.GetPosition(), 1.0f };
 
 		grid.Draw( VP );
 		
-		DrawModels( cameraPos, VP );
+		DrawModels( cameraPos, V, VP );
 		
 		DrawOriginCube( VP );
 		
@@ -443,7 +444,7 @@ private:
 		// cube.Render( nullptr, true, true, W *VP, W, directionalLight.direction, color );
 	}
 
-	void DrawModels( const Donya::Vector4 &cameraPos, const Donya::Vector4x4 &VP )
+	void DrawModels( const Donya::Vector4 &cameraPos, const Donya::Vector4x4 &V, const Donya::Vector4x4 &VP )
 	{
 		if ( models.empty() ) { return; }
 		// else
@@ -457,6 +458,7 @@ private:
 		cbuffer.perScene.data.directionalLight.color		= directionalLight.color;
 		cbuffer.perScene.data.directionalLight.direction	= directionalLight.direction;
 		cbuffer.perScene.data.eyePosition					= cameraPos;
+		cbuffer.perScene.data.viewMatrix					= V;
 		cbuffer.perScene.data.viewProjMatrix				= VP;
 		cbuffer.perScene.Activate( 0, /* setVS = */ true, /* setPS = */ true );
 
@@ -490,7 +492,7 @@ private:
 			}
 		};
 
-		auto Render				= [&]( const MeshAndInfo &target, const RegisterDesc &descPerMesh, const RegisterDesc &descPerSubset, const RegisterDesc &descDiffuseMap, bool skinningVer )
+		auto Render				= [&]( const MeshAndInfo &target, const RegisterDesc &descPerMesh, const RegisterDesc &descPerSubset, const RegisterDesc &descDiffuseMap, const RegisterDesc &descNormalMap, bool skinningVer )
 		{
 			if ( skinningVer )
 			{
@@ -500,7 +502,8 @@ private:
 					target.pose,
 					descPerMesh,
 					descPerSubset,
-					descDiffuseMap
+					descDiffuseMap,
+					descNormalMap
 				);
 			}
 			else
@@ -511,7 +514,8 @@ private:
 					target.pose,
 					descPerMesh,
 					descPerSubset,
-					descDiffuseMap
+					descDiffuseMap,
+					descNormalMap
 				);
 			}
 		};
@@ -529,6 +533,7 @@ private:
 		const auto descMesh		= RegisterDesc::Make( 2, /* setVS = */ true, /* setPS = */ false );
 		const auto descSubset	= RegisterDesc::Make( 3, /* setVS = */ false, /* setPS = */ true );
 		const auto descDiffuse	= RegisterDesc::Make( 0, /* setVS = */ false, /* setPS = */ true );
+		const auto descNormal	= RegisterDesc::Make( 1, /* setVS = */ false, /* setPS = */ true );
 
 		Donya::Vector4x4 W;
 		for ( const auto &it : models )
@@ -549,7 +554,7 @@ private:
 
 			ActivateShader( it.useSkinningVersion );
 
-			Render( it, descMesh, descSubset, descDiffuse, it.useSkinningVersion );
+			Render( it, descMesh, descSubset, descDiffuse, descNormal, it.useSkinningVersion );
 
 			DeactivateShader( it.useSkinningVersion );
 
@@ -574,6 +579,7 @@ private:
 			constantsScene.directionalLight.direction	= directionalLight.direction;
 			constantsScene.directionalLight.color		= directionalLight.color;
 			constantsScene.eyePosition					= cameraPos;
+			constantsScene.viewMatrix					= V;
 			constantsScene.viewProjMatrix				= V * P;
 			
 			const Donya::Vector3 eulerRadians
@@ -615,6 +621,7 @@ private:
 		const auto descPerMesh		= Donya::Model::Renderer::Default::DescCBufferPerMesh();
 		const auto descPerSubset	= Donya::Model::Renderer::Default::DescCBufferPerSubset();
 		const auto descDiffuse		= Donya::Model::Renderer::Default::DescDiffuseMap();
+		const auto descNormal		= Donya::Model::Renderer::Default::DescNormalMap();
 		if ( data.useSkinningVersion )
 		{
 			renderer.pSkinning->Render
@@ -623,7 +630,8 @@ private:
 				data.pose,
 				descPerMesh,
 				descPerSubset,
-				descDiffuse
+				descDiffuse,
+				descNormal
 			);
 		}
 		else
@@ -634,7 +642,8 @@ private:
 				data.pose,
 				descPerMesh,
 				descPerSubset,
-				descDiffuse
+				descDiffuse,
+				descNormal
 			);
 		}
 

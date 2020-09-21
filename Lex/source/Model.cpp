@@ -245,19 +245,26 @@ namespace Donya
 			pDest->indexCount	= source.indexCount;
 			pDest->indexStart	= source.indexStart;
 
-			struct Bundle { Model::Material *dest; const Source::Material &source; };
+			struct Bundle
+			{
+				Model::Material			*dest;
+				const Source::Material	&source;
+				const Donya::Vector3	dummyColor;
+			};
 			Bundle createList[]
 			{
-				{ &pDest->ambient,  source.ambient  },
-				{ &pDest->diffuse,  source.diffuse  },
-				{ &pDest->specular, source.specular },
+				{ &pDest->ambient,	source.ambient,		{ 1.0f, 1.0f, 1.0f } },
+				{ &pDest->diffuse,	source.diffuse,		{ 1.0f, 1.0f, 1.0f } },
+				{ &pDest->specular,	source.specular,	{ 1.0f, 1.0f, 1.0f } },
+				{ &pDest->emissive,	source.emissive,	{ 1.0f, 1.0f, 1.0f } },
+				{ &pDest->normal,	source.normal,		{ 0.5f, 0.5f, 1.0f } },
 			};
 
 			bool succeeded = true;
 			for ( auto &it : createList )
 			{
 				/*	INDENT	*/ AssignMaterial( it.dest, it.source );
-				bool  result = CreateMaterial( it.dest, pDevice   );
+				bool  result = CreateMaterial( it.dest, pDevice,  it.dummyColor );
 				if ( !result ) { succeeded = false; }
 			}
 			return succeeded;
@@ -267,7 +274,7 @@ namespace Donya
 			pDest->color		= source.color;
 			pDest->textureName	= source.textureName;
 		}
-		bool Model::CreateMaterial( Model::Material *pDest, ID3D11Device *pDevice )
+		bool Model::CreateMaterial( Model::Material *pDest, ID3D11Device *pDevice, const Donya::Vector3 &dummyColor )
 		{
 			// This method regard as the material info was already fetched by source data.
 			// Because this behave only create a texture.
@@ -300,7 +307,10 @@ namespace Donya
 					pDevice,
 					pDest->pSRV.GetAddressOf(),
 					&pDest->textureDesc,
-					isEnableCache
+					isEnableCache,
+					1U,
+					// NormalMap will use (0.5,0.5,1.0)
+					dummyColor.x, dummyColor.y, dummyColor.z, 1.0f
 				);
 			}
 

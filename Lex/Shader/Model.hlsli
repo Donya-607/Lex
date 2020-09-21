@@ -2,7 +2,8 @@ struct VS_OUT
 {
 	float4		svPos		: SV_POSITION;
 	float4		wsPos		: POSITION;
-	float4		normal		: NORMAL;
+	float4		tsLightVec	: NORMAL0;	// (vertex->light) vector in tangent space
+	float4		tsEyeVec	: NORMAL1;	// (vertex->camera) vector in tangent space
 	float2		texCoord	: TEXCOORD0;
 };
 
@@ -13,8 +14,10 @@ struct DirectionalLight
 };
 cbuffer CBPerScene : register( b0 )
 {
-	DirectionalLight cbDirLight;
-	float4		cbEyePosition;
+	DirectionalLight cbDirLight;	// World space
+	float4		cbEyePosition;		// World space
+	row_major
+	float4x4	cbView;
 	row_major
 	float4x4	cbViewProj;
 };

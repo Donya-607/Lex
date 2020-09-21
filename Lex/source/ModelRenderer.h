@@ -99,9 +99,10 @@ namespace Donya
 				struct Member
 				{
 					static constexpr int DEFAULT_ID = 0;
-					int idDSState	= DEFAULT_ID;
-					int idRSState	= DEFAULT_ID;
-					int idPSSampler	= DEFAULT_ID;
+					int idDSState		= DEFAULT_ID;
+					int idRSState		= DEFAULT_ID;
+					int idPSSamplerD	= DEFAULT_ID;
+					int idPSSamplerN	= DEFAULT_ID;
 					Donya::CBuffer<Constants::PerScene::Common> CBPerScene;
 					Donya::CBuffer<Constants::PerModel::Common> CBPerModel;
 
@@ -222,13 +223,21 @@ namespace Donya
 				/// </summary>
 				static RegisterDesc DescCBufferPerSubset();
 				/// <summary>
-				/// Returns default description of the sampler state.
+				/// Returns default description of the sampler state of diffuse map.
 				/// </summary>
-				static RegisterDesc DescSampler();
+				static RegisterDesc DescDiffuseSampler();
+				/// <summary>
+				/// Returns default description of the sampler state of normal map.
+				/// </summary>
+				static RegisterDesc DescNormalSampler();
 				/// <summary>
 				/// Returns default description of the diffuse map.
 				/// </summary>
 				static RegisterDesc DescDiffuseMap();
+				/// <summary>
+				/// Returns default description of the normal map.
+				/// </summary>
+				static RegisterDesc DescNormalMap();
 			};
 		private:
 			Donya::CBuffer<Constants::PerSubset::Common> CBPerSubset;
@@ -246,7 +255,7 @@ namespace Donya
 			void SetVertexBuffers( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
 			void SetIndexBuffer( const Model &model, size_t meshIndex, ID3D11DeviceContext *pImmediateContext );
 
-			void DrawEachSubsets( const Model &model, size_t meshIndex, const RegisterDesc &subsetSetting, const RegisterDesc &diffuseMapSetting, ID3D11DeviceContext *pImmediateContext );
+			void DrawEachSubsets( const Model &model, size_t meshIndex, const RegisterDesc &subsetSetting, const RegisterDesc &diffuseMapSetting, const RegisterDesc &normalMapSetting, ID3D11DeviceContext *pImmediateContext );
 		private:
 			void UpdateCBPerSubset( const Model &model, size_t meshIndex, size_t subsetIndex, const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
 			void ActivateCBPerSubset( const RegisterDesc &subsetSettings, ID3D11DeviceContext *pImmediateContext );
@@ -272,7 +281,7 @@ namespace Donya
 		public:
 			/// <summary>
 			/// The "cbufferPerMesh" and "cbufferPerSubset" are used as a cbuffer's slot in HLSL.<para></para>
-			/// The "textureMapDiffuse" is used as a Texture2D's slot in HLSL.<para></para>
+			/// The "textureMapDiffuse" and "textureMapNormal" is used as a Texture2D's slot in HLSL.<para></para>
 			/// If you set nullptr to "pImmediateContext", use default device-context.
 			/// </summary>
 			void Render
@@ -282,6 +291,7 @@ namespace Donya
 				const RegisterDesc	&cbufferPerMesh,
 				const RegisterDesc	&cbufferPerSubset,
 				const RegisterDesc	&textureMapDiffuse,
+				const RegisterDesc	&textureMapNormal,
 				ID3D11DeviceContext	*pImmediateContext = nullptr
 			);
 		private:
@@ -303,7 +313,7 @@ namespace Donya
 		public:
 			/// <summary>
 			/// The "cbufferPerMesh" and "cbufferPerSubset" are used as a cbuffer's slot in HLSL.<para></para>
-			/// The "textureMapDiffuse" is used as a Texture2D's slot in HLSL.<para></para>
+			/// The "textureMapDiffuse" and "textureMapNormal" is used as a Texture2D's slot in HLSL.<para></para>
 			/// If you set nullptr to "pImmediateContext", use default device-context.
 			/// </summary>
 			void Render
@@ -313,6 +323,7 @@ namespace Donya
 				const RegisterDesc	&cbufferPerMesh,
 				const RegisterDesc	&cbufferPerSubset,
 				const RegisterDesc	&textureMapDiffuse,
+				const RegisterDesc	&textureMapNormal,
 				ID3D11DeviceContext	*pImmediateContext = nullptr
 			);
 		private:

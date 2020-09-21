@@ -6,6 +6,7 @@ cbuffer CBPerSubset : register( b3 )
 	float4	cbAmbient;
 	float4	cbDiffuse;
 	float4	cbSpecular;
+	float4	cbEmissive;
 };
 
 float3 CalcLightInfluence( float4 lightColor, float3 nwsPixelToLightVec, float3 nwsPixelNormal, float3 nwsEyeVector )
@@ -27,20 +28,24 @@ float3 CalcLightInfluence( float4 lightColor, float3 nwsPixelToLightVec, float3 
 }
 
 Texture2D		diffuseMap			: register( t0 );
+Texture2D		normalMap			: register( t1 );
 SamplerState	diffuseMapSampler	: register( s0 );
+SamplerState	normalMapSampler	: register( s1 );
 
 float4 main( VS_OUT pin ) : SV_TARGET
 {
-			pin.normal		= normalize( pin.normal );
-			
-	float3	nLightVec		= normalize( -cbDirLight.direction.rgb );	// Vector from position.
-	float4	nEyeVector		= normalize( cbEyePosition - pin.wsPos );	// Vector from position.
-
+			pin.tsLightVec	= normalize( pin.tsLightVec	);
+			pin.tsEyeVec	= normalize( pin.tsEyeVec	);
+	
+	float4	normalMapColor	= normalMap.Sample( normalMapSampler, pin.texCoord );
+			normalMapColor	= SRGBToLinear( normalMapColor );
+	float4	tsNormal		= float4( normalize( SampledToNormal( normalMapColor.xyz ) ), 0.0f );
+	
 	float4	diffuseMapColor	= diffuseMap.Sample( diffuseMapSampler, pin.texCoord );
 			diffuseMapColor	= SRGBToLinear( diffuseMapColor );
 	float	diffuseMapAlpha	= diffuseMapColor.a;
 
-	float3	totalLight		= CalcLightInfluence( cbDirLight.color, nLightVec, pin.normal.rgb, nEyeVector.rgb );
+	float3	totalLight		= CalcLightInfluence( cbDirLight.color, pin.tsLightVec.xyz, tsNormal.xyz, pin.tsEyeVec.xyz );
 
 	float3	resultColor		= diffuseMapColor.rgb * totalLight;
 	float4	outputColor		= float4( resultColor, diffuseMapAlpha * cbDiffuse.a );

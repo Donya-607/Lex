@@ -11,6 +11,44 @@ float4 LinearToSRGB( float4 colorLinear )
 	return pow( colorLinear, 1.0f / 2.2f );
 }
 
+// Convert to normal from texture's color.
+// 0.0f -> -1.0f
+// 0.5f ->  0.0f
+// 1.0f -> +1.0f
+float3 SampledToNormal( float3 sampledColor )
+{
+	return ( sampledColor * 2.0f ) - 1.0f;
+}
+
+// Calculate the matrix that transforms to tangent space from an arguments belong space.
+// Argument.tangent  : The tangent(U) of unit vector.
+// Argument.binormal : The binormal(V) of unit vector.
+// Argument.normal   : The normal(Z) of unit vector.
+float4x4 MakeMatrixToTangentSpace( float3 tangent, float3 binormal, float3 normal )
+{
+	float4x4 M =
+	{
+		float4( tangent,	0.0f ),
+		float4( binormal,	0.0f ),
+		float4( normal,		0.0f ),
+		float4( 0.0f, 0.0f, 0.0f, 1.0f )
+	};
+	// Inverse of regular-orthogonal matrix
+	return transpose( M );
+}
+// Calculate the matrix that transforms to tangent space from an arguments belong space.
+// Argument.tangent : The tangent(U) of unit vector.
+// Argument.normal : The normal(Z) of unit vector.
+float4x4 MakeMatrixToTangentSpace( float3 tangent, float3 normal )
+{
+	return MakeMatrixToTangentSpace
+	(
+		tangent,
+		normalize( cross( normal, tangent ) ),
+		normal
+	);
+}
+
 // Calculate diffuse reflection.
 // Argument.nwsNormal : The normal of normalized world space.
 // Argument.nwsToLightVec : The light vector of normalized world space. this vector is "position -> light".

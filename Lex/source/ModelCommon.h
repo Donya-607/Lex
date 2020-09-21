@@ -38,8 +38,8 @@ namespace Donya
 			struct Pos
 			{
 				Donya::Vector3	position;
-				Donya::Vector3	normal;
-				Donya::Vector3	tangent;
+				Donya::Vector3	normal;		// Unit vector
+				Donya::Vector3	tangent;	// Unit vector
 			public:
 				constexpr Pos()
 					: position(), normal(), tangent() {}
@@ -50,10 +50,11 @@ namespace Donya
 			public:
 				static constexpr const auto GenerateInputElements( UINT inputSlot )
 				{
-					return std::array<D3D11_INPUT_ELEMENT_DESC, 2>
+					return std::array<D3D11_INPUT_ELEMENT_DESC, 3>
 					{
 						D3D11_INPUT_ELEMENT_DESC{ "POSITION"	, 0, DXGI_FORMAT_R32G32B32_FLOAT,	inputSlot, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
 						D3D11_INPUT_ELEMENT_DESC{ "NORMAL"		, 0, DXGI_FORMAT_R32G32B32_FLOAT,	inputSlot, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
+						D3D11_INPUT_ELEMENT_DESC{ "TANGENT"		, 0, DXGI_FORMAT_R32G32B32_FLOAT,	inputSlot, D3D11_APPEND_ALIGNED_ELEMENT,	D3D11_INPUT_PER_VERTEX_DATA, 0 },
 					};
 				}
 			private:
@@ -325,6 +326,7 @@ namespace Donya
 				{
 					DirectionalLight directionalLight;
 					Donya::Vector4   eyePosition;
+					Donya::Vector4x4 viewMatrix;		// World space -> View space
 					Donya::Vector4x4 viewProjMatrix;	// World space -> NDC(actually Clip space)
 				};
 			}
@@ -379,6 +381,7 @@ namespace Donya
 					Donya::Vector4 ambient;
 					Donya::Vector4 diffuse;
 					Donya::Vector4 specular;
+					Donya::Vector4 emissive;
 				};
 			}
 		}
