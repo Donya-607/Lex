@@ -40,7 +40,7 @@ float4 main( VS_OUT pin ) : SV_TARGET
 	float4	normalMapColor	= normalMap.Sample( normalMapSampler, pin.texCoord );
 			normalMapColor	= SRGBToLinear( normalMapColor );
 	float4	tsNormal		= float4( normalize( SampledToNormal( normalMapColor.xyz ) ), 0.0f );
-	
+
 	float4	diffuseMapColor	= diffuseMap.Sample( diffuseMapSampler, pin.texCoord );
 			diffuseMapColor	= SRGBToLinear( diffuseMapColor );
 	float	diffuseMapAlpha	= diffuseMapColor.a;

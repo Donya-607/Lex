@@ -915,8 +915,8 @@ namespace Donya
 				UpdateCBPerSubset( model, meshIndex, j, descSubset, pImmediateContext );
 
 				ActivateCBPerSubset( descSubset, pImmediateContext );
-				SetTexture( descDiffuseMap, subset.diffuse.pSRV.GetAddressOf(), pImmediateContext );
-				SetTexture( descNormalMap, subset.diffuse.pSRV.GetAddressOf(), pImmediateContext );
+				SetTexture( descDiffuseMap,	subset.diffuse.pSRV.GetAddressOf(),	pImmediateContext );
+				SetTexture( descNormalMap,	subset.normal.pSRV.GetAddressOf(),	pImmediateContext );
 
 				DrawIndexed( model, meshIndex, j, pImmediateContext );
 

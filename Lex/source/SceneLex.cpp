@@ -470,8 +470,8 @@ private:
 
 		Donya::DepthStencil::Activate( idDSState );
 		Donya::Rasterizer::Activate( idRSState );
-		Donya::Sampler::Activate( idPSSamplerD, 0, /* setVSS = */ false, /* setPS = */ true );
-		Donya::Sampler::Activate( idPSSamplerN, 1, /* setVSS = */ false, /* setPS = */ true );
+		Donya::Sampler::Activate( idPSSamplerD, 0, /* setVS = */ false, /* setPS = */ true );
+		Donya::Sampler::Activate( idPSSamplerN, 1, /* setVS = */ false, /* setPS = */ true );
 
 		cbuffer.perScene.data.directionalLight.color		= directionalLight.color;
 		cbuffer.perScene.data.directionalLight.direction	= directionalLight.direction;
@@ -548,7 +548,7 @@ private:
 			);
 		};
 
-		const auto descMesh		= RegisterDesc::Make( 2, /* setVS = */ true, /* setPS = */ false );
+		const auto descMesh		= RegisterDesc::Make( 2, /* setVS = */ true,  /* setPS = */ false );
 		const auto descSubset	= RegisterDesc::Make( 3, /* setVS = */ false, /* setPS = */ true );
 		const auto descDiffuse	= RegisterDesc::Make( 0, /* setVS = */ false, /* setPS = */ true );
 		const auto descNormal	= RegisterDesc::Make( 1, /* setVS = */ false, /* setPS = */ true );
