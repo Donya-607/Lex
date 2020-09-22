@@ -1240,6 +1240,14 @@ namespace Donya
 		if ( !ImGui::TreeNode( nodeCaption.c_str() ) ) { return; }
 		// else
 
+		if ( ImGui::Button( u8"Re-Calculate Tangent Vectors(Does not apply to the viewer)" ) )
+		{
+			for ( auto &mesh : source.meshes )
+			{
+				CalcTangentVectors( &mesh.positions, mesh.texCoords, mesh.indices );
+			}
+		}
+
 		const size_t meshCount = source.meshes.size();
 		for ( size_t i = 0; i < meshCount; ++i )
 		{
