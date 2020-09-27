@@ -528,15 +528,19 @@ namespace Donya
 				Clamp( G );
 				Clamp( A );
 
-				int r = scast<unsigned int>( R * 255.0f );
-				int g = scast<unsigned int>( G * 255.0f );
-				int b = scast<unsigned int>( B * 255.0f );
-				int a = scast<unsigned int>( A * 255.0f );
+				unsigned int r = scast<unsigned int>( R * 255.0f );
+				unsigned int g = scast<unsigned int>( G * 255.0f );
+				unsigned int b = scast<unsigned int>( B * 255.0f );
+				unsigned int a = scast<unsigned int>( A * 255.0f );
 
-				RGBA = ( r << 24 ) | ( g << 16 ) | ( b << 8 ) | ( a << 0 );
+				// TODO: Branch by endianness
+				// RGBA = ( r << 24 ) | ( g << 16 ) | ( b << 8 ) | ( a << 0 );
+				RGBA = ( a << 24 ) | ( b << 16 ) | ( g << 8 ) | ( r << 0 );
 			}
 
-			std::wstring dummyFileName = L"UnicolorTexture:[RGBA:" + std::to_wstring( RGBA ) + L"]";
+			std::wstring dummyFileName = L"SYSTEM_Unicolor:";
+			dummyFileName += L"[RGBA:"		+ std::to_wstring( RGBA			) + L"]";
+			dummyFileName += L"[DIMENSION:"	+ std::to_wstring( dimensions	) + L"]";
 			auto &it = spriteCache.find( dummyFileName );
 			if ( it != spriteCache.end() )
 			{

@@ -50,6 +50,7 @@ float4 main( VS_OUT pin ) : SV_TARGET
 	float3	resultColor		= diffuseMapColor.rgb * totalLight;
 	float4	outputColor		= float4( resultColor, diffuseMapAlpha * cbDiffuse.a );
 			outputColor		= outputColor * cbDrawColor;
+			outputColor.rgb	= outputColor.rgb + ( cbEmissive.rgb * cbEmissive.w );
 	clip (	outputColor.a );
 	return	LinearToSRGB( outputColor );
 }

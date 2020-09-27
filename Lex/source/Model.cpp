@@ -339,6 +339,8 @@ namespace Donya
 				AssignMaterial( &subset.ambient,	source.ambient	);
 				AssignMaterial( &subset.diffuse,	source.diffuse	);
 				AssignMaterial( &subset.specular,	source.specular	);
+				AssignMaterial( &subset.emissive,	source.emissive	);
+				AssignMaterial( &subset.normal,		source.normal	);
 
 				return true;
 			};
