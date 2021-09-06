@@ -1010,7 +1010,7 @@ private:
 		constexpr float DEFAULT_FOV		= ToRadian( 30.0f );
 		constexpr float MOVE_SPEED		= 1.0f;
 		constexpr float FRONT_SPEED		= 3.0f;
-		constexpr float ROT_SPEED		= ToRadian( 1.0f );
+		constexpr float ROT_SPEED		= 2.5f;
 
 		cameraOp.zNear			= DEFAULT_NEAR;
 		cameraOp.zFar			= DEFAULT_FAR;
@@ -1084,8 +1084,9 @@ private:
 		float roll{}, pitch{}, yaw{};
 		if ( nowPressMouseButton == VK_LBUTTON )
 		{
-			yaw   = csMouseMove.x * cameraOp.rotateSpeed;
-			pitch = csMouseMove.y * cameraOp.rotateSpeed;
+			const float dollyingDist = ( iCamera.GetFocusPoint() - iCamera.GetPosition() ).Length();
+			yaw   = csMouseMove.x / dollyingDist * cameraOp.rotateSpeed;
+			pitch = csMouseMove.y / dollyingDist * cameraOp.rotateSpeed;
 			roll  = 0.0f; // Unused.
 
 			if ( cameraOp.reverseRotateHorizontal ) { yaw   *= -1.0f; }
